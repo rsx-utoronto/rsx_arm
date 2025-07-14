@@ -1,0 +1,52 @@
+# === ROS 2 build artifacts ===
+build/
+install/
+log/
+
+# === Python cache files ===
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+*.egg
+*.pyd
+
+# === CMake & colcon artifacts ===
+CMakeFiles/
+CMakeCache.txt
+colcon_install_layout.*
+ament_cmake_environment_hooks/
+*.cmake
+
+# === Test and coverage outputs ===
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# === Editors and IDEs ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*~
+
+# === Miscellaneous ===
+.DS_Store
+.env
+.envrc
+*.orig
+
+# === Python virtual environments ===
+venv/
+env/
+.venv/
+arm_env/
+
+# === Ignore requirements lock files if generated ===
+poetry.lock
+Pipfile.lock
