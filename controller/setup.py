@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'arm_controller = controller.arm_controller:main',
+            'arm_keyboard_controller = controller.arm_keyboard_controller:main',
         ],
     },
 )

@@ -5,3 +5,6 @@ typeguard
 empy
 lark
 numpy
+python-xlib
+evdev
+pynput
