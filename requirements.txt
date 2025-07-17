@@ -2,7 +2,7 @@ catkin_pkg
 pyyaml
 jinja2
 typeguard
-empy
+empy<4
 lark
 numpy
 python-xlib
