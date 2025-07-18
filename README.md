@@ -31,7 +31,7 @@ cd ~/arm_ros2_ws
 2. Clone this repository
 ```bash
 cd src
-git clone https://github.com/rsx-utoronto/arm-ros2.git
+git clone https://github.com/rsx-utoronto/rsx_arm.git
 ```
 
 3. Run the new_repo_setup.sh script to get the environment set up!
