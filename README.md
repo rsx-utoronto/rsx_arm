@@ -36,6 +36,7 @@ git clone https://github.com/rsx-utoronto/rsx_arm.git
 
 3. Run the new_repo_setup.sh script to get the environment set up!
 ```bash
+cd rsx_arm
 source new_repo_setup.sh
 ```
 The final command above also gives you access to the ```workon_arm``` and ```build_arm``` commands for a convenient way to, well, work on and build the arm. 😊
