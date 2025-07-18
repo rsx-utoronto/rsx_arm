@@ -32,14 +32,13 @@ colcon build && \
 workspace_dir=$(pwd) && \
 
 # A helper command to enter the workspace
-alias workon_arm="cd $workspace_dir && source /opt/ros/jazzy/setup.bash && source arm_env/bin/activate && source install/setup.bash" && \
 echo -e "\nalias workon_arm='cd $workspace_dir && source /opt/ros/jazzy/setup.bash && source arm_env/bin/activate && source install/setup.bash'" >> ~/.bashrc && \
-workon_arm && \
 
 # Another helper to build arm code
-alias build_arm="workon_arm && colcon build" && \
 echo -e "\nalias build_arm='workon_arm && colcon build'" >> ~/.bashrc && \
-build_arm && \
+
+# Run the two helper commands
+source ~/.bashrc && workon_arm && build_arm && \
 
 # Make sure colcon doesn't try to build the virtual environment
 touch arm_env/COLCON_IGNORE && \
