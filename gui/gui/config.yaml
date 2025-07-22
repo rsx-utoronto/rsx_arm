@@ -1,0 +1,9 @@
+camera_topics:
+  - name: "Arm Wrist Camera"
+    topic: "/camera/color/image_raw/compressed"
+    compressed: true
+  - name: "Masts Camera"
+    topic: "/camera/color/image_king"
+    compressed: false
+
+camera_aspect_ratio: 9/16
