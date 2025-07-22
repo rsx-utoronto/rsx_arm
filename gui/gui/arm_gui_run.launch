@@ -1,4 +1,0 @@
-<launch>
-    <param name="run_gui" command="bash run_gui.sh"/>
-</launch>
-   
