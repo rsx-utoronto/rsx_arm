@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 
-# A similar file to CAN_send, but for the last motor and its power
-
-from CAN_utilities import *
+from .CAN_utilities import *
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from std_msgs.msg import Float32MultiArray
 
 class CAN_Send(Node):
@@ -23,32 +20,25 @@ class CAN_Send(Node):
 		self.pub_rate = 2000
 		self.triggered = 0
 
-		# Subscriber buffers (CHANGE)
+		# Subscriber buffers
 		self.CURR_POS			= [0, 0, 0, 0, 0, 0, 0] # ADDED BACK 7TH MOTOR
 		self.SAFE_GOAL_POS	 	= [0, 0, 0, 0, 0, 0, 0]	# ADDED BACK 7TH MOTOR
 
-		qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RELIABLE,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10
-        )
-
-		# Variables for ROS publishers and subscribers (CHANGE?)
+		# Variables for ROS publishers and subscribers
 		self.SafePos_sub 		= self.create_subscription(
 			Float32MultiArray, 
 			"arm_safe_goal_pos", 
 			self.callback_SafePos, 
-			qos_profile # qos profile is set to reliable and keep last
+			10
 		)
 		self.CurrPos_sub		= self.create_subscription(
 			Float32MultiArray, 
 			"arm_curr_pos", 
 			self.callback_CurrPos, 
-			qos_profile # qos profile is set to reliable and keep last
+			10
 		)
 
 		# Create timer for sending messages
-		# Right now, calls send_msgs_callback every 1/2000 seconds (0.0005 seconds)
 		self.timer = self.create_timer(1.0/self.pub_rate, self.send_msgs_callback)
 	
 	def callback_CurrPos(self, data : Float32MultiArray):
@@ -88,7 +78,6 @@ class CAN_Send(Node):
 		"""
 		Timer callback function for sending CAN messages at regular intervals
 		"""
-		
 		if not self.triggered:
 			return
 
@@ -110,10 +99,7 @@ class CAN_Send(Node):
 			else:
 				break
 
-
-
-if __name__=="__main__":
-        
+def main():
 	# # Instantiate CAN bus
 	# initialize_bus()
 
@@ -146,3 +132,6 @@ if __name__=="__main__":
 		task.stop()
 		CAN_Send_Node.destroy_node()
 		rclpy.shutdown()
+
+if __name__=="__main__":
+    main()
