@@ -14,6 +14,8 @@ class CAN_Recv(Node):
     """
 
     def __init__(self):
+        print("gurt:yo")
+
         super().__init__('CAN_Recv')
         
         # Attributes to hold data from publishers or to publish
@@ -141,7 +143,7 @@ def main():
     rclpy.init()
 
     # Setup and run node
-    CAN_Recv_node = Node('CAN_Recv')
+    CAN_Recv_node = CAN_Recv()
 
     try:
         rclpy.spin(CAN_Recv_node)
