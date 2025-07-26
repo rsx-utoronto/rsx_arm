@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import rclpy
+from rclpy.node import Node
 from std_msgs.msg import *
 from enum import Enum
 import time
@@ -18,7 +19,7 @@ class Errors(Enum):
 
 ############### CLASSES ###############
 
-class Safety_Node():
+class Safety_Node(Node):
     """
     (None)
 
@@ -27,7 +28,7 @@ class Safety_Node():
     """
 
     def __init__(self):
-
+        super().__init__('Safety')
         # Attributes to hold data from subscribed topics
         self.GOAL_POS             = [0, 0, 0, 0, 0, 0, 0]
         self.CURR_POS             = [0, 0, 0, 0, 0, 0, 0]
@@ -48,15 +49,15 @@ class Safety_Node():
         self.FIRST                = [True, True, True, True, True, True, True]
 
         # Variables for ROS publishers and subscribers
-        self.Goal_sub             = rclpy.Subscriber("arm_goal_pos", Float32MultiArray, self.callback_Goal)
-        self.MotorCurr_sub        = rclpy.Subscriber("arm_motor_curr", Float32MultiArray, self.callback_MotorCurr)
-        self.CurrPos_sub          = rclpy.Subscriber("arm_curr_pos", Float32MultiArray, self.callback_CurrPos)
-        self.LimitSwitch_sub      = rclpy.Subscriber("arm_limit_switch", UInt8MultiArray, self.callback_LimitSwitch)
-        self.KillSwitch_sub       = rclpy.Subscriber("arm_killswitch", UInt8, self.callback_KillSwitch)
-        self.State_sub            = rclpy.Subscriber("arm_state", String, self.CallbackState)
-        self.SafePos_pub          = rclpy.Publisher("arm_safe_goal_pos", Float32MultiArray, queue_size= 0)
-        self.Error_pub            = rclpy.Publisher("arm_error_msg", UInt8MultiArray, queue_size= 0)
-        self.Offset_pub           = rclpy.Publisher("arm_error_offset", Float32MultiArray, queue_size= 0)
+        self.Goal_sub             = self.create_subscription(Float32MultiArray, "arm_goal_pos", self.callback_Goal, 10)
+        self.MotorCurr_sub        = self.create_subscription(Float32MultiArray, "arm_motor_curr", self.callback_MotorCurr, 10)
+        self.CurrPos_sub          = self.create_subscription(Float32MultiArray, "arm_curr_pos", self.callback_CurrPos, 10)
+        self.LimitSwitch_sub      = self.create_subscription(UInt8MultiArray, "arm_limit_switch", self.callback_LimitSwitch, 10)
+        self.KillSwitch_sub       = self.create_subscription(UInt8, "arm_killswitch", self.callback_KillSwitch, 10)
+        self.State_sub            = self.create_subscription(String, "arm_state", self.CallbackState, 10)
+        self.SafePos_pub          = self.create_publisher(Float32MultiArray, "arm_safe_goal_pos", 10)
+        self.Error_pub            = self.create_publisher(UInt8MultiArray, "arm_error_msg", 10)
+        self.Offset_pub           = self.create_publisher(Float32MultiArray, "arm_error_offset", 10)
 
     def callback_KillSwitch(self, data : UInt8):
         """
@@ -472,15 +473,15 @@ def main() -> None:
 
     try:
         # Initialize a ROS node
-        rclpy.init_node("Arm_Safety")
+        rclpy.init()
 
         # Set all the publishers and subscribers of the node
         Safety = Safety_Node()
 
         # ROS spin to keep the node alive
-        rclpy.spin()
+        rclpy.spin(Safety)
 
-    except rclpy.ROSInterruptException:
+    except KeyboardInterrupt:
         pass
 
 if __name__ == "__main__":
