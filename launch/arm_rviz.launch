@@ -1,0 +1,46 @@
+<launch>
+   <!-- Load the urdf into the parameter server. -->
+   <param name="gazebo_on" type="boolean" value="false"/>
+   <param name="robot_description" command="$(find xacro)/xacro --inorder $(find arm_science_urdf_v2_2025)/urdf/arm_science_urdf_v2_2025.urdf"/>
+
+   <arg name="ik_on" default="false"/>
+   <arg name="rvizconfig" default="$(find rover)/rover/simulation/rviz_config/arm_urdf.rviz"/>
+
+   <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub"/>
+
+   <!-- <node name="arm_ik" pkg="rover" type="arm_inverse_kinematics.py" if="$(arg ik_on)" output="screen"/> -->
+   <node name="arm_visualization" pkg="rover" type="arm_viz.py" output="screen"/>
+   <!-- <node name="fake_manual" pkg="rover" type="fake_manual.py" if="$(arg ik_on)" output="screen"/> -->
+   <node unless="$(arg ik_on)" name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui"/>
+
+   <!-- <arg name="serial_no"             default=""/>
+   <arg name="json_file_path"        default=""/>
+   <arg name="camera"                default="camera"/> -->
+
+   <!-- <group ns="$(arg camera)">
+      <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
+         <arg name="serial_no"         value="$(arg serial_no)"/>
+         <arg name="json_file_path"    value="$(arg json_file_path)"/>
+         <arg name="depth_width"       value="640"/>
+         <arg name="depth_height"      value="480"/>
+         <arg name="depth_fps"         value="30"/>
+         <arg name="color_width"       value="640"/>
+         <arg name="color_height"      value="480"/>
+         <arg name="color_fps"         value="30"/>
+         <arg name="enable_depth"      value="true"/>
+         <arg name="enable_color"      value="true"/>
+         <arg name="enable_infra1"     value="false"/>
+         <arg name="enable_infra2"     value="false"/>
+         <arg name="enable_fisheye"    value="false"/>
+         <arg name="enable_gyro"       value="false"/>
+         <arg name="enable_accel"      value="false"/>
+         <arg name="enable_pointcloud" value="true"/>
+         <arg name="enable_sync"       value="true"/>
+         <arg name="tf_prefix"         value="$(arg camera)"/>
+      </include>
+   </group> -->
+
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true"/>
+   
+</launch>
+   

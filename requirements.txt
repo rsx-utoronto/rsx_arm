@@ -8,3 +8,6 @@ numpy
 python-xlib
 evdev
 pynput
+scipy
+geometry_msgs
+rclpy

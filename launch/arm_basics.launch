@@ -1,0 +1,33 @@
+<launch>
+
+   <node name="Arm_Controller" pkg="rover" type="arm_controller.py" output="screen"/>
+
+   <node name="Arm_Manual" pkg="rover" type="manual.py" output="screen"/>
+
+   <node name="Arm_Safety" pkg="rover" type="safety.py" output="screen"/>
+
+   <!--node name="repub_wrist_cam" pkg="rover" type="repub_wrist_cam.py" output="screen"/-->
+
+   <!-- LIK+VIZ LAUNCH STEPS -->
+   <!-- Load the urdf into the parameter server. -->
+   <!-- <param name="gazebo_on" type="boolean" value="false"/>
+   <param name="robot_description" command="$(find xacro)/xacro inorder $(find rover)/rover/simulation/urdfs/Arm_2023/Arm_2023.xacro"/>
+
+   <arg name="ik_on" default="false"/>
+   <arg name="rvizconfig" default="$(find rover)/rover/simulation/rviz_config/arm_urdf.rviz"/>
+
+   <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub"/>
+
+   <node name="arm_ik_and_viz" pkg="rover" type="arm_ik_and_viz.py" if="$(arg ik_on)" output="screen"/>
+   <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" unless="$(arg ik_on)"/>
+
+   <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true"/> -->
+
+   <!-- STARTING CAN NODES-->
+
+   <!--node name="CAN_send" pkg="rover" type="CAN_send.py" output="screen"/>
+
+   <node name="CAN_recv" pkg="rover" type="CAN_send.py" output="screen"/-->
+   
+</launch>
+   
