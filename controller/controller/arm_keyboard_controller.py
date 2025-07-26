@@ -3,10 +3,10 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from arm_msgs.msg import ArmInputs
+from rover.msg import ArmInputs
 from pynput import keyboard
 
-class KeyboardControllerNode(Node):
+class KeyboardControllerNode():
     def __init__(self):
         super().__init__('arm_keyboard_controller')
 
