@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'can'
+package_name = 'arm_can'
 
 setup(
     name=package_name,
@@ -20,6 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "can_recv = arm_can.CAN_recv:main",
+            "can_send = arm_can.CAN_send:main"
         ],
     },
 )
