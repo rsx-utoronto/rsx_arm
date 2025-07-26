@@ -7,6 +7,11 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import String, UInt8
 from arm_msgs.msg import ArmInputs
 
+#TODO 
+# from utils.arm_input_utils import reset_arm_inputs
+# from utils.key_mappings import map_key_to_input
+
+
 # import arm_serial_connector as arm_serial
 #from rover.srv import Corrections
 
@@ -20,7 +25,7 @@ class Controller(Node):
     """
     (None)
 
-    This class represents an instance of controller node and connects the node to 
+    This class represents an instance ofrom utils.key_mappings import map_key_to_inputf controller node and connects the node to 
     its publishing and subscribing topics
     """
 
@@ -59,6 +64,10 @@ class Controller(Node):
         self.values.r2           = 0
         self.values.x            = 0
         self.values.o            = 0
+
+        #TODO: Delete lines 51 - 61 and replace with: 
+        # self.values = reset_arm_inputs()
+
 
 
         # Publishers
@@ -257,6 +266,7 @@ class Controller(Node):
         self.values.options         = rawButtons[9]
         self.values.l3              = rawButtons[11]
         self.values.r3              = rawButtons[12]
+
 
         # Check if analog sticks are not moving and triggers are not pressed 
         # and any other buttons are not pressed. If any of them is false, then do not

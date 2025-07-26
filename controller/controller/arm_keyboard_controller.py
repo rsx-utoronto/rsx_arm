@@ -6,6 +6,9 @@ from std_msgs.msg import String
 from arm_msgs.msg import ArmInputs
 from pynput import keyboard
 
+#TODO 
+# from utils.arm_input_utils import reset_arm_inputs
+
 class KeyboardControllerNode(Node):
     def __init__(self):
         super().__init__('arm_keyboard_controller')
@@ -37,6 +40,9 @@ class KeyboardControllerNode(Node):
         keyboardToController.share        = 0
         keyboardToController.options      = 0
         keyboardToController.r3    = 0
+
+        #TODO: Delete lines 25 - 39 and replace with: 
+        # keyboardToController = reset_arm_inputs()
 
        
         try:
@@ -85,6 +91,10 @@ class KeyboardControllerNode(Node):
                 keyboardToController.options = 1
             if key.char == "y":
                 keyboardToController.r3 = 1
+            
+            #TODO: Delete lines 46 - 90 and replace with: 
+            # map_key_to_input(key.char, keyboardToController)
+
         except AttributeError:
             # left and right triggers
             if key == keyboard.Key.space:
@@ -122,6 +132,9 @@ class KeyboardControllerNode(Node):
         keyboardToController.share        = 0
         keyboardToController.options      = 0
         keyboardToController.r3    = 0
+
+        #TODO: Delete lines 110 - 124 and replace with: 
+        # keyboardToController = reset_arm_inputs()
 
         self.inputPublisher.publish(keyboardToController)
 
