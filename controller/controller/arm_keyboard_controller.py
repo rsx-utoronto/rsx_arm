@@ -5,9 +5,8 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from arm_msgs.msg import ArmInputs
 from pynput import keyboard
-
-#TODO 
-# from utils.arm_input_utils import reset_arm_inputs
+ 
+from utils.arm_input_utils import reset_arm_inputs
 
 class KeyboardControllerNode(Node):
     def __init__(self):
@@ -25,75 +24,12 @@ class KeyboardControllerNode(Node):
    
 
     def on_press(self, key):
-        keyboardToController = ArmInputs()
 
-        keyboardToController.l_horizontal = 0
-        keyboardToController.l_vertical   = 0
-        keyboardToController.r_horizontal = 0
-        keyboardToController.r_vertical   = 0
-        keyboardToController.l1           = 0
-        keyboardToController.r1           = 0
-        keyboardToController.l2           = 0
-        keyboardToController.r2           = 0
-        keyboardToController.x            = 0
-        keyboardToController.o            = 0
-        keyboardToController.share        = 0
-        keyboardToController.options      = 0
-        keyboardToController.r3    = 0
-
-        #TODO: Delete lines 25 - 39 and replace with: 
-        # keyboardToController = reset_arm_inputs()
+        keyboardToController = reset_arm_inputs()
 
        
         try:
-            # left vertical joystick emulation
-            if key.char == 'w':
-                keyboardToController.l_vertical = 1
-            elif key.char == "s":
-                keyboardToController.l_vertical = -1
-
-            # left horizontal joystick emulation
-            if key.char == "a":
-                keyboardToController.l_horizontal = 1
-            elif key.char == "d":
-                keyboardToController.l_horizontal = -1
-
-            # right vertical joystick emulation
-            if key.char == 'i':
-                keyboardToController.r_vertical = 1
-            elif key.char == "k":
-                keyboardToController.r_vertical = -1
-
-            # right horizontal joystick emulation
-            if key.char == "j":
-                keyboardToController.r_horizontal = 1
-            elif key.char == "l":
-                keyboardToController.r_horizontal = -1
-
-            # shape button emulation
-            if key.char == "p":
-                keyboardToController.x = 1
-            if key.char == "o":
-                keyboardToController.o = 1
-            if key.char == "u":
-                keyboardToController.triangle = 1
-            if key.char == ";":
-                keyboardToController.square = 1
-
-            # other buttons
-            if key.char == "q":
-                keyboardToController.l1 = 1
-            if key.char == "e":
-                keyboardToController.r1 = 1
-            if key.char == "f":
-                keyboardToController.share = 1
-            if key.char == "h":
-                keyboardToController.options = 1
-            if key.char == "y":
-                keyboardToController.r3 = 1
-            
-            #TODO: Delete lines 46 - 90 and replace with: 
-            # map_key_to_input(key.char, keyboardToController)
+            map_key_to_input(key.char, keyboardToController)
 
         except AttributeError:
             # left and right triggers
@@ -117,24 +53,7 @@ class KeyboardControllerNode(Node):
 
     def on_release(self, key):
         # Reset all values to 0 on release
-        keyboardToController = ArmInputs()
-
-        keyboardToController.l_horizontal = 0
-        keyboardToController.l_vertical   = 0
-        keyboardToController.r_horizontal = 0
-        keyboardToController.r_vertical   = 0
-        keyboardToController.l1           = 0
-        keyboardToController.r1           = 0
-        keyboardToController.l2           = 0
-        keyboardToController.r2           = 0
-        keyboardToController.x            = 0
-        keyboardToController.o            = 0
-        keyboardToController.share        = 0
-        keyboardToController.options      = 0
-        keyboardToController.r3    = 0
-
-        #TODO: Delete lines 110 - 124 and replace with: 
-        # keyboardToController = reset_arm_inputs()
+        keyboardToController = reset_arm_inputs()
 
         self.inputPublisher.publish(keyboardToController)
 
