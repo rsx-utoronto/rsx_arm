@@ -5,7 +5,7 @@ from rclpy.node import Node
 import numpy as np
 
 from std_msgs.msg import Float32MultiArray, String, UInt8MultiArray
-from arm_ros2.msg import ArmInputs
+from arm_msgs.msg import ArmInputs
 
 ######################## CLASSES ##########################
 
