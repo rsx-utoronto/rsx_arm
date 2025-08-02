@@ -5,7 +5,7 @@ from rclpy.node import Node
 
 from sensor_msgs.msg import Joy
 from std_msgs.msg import String, UInt8
-from arm_msgs.msg import ArmInputs
+from rover.msg import ArmInputs
 
 # import arm_serial_connector as arm_serial
 #from rover.srv import Corrections
@@ -364,7 +364,6 @@ class Controller(Node):
 
 
 def main(args=None):
-    print("hello from arm_controller.py!")
     rclpy.init(args=args)
     controller_node = Controller()
     try:
