@@ -60,8 +60,11 @@ class CameraCompressNode(Node):
         self.pub = self.create_publisher(Image, 'encoded_image_topic', 10)
         try:
             self.vid = cv2.VideoCapture(0)
+            if not self.vid.isOpened():
+                print("camera could not be loaded")
+                quit()
         except:
-            print('faild to load pic')
+            print('failed to load pic')
             quit()
         self.bridge = CvBridge()
         # Timer replaces while(True)
@@ -69,12 +72,16 @@ class CameraCompressNode(Node):
 
     def capture_and_publish(self):
         ret, img = self.vid.read()
-        # cv2.imshow('Source Image',img)
-        # cv2.waitKey(0)
+        if not ret:
+            print("image not received, exiting")
+            return
+            
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 10]
         result, encimg = cv2.imencode('.jpg', img, encode_param)
-        if not result:
+
+        if not result():
             print('could not encode image!')
+            return
             # quit()
         # #decode from jpeg format
         # decimg = cv2.imdecode(encimg, 1)
