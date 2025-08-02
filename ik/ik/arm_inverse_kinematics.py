@@ -4,16 +4,17 @@
 # Stage 1 focuses on ROS 2 structure, node, and publisher/subscriber migration.
 # Remaining logic will be progressively ported in follow-up iterations.
 
-import rospy
+import rclpy
+from rclpy.node import Node
+import scipy as sp
 import numpy as np
-import ik_library as ik
+from . import ik_library as ik
 import geometry_msgs.msg
-import tf_conversions
 import tf2_ros
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header, Float32MultiArray, String
-from rover.msg import ArmInputs
-from rover.srv import Corrections, CorrectionsResponse, GoToArmPos, GoToArmPosResponse, SaveArmPos, SaveArmPosResponse
+from arm_msgs.msg import ArmInputs
+import tf2_py
 import json
 import copy
 from math import pi
@@ -40,7 +41,8 @@ global nRevTheta
 global prevArmAngles
 
 class ScriptState():
-    def __init__(self) -> None:
+    def __init__(self, ikNode) -> None:
+        self.ikNode = ikNode
         pass
 
     def main(self, ikNode) -> None:
@@ -119,24 +121,24 @@ class ScriptState():
             A list of 4 numbers that represent a frame in space using quaternions. 
             Use to ignore endEffectorPosition paramter. By default is None.
         '''
-        br = tf2_ros.TransformBroadcaster()
+        br = tf2_ros.TransformBroadcaster(self.ikNode)
         t = geometry_msgs.msg.TransformStamped()
         t.header.frame_id = referenceLink
         t.child_frame_id = "target_position"
 
         posArray = endEffectorPosition
-        t.header.stamp = rospy.Time.now()
+        t.header.stamp = self.ikNode.get_clock().now().to_msg()
         t.transform.translation.x = posArray[3][0]
         t.transform.translation.y = posArray[3][1]
         t.transform.translation.z = posArray[3][2]
-        
-        q = tf_conversions.transformations.quaternion_from_euler(posArray[0], posArray[1], posArray[2], 'sxyz')
+        r = sp.spatial.transform.Rotation.from_euler('xyz', [posArray[0], posArray[1], posArray[2]])
+        q = r.as_quat()
         if quaternionAngles != None:
             q = quaternionAngles
-            t.transform.rotation.x = q.x
-            t.transform.rotation.y = q.y
-            t.transform.rotation.z = q.z
-            t.transform.rotation.w = q.w
+            t.transform.rotation.x = q[0]
+            t.transform.rotation.y = q[1]
+            t.transform.rotation.z = q[2]
+            t.transform.rotation.w = q[3]
         else:
             t.transform.rotation.x = q[0]
             t.transform.rotation.y = q[1]
@@ -154,6 +156,7 @@ class ForwardKin(ScriptState):
     def main(self, ikNode) -> None:
         global prevTargetValues
         global curArmAngles
+        global liveArmAngles
         global armPos
 
         curArmAngles = copy.deepcopy(liveArmAngles)
@@ -620,28 +623,25 @@ class CamRelativeIK(RotRelativeIK):
 
         return newTransformation
 
-class InverseKinematicsNode():
+class InverseKinematicsNode(Node):
     
     def __init__(self) -> None:
         global armAngles
         global armPos
-        global correctionsService
-        global goToArmPosService
-        global saveArmPosService
         
-        rospy.init_node("arm_ik")
-        self.rate = rospy.Rate(NODE_RATE) # run at {NODE_RATE}Hz 
+        super().__init__('ik_node')
+        self.rate = self.create_rate(NODE_RATE) # run at {NODE_RATE}Hz 
 
-        armAngles = rospy.Publisher("arm_goal_pos", Float32MultiArray, queue_size=10)
+        armAngles = self.create_publisher(Float32MultiArray, "arm_goal_pos", 10)
 
-        armPos = rospy.Publisher("arm_end_effector_pos", Float32MultiArray, queue_size=10)
+        armPos = self.create_publisher(Float32MultiArray, "arm_end_effector_pos", 10)
 
-        rospy.Subscriber("arm_curr_pos", Float32MultiArray, self.updateLiveArmAngles)
-        rospy.Subscriber("arm_state", String, self.onStateUpdate)
-        rospy.Subscriber("arm_inputs", ArmInputs, self.onControllerUpdate)
-        rospy.Subscriber("ik_targets", Float32MultiArray, self.onIKTargetUpdate)
+        self.create_subscription(Float32MultiArray, "arm_curr_pos", self.updateLiveArmAngles, 10)
+        self.create_subscription(String, "arm_state", self.onStateUpdate, 10)
+        self.create_subscription(ArmInputs, "arm_inputs", self.onControllerUpdate, 10)
+        self.create_subscription(Float32MultiArray, "ik_targets", self.onIKTargetUpdate, 10)
 
-        self.SCRIPT_MODES = [ForwardKin(), DefaultIK(), GlobalIK(), RotRelativeIK(), RelativeIK(), CamRelativeIK()]
+        self.SCRIPT_MODES = [ForwardKin(self), DefaultIK(self), GlobalIK(self), RotRelativeIK(self), RelativeIK(self), CamRelativeIK(self)]
         self.curModeListIndex = 0
         self.scriptMode = self.SCRIPT_MODES[0]
 
@@ -684,135 +684,6 @@ class InverseKinematicsNode():
             buttons[self.BUTTON_NAMES[i]] = button
             
         return buttons
-
-    # ROS Stuff
-
-    def savePosition(self, posName):
-        ''' Service function that saves the current angles the arm is in
-
-        Uses global variable curArmAngles and saves angles to file. Asks for name
-        of position before saving (preferable a GUI).
-
-        Paramters
-        ---------
-        posName
-            the input message of SaveArmPos.srv, or the name to give the position
-        
-        Returns
-        '''
-
-        # (Placeholders for angles 1-5)
-
-        # positionName = input("Enter Position Name: ")
-        try:
-            global curArmAngles
-
-            positionName = posName.positionName
-            print(positionName)
-
-            newAngles = {
-            "title":positionName,
-            "angle0":curArmAngles[0],
-            "angle1":curArmAngles[1],
-            "angle2":curArmAngles[2],
-            "angle3":curArmAngles[3],
-            "angle4":curArmAngles[4],
-            "angle5":curArmAngles[5],
-            "gripperAngle":curArmAngles[6]
-            }
-
-            with open('arm_positions.json','r+') as file:
-                breakLoop = False
-                savedPos = json.load(file)
-                # Checks if any existing positions have same positionName
-                for x in range(len(savedPos["position_names"])):
-                    if breakLoop:
-                        break
-                    if savedPos["position_names"][x]["title"] == positionName: # if found, deletes existing entry
-                        savedPos["position_names"].pop(x)
-                        breakLoop = True
-                # Appends new position to end of file
-                savedPos["position_names"].append(newAngles)
-                file.seek(0)
-                json.dump(savedPos,file,indent = 0)
-                file.close()
-            
-            return SaveArmPosResponse(True)
-        except Exception as ex:
-            print("An error has occured")
-            print(ex)
-            return SaveArmPosResponse(False)
-
-    def goToPosition(self, posName):
-        ''' Pulls up GUI with options of saved joint angles.
-
-        Paramters
-        ---------
-        posName
-            the input data message from GoToArmPos.srv, or the name of the saved position
-
-        Returns
-        -------
-        service response
-            has the service been completed sucessfully
-        '''
-        try:
-            global goToPosValues
-
-            # retrievePos = input("Enter Position Name to Retrieve: ")
-            retrievePos = posName.positionName
-            tempAngles = [0, 0, 0, 0, 0, 0]
-
-            with open('arm_positions.json','r') as file:
-                found = False
-                savedPos = json.load(file)
-                # Checks to see if position names match request
-                for x in range(len(savedPos["position_names"])):
-                    if savedPos["position_names"][x]["title"] == retrievePos: # if found, changes current angles to requested position
-                        found = True
-                        tempAngles[0] = savedPos["position_names"][x]["angle0"]
-                        tempAngles[1] = savedPos["position_names"][x]["angle1"]
-                        tempAngles[2] = savedPos["position_names"][x]["angle2"]
-                        tempAngles[3] = savedPos["position_names"][x]["angle3"]
-                        tempAngles[4] = savedPos["position_names"][x]["angle4"]
-                        tempAngles[5] = savedPos["position_names"][x]["angle5"]
-                        tempAngles[6] = savedPos["position_names"][x]["gripperAngle"]
-
-                if not found:
-                    print("Position name '"+retrievePos+"' not found") # if not found, prints message
-                    return GoToArmPosResponse(False)
-
-                goToPosValues[0] = True # sets the goTO arm position value true a
-                goToPosValues[1] = tempAngles
-                return GoToArmPosResponse(True)
-        except Exception as ex:
-            print("The following error has occured: ")
-            print(ex)
-            return GoToArmPosResponse(False)
-
-    def updateAngleCorrections(self, corrections):
-        ''' Service function that updates the angle corrections for published IK values
-        
-        Paramters
-        ---------
-        corrections
-            the input data message from Corrections.srv
-
-        Returns
-        -------
-        service response
-            has the service been completed sucessfully
-        '''
-        try:
-            global angleCorrections
-
-            angleCorrections = [corrections.correction1, corrections.correction2, corrections.correction3, corrections.correction4,
-                                corrections.correction5, corrections.correction6, corrections.correction7]
-            return CorrectionsResponse(True)
-        except Exception as ex:
-            print("The following error has occured")
-            print(ex)
-            return CorrectionsResponse(False)
 
     def publishNewAngles(self, newJointAngles):
         ''' Publishes the new angles to /arm_target_angles
@@ -1002,8 +873,12 @@ class InverseKinematicsNode():
                 print(ex)
 
 # Main Area
+def main(args = None):
+    global liveArmAngles
+    rclpy.init(args=args)
+    ikNode = InverseKinematicsNode()
 
-if __name__ == "__main__":
+    # Initialization procedure
     angleCorrections = [0, 0, 0, 0, 0, 0, 0]
     curArmAngles = [0, 0, 0, 0, 0, 0, 0]
     prevArmAngles = [0, 0, 0, 0, 0, 0, 0]
@@ -1021,16 +896,13 @@ if __name__ == "__main__":
 
     nRevTheta = [0, 0, 0, 0, 0, 0, 0]
         
-    ikNode = InverseKinematicsNode()
+    
 
-    # services don't like being in the ikNode object for some reason
-    correctionsService = rospy.Service('update_arm_corrections', Corrections, ikNode.updateAngleCorrections)
-    goToArmPosService = rospy.Service('move_arm_to', GoToArmPos, ikNode.goToPosition)
-    saveArmPosService = rospy.Service('save_arm_pos_as', SaveArmPos, ikNode.savePosition)
-
-    while not rospy.is_shutdown():
+    while rclpy.ok():
         #try:  
         ikNode.scriptMode.main(ikNode)
         #except Exception as ex:
         #    print(ex)
         ikNode.rate.sleep()
+if __name__ == "__main__":
+    main()

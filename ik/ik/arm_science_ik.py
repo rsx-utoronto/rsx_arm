@@ -1,6 +1,6 @@
 import numpy as np
 from math import pi, atan2, sin, cos, sqrt, acos, asin
-from arm_class import Arm
+from .arm_class import Arm
 from copy import deepcopy
 
 class KinematicsMode():

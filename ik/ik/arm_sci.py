@@ -3,11 +3,11 @@
 import rclpy
 from rclpy.node import Node
 from math import pi, atan2, sin, cos, sqrt, acos
-from arm_science_ik import SciArm
+from .arm_science_ik import SciArm
 from queue import Queue
 from std_msgs.msg import Float32MultiArray, String
 from numpy import deg2rad, rad2deg
-from rover.msg import ArmInputs
+from arm_msgs.msg import ArmInputs
 
 class ArmSciNode(Node):
     def __init__(self):
@@ -215,15 +215,15 @@ class ArmSciNode(Node):
 
             self.get_logger().info(str(self.arm.getOffsetGoalAngles()))
 
-        
-
-if __name__ == '__main__':
+def main():        
     rclpy.init()
-    node = ArmSciNode()
+    armSciNode = ArmSciNode()
     try:
-        rclpy.spin(node)
+        rclpy.spin(armSciNode)
     except KeyboardInterrupt:
         pass
     finally:
-        node.destroy_node()
+        armSciNode.destroy_node()
         rclpy.shutdown()
+if __name__ == '__main__':
+    main()
