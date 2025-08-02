@@ -5,7 +5,7 @@ from rclpy.node import Node
 
 from sensor_msgs.msg import Joy
 from std_msgs.msg import String, UInt8
-from rover.msg import ArmInputs
+from arm_msgs.msg import ArmInputs
 
 # import arm_serial_connector as arm_serial
 #from rover.srv import Corrections
@@ -67,7 +67,7 @@ class Controller(Node):
         self.killswitch_pub = self.create_publisher(UInt8, "arm_killswitch", 10)
 
         # Subscriber
-        self.joy_sub = self.create_subscription(Joy, "arm/joy", self.getROSJoy, 10)
+        self.joy_sub = self.create_subscription(Joy, "/joy", self.getROSJoy, 10)
 
 
 
@@ -108,7 +108,7 @@ class Controller(Node):
     def publish_loop(self):
         # Print/Publish the inputs if state is neither Idle or Setup
 
-        if self.state not in ["Idle", "Setup"]:
+        if self.state not in ["Idle", "Setup"]: 
             if self.publishInputs:
                 self.input_pub.publish(self.values)
                 self.get_logger().info(str(self.values))
@@ -364,6 +364,7 @@ class Controller(Node):
 
 
 def main(args=None):
+    print("hello from arm_controller.py!")
     rclpy.init(args=args)
     controller_node = Controller()
     try:

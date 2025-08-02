@@ -3,10 +3,10 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from rover.msg import ArmInputs
+from arm_msgs.msg import ArmInputs
 from pynput import keyboard
 
-class KeyboardControllerNode():
+class KeyboardControllerNode(Node):
     def __init__(self):
         super().__init__('arm_keyboard_controller')
 
@@ -24,14 +24,14 @@ class KeyboardControllerNode():
     def on_press(self, key):
         keyboardToController = ArmInputs()
 
-        keyboardToController.l_horizontal = 0
-        keyboardToController.l_vertical   = 0
-        keyboardToController.r_horizontal = 0
-        keyboardToController.r_vertical   = 0
+        keyboardToController.l_horizontal = 0.0
+        keyboardToController.l_vertical   = 0.0
+        keyboardToController.r_horizontal = 0.0
+        keyboardToController.r_vertical   = 0.0
         keyboardToController.l1           = 0
         keyboardToController.r1           = 0
-        keyboardToController.l2           = 0
-        keyboardToController.r2           = 0
+        keyboardToController.l2           = 0.0
+        keyboardToController.r2           = 0.0
         keyboardToController.x            = 0
         keyboardToController.o            = 0
         keyboardToController.share        = 0
@@ -42,27 +42,27 @@ class KeyboardControllerNode():
         try:
             # left vertical joystick emulation
             if key.char == 'w':
-                keyboardToController.l_vertical = 1
+                keyboardToController.l_vertical = 1.0
             elif key.char == "s":
-                keyboardToController.l_vertical = -1
+                keyboardToController.l_vertical = -1.0
 
             # left horizontal joystick emulation
             if key.char == "a":
-                keyboardToController.l_horizontal = 1
+                keyboardToController.l_horizontal = 1.0
             elif key.char == "d":
-                keyboardToController.l_horizontal = -1
+                keyboardToController.l_horizontal = -1.0
 
             # right vertical joystick emulation
             if key.char == 'i':
-                keyboardToController.r_vertical = 1
+                keyboardToController.r_vertical = 1.0
             elif key.char == "k":
-                keyboardToController.r_vertical = -1
+                keyboardToController.r_vertical = -1.0
 
             # right horizontal joystick emulation
             if key.char == "j":
-                keyboardToController.r_horizontal = 1
+                keyboardToController.r_horizontal = 1.0
             elif key.char == "l":
-                keyboardToController.r_horizontal = -1
+                keyboardToController.r_horizontal = -1.0
 
             # shape button emulation
             if key.char == "p":
@@ -72,7 +72,7 @@ class KeyboardControllerNode():
             if key.char == "u":
                 keyboardToController.triangle = 1
             if key.char == ";":
-                keyboardToController.square = 1
+                keyboardToController.square =1
 
             # other buttons
             if key.char == "q":
@@ -88,19 +88,19 @@ class KeyboardControllerNode():
         except AttributeError:
             # left and right triggers
             if key == keyboard.Key.space:
-                keyboardToController.r2 = 1
+                keyboardToController.r2 = 1.0
             if key == keyboard.Key.shift:
-                keyboardToController.l2 = 1
+                keyboardToController.l2 = 1.0
 
             # emulate d-pad as arrow keys
             if key == keyboard.Key.left:
-                self.statePubliser.publish("Manual")
+                self.statePublisher.publish(String(data="Manual"))
             if key == keyboard.Key.right:
-                self.statePubliser.publish("IK")
+                self.statePublisher.publish(String(data="IK"))
             if key == keyboard.Key.up:
-                self.statePubliser.publish("Setup")
+                self.statePublisher.publish(String(data="Setup"))
             if key == keyboard.Key.down:
-                self.statePubliser.publish("Idle")
+                self.statePublisher.publish(String(data="Idle"))
 
         self.inputPublisher.publish(keyboardToController)
 
@@ -109,14 +109,14 @@ class KeyboardControllerNode():
         # Reset all values to 0 on release
         keyboardToController = ArmInputs()
 
-        keyboardToController.l_horizontal = 0
-        keyboardToController.l_vertical   = 0
-        keyboardToController.r_horizontal = 0
-        keyboardToController.r_vertical   = 0
+        keyboardToController.l_horizontal = 0.0
+        keyboardToController.l_vertical   = 0.0
+        keyboardToController.r_horizontal = 0.0
+        keyboardToController.r_vertical   = 0.0
         keyboardToController.l1           = 0
         keyboardToController.r1           = 0
-        keyboardToController.l2           = 0
-        keyboardToController.r2           = 0
+        keyboardToController.l2           = 0.0
+        keyboardToController.r2           = 0.0
         keyboardToController.x            = 0
         keyboardToController.o            = 0
         keyboardToController.share        = 0
