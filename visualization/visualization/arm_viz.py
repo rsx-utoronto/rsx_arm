@@ -4,7 +4,6 @@ from rclpy.node import Node
 from rclpy.time import Time
 import math
 import geometry_msgs.msg
-import tf_transformations
 import tf2_ros
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String, Float32MultiArray, Header, Float64
@@ -117,7 +116,8 @@ class ArmVisualizationNode(Node):
         t.transform.translation.y = posArray[3][1]
         t.transform.translation.z = posArray[3][2]
         
-        q = tf_transformations.quaternion_from_euler(posArray[0], posArray[1], posArray[2], 'sxyz')
+        r = sp.spatial.transform.Rotation.from_euler('xyz', [posArray[0], posArray[1], posArray[2]])
+        q = r.as_quat()
         if quaternionAngles != None:
             q = quaternionAngles
             t.transform.rotation.x = q.x
