@@ -60,7 +60,7 @@ class Manual(Node):
         ## Subscribers 
         self.create_subscription(UInt8MultiArray, 'arm_error_msg', self.CallbackError, 10)
         self.create_subscription(String, 'arm_state', self.CallbackState, 10)
-        # self.create_subscription(ArmInputs, 'arm_inputs', self.CallbackInput, 10)
+        self.create_subscription(ArmInputs, 'arm_inputs', self.CallbackInput, 10)
         self.create_subscription(Float32MultiArray, 'arm_error_offset', self.CallbackErrOffset, 10)
 
         ## Publisher
@@ -112,43 +112,43 @@ class Manual(Node):
         # Updates state
         self.status = status.data
 
-    # def CallbackInput (self, inputs: ArmInputs) -> None:
-    #     """
-    #     (ArmInputs) -> (None)
+    def CallbackInput (self, inputs: ArmInputs) -> None:
+        """
+        (ArmInputs) -> (None)
 
-    #     Recieves inputs from controller and if state is "Manual",
-    #     updates the goal positions and publishes them
+        Recieves inputs from controller and if state is "Manual",
+        updates the goal positions and publishes them
         
-    #     Also has option of kill switch
+        Also has option of kill switch
 
-    #     @parameters
+        @parameters
 
-    #     inputs (ArmInputs): Stores the received inputs from controller node
-    #     """
+        inputs (ArmInputs): Stores the received inputs from controller node
+        """
 
-    #     # Get inputs from controller
-    #     self.controller_input[0] = inputs.l_horizontal
-    #     self.controller_input[1] = inputs.l_vertical
-    #     self.controller_input[2] = inputs.r_vertical
-    #     self.controller_input[3] = inputs.r_horizontal
-    #     self.controller_input[4] = inputs.l1 - inputs.r1
-    #     self.controller_input[5] = inputs.l2 - inputs.r2
-    #     self.controller_input[6] = inputs.x - inputs.o  # Added Gripper open/close, check if correct (x open and o close)
+        # Get inputs from controller
+        self.controller_input[0] = inputs.l_horizontal
+        self.controller_input[1] = inputs.l_vertical
+        self.controller_input[2] = inputs.r_vertical
+        self.controller_input[3] = inputs.r_horizontal
+        self.controller_input[4] = inputs.l1 - inputs.r1
+        self.controller_input[5] = inputs.l2 - inputs.r2
+        self.controller_input[6] = inputs.x - inputs.o  # Added Gripper open/close, check if correct (x open and o close)
 
-    #     # Print Statement for console view
-    #     #print("State:", self.status)
+        # Print Statement for console view
+        #print("State:", self.status)
 
-    #     # Apply amy offsets as necessary
-    #     #self.goal_pos.data      = list(np.array(self.goal_pos.data) - np.array(self.error_offsets))
+        # Apply amy offsets as necessary
+        #self.goal_pos.data      = list(np.array(self.goal_pos.data) - np.array(self.error_offsets))
         
-    #     # Checking the state, only proceed if in manual
-    #     if self.status == "Manual":
+        # Checking the state, only proceed if in manual
+        if self.status == "Manual":
 
-    #         # Update goal positions and print/publish them
-    #         self.goal_pos.data = self.update_pos(self.controller_input, self.goal_pos.data, 
-    #                                             self.SPEED_LIMIT)
-    #         self.get_logger().info(str(self.goal_pos.data))
-    #         self.goal.publish(self.goal_pos)
+            # Update goal positions and print/publish them
+            self.goal_pos.data = self.update_pos(self.controller_input, self.goal_pos.data, 
+                                                self.SPEED_LIMIT)
+            self.get_logger().info(str(self.goal_pos.data))
+            self.goal.publish(self.goal_pos)
         
     def update_pos(self, joy_input : list, curr_goal_pos : list, speed_limit : list) -> list:   
         """
