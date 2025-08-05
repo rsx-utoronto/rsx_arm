@@ -5,7 +5,7 @@ def generate_launch_description():
     
     # Arm_Controller node
     arm_controller_node = Node(
-        package='arm-ros2',
+        package='controller',
         executable='arm_controller.py',
         name='Arm_Controller',
         output='screen'
@@ -13,7 +13,7 @@ def generate_launch_description():
 
     # Arm_Manual node
     arm_manual_node = Node(
-        package='arm-ros2',
+        package='manual',
         executable='manual.py',
         name='Arm_Manual',
         output='screen'
@@ -21,8 +21,8 @@ def generate_launch_description():
 
     # Arm_Safety node
     arm_safety_node = Node(
-        package='arm-ros2',
-        executable='safety.py',
+        package='safety',
+        executable='safety_node.py',
         name='Arm_Safety',
         output='screen'
     )
