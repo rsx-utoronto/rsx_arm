@@ -49,14 +49,14 @@ class Controller(Node):
 
         # Attribute to publish arm inputs (with initialized values)
         self.values              = ArmInputs()
-        self.values.l_horizontal = 0
-        self.values.l_vertical   = 0
-        self.values.r_horizontal = 0
-        self.values.r_vertical   = 0
+        self.values.l_horizontal = 0.
+        self.values.l_vertical   = 0.
+        self.values.r_horizontal = 0.
+        self.values.r_vertical   = 0.
         self.values.l1           = 0
         self.values.r1           = 0
-        self.values.l2           = 0
-        self.values.r2           = 0
+        self.values.l2           = 0.
+        self.values.r2           = 0.
         self.values.x            = 0
         self.values.o            = 0
 
