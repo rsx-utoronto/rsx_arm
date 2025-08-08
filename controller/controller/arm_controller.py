@@ -67,7 +67,7 @@ class Controller(Node):
         self.killswitch_pub = self.create_publisher(UInt8, "arm_killswitch", 10)
 
         # Subscriber
-        self.joy_sub = self.create_subscription(Joy, "arm/joy", self.getROSJoy, 10)
+        self.joy_sub = self.create_subscription(Joy, "/joy", self.getROSJoy, 10)
 
 
 
@@ -108,7 +108,7 @@ class Controller(Node):
     def publish_loop(self):
         # Print/Publish the inputs if state is neither Idle or Setup
 
-        if self.state not in ["Idle", "Setup"]:
+        if self.state not in ["Idle", "Setup"]: 
             if self.publishInputs:
                 self.input_pub.publish(self.values)
                 self.get_logger().info(str(self.values))
