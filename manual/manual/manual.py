@@ -28,7 +28,7 @@ class Manual(Node):
         # 4 - L1 / R1 
         # 5 - L2 / R2 (analog)
         # 6 - X / O (gripper open/close)
-        self.controller_input    = [0, 0, 0, 0, 0, 0, 0]
+        self.controller_input    = [0., 0., 0., 0., 0., 0, 0]
 
         ## Buffer for storing and publishing goal position
         # Idx - Associated Motor:
@@ -40,7 +40,7 @@ class Manual(Node):
         # 5 - Motor 16 (Wrist 2)
         # 6 - Motor 17 (End Effector Open/Close)
         self.goal_pos            = Float32MultiArray()
-        self.goal_pos.data       = [0, 0, 0, 0, 0, 0, 0]
+        self.goal_pos.data       = [0., 0., 0., 0., 0., 0., 0.]
 
         ## Buffer to hold error messages and offsets
         # Message Descriptions:
