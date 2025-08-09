@@ -12,11 +12,10 @@
 cd ../.. && \
 source /opt/ros/humble/setup.bash && \
 echo "Setup requires sudo privileges for installing python3-venv." && \
-# Ensure Python 3.12 is installed and set up the virtual environment, Ubuntu 22.04 does not carry 3.12 by default
-sudo add-apt-repository ppa:deadsnakes/ppa -y && sudo apt update && sudo apt upgrade -y &&  sudo apt install -y python3.12 python3.12-venv && \
 sudo snap install jq && \
 sudo apt install python3-evdev && \
-python3.12 -m venv arm_env --system-site-packages --symlinks && \
+sudo apt install python3.10-venv && \ 
+python3.10 -m venv arm_env --system-site-packages --symlinks && \
 source ~/arm_ros2_ws/arm_env/bin/activate && \
 
 # Go back to the source directory and install pip requirements 
