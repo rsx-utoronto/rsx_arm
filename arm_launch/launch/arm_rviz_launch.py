@@ -5,24 +5,19 @@ from launch.actions import DeclareLaunchArgument
 from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
+from ament_index_python.packages import get_package_share_directory
+import os
 
 def generate_launch_description():
     # parameters
-    robot_description = {
-        'robot_description':Command([
-            'xacro',
-            '--inorder',
-            PathJoinSubstitution([
-                FindPackageShare('rover'),
-                'rover',
-                'simulation',
-                'urdfs',
-                'Arm_2023',
-                'Arm_2023_gazebo.xacro',
-            ])
-        ])
-    }
+    sim_share = get_package_share_directory('simulation')
+    viz_share = get_package_share_directory('visualization')
+
+    urdf_path = os.path.join(sim_share, 'urdfs', 'arm_circ_2024.urdf')
+    rviz_path = os.path.join(viz_share, 'rviz_config', 'arm_urdf.rviz')
+
+    with open(urdf_path, 'r') as f:
+        robot_description = f.read()
 
     # arguments
     gazebo_on_arg = DeclareLaunchArgument(
@@ -37,13 +32,10 @@ def generate_launch_description():
 
     rvizconfig_arg = DeclareLaunchArgument(
         'rvizconfig',
-        default_value=PathJoinSubstitution(
-            [FindPackageShare('rover'), 'rover', 'simulation', 'rviz_config', 'arm_urdf.rviz']
-        ),
+        default_value=rviz_path,
     )
 
     return LaunchDescription([
-        # oink oink I am a pig oink oink
         gazebo_on_arg,
         ik_on_arg,
         rvizconfig_arg,
@@ -56,9 +48,9 @@ def generate_launch_description():
         ),
 
         Node(
-            package='rover',
+            package='visualization',
             executable='arm_viz',
-            name='arm_visualization',
+            name='visualization',
             parameters=[{'gazebo_on': True}],
             output='screen',
         ),
