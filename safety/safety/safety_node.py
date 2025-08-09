@@ -241,7 +241,7 @@ class Safety_Node(Node):
             # Publish any errors that we need to
             self.Offset_pub.publish(self.ERROR_OFFSET)
             #pass
-            self.ERROR_OFFSET.data  = [0, 0, 0, 0, 0, 0, 0]
+            self.ERROR_OFFSET.data  = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         
         # If there are any errors, publish the error offsets and reset them
         elif Errors.ERROR_EXCEEDING_POS.value in self.ERRORS.data:
@@ -249,7 +249,7 @@ class Safety_Node(Node):
             print("publishing offsets:", self.ERROR_OFFSET.data)
             self.Offset_pub.publish(self.ERROR_OFFSET)
             #pass
-            self.ERROR_OFFSET.data  = [0, 0, 0, 0, 0, 0, 0]
+            self.ERROR_OFFSET.data  = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         
         # # Repeat the function if needed in 'IK' mode
         # if self.STATE == "IK" and max(abs(np.array(self.GOAL_POS) - np.array(self.CURR_POS))):
