@@ -13,7 +13,7 @@ def generate_launch_description():
     # parameters
     sim_share = get_package_share_directory('simulation')
 
-    urdf_path = os.path.join(sim_share, 'urdfs', 'arm_circ_2024.urdf')
+    urdf_path = os.path.join(sim_share, 'urdfs', 'Arm_URDF_2025.urdf')
     rviz_path = os.path.join(sim_share, 'urdfs', 'arm_urdf.rviz')
 
     # Read URDF
