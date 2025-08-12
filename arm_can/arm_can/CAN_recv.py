@@ -19,9 +19,9 @@ class CAN_Recv(Node):
         super().__init__('CAN_Recv')
         
         # Attributes to hold data from publishers or to publish
-        self.CURR_POS 			= [0, 0, 0, 0, 0, 0, 0] # ADDED BACK 7TH MOTOR
-        self.CURR_ANGLE         = [0, 0, 0, 0, 0, 0, 0] # ADDED BACK 7TH MOTOR
-        self.MOTOR_CURR 		= [0, 0, 0, 0, 0, 0, 0] # ADDED BACK 7TH MOTOR
+        self.CURR_POS 			= [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # ADDED BACK 7TH MOTOR
+        self.CURR_ANGLE         = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # ADDED BACK 7TH MOTOR
+        self.MOTOR_CURR 		= [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # ADDED BACK 7TH MOTOR
         self.LIMIT_SWITCH 		= [0, 0, 0, 0, 0, 0, 0] # ADDED BACK 7TH MOTOR
 
         # Variables for ROS publishers
@@ -87,11 +87,11 @@ class CAN_Recv(Node):
                 if index == 4 or index == 5:
                     wrist1_angle       = self.CURR_POS[4]
                     wrist2_angle       = self.CURR_POS[5]
-                    self.CURR_ANGLE[4] = (wrist1_angle + wrist2_angle) / (2 * WRIST_RATIO)
-                    self.CURR_ANGLE[5] = (wrist1_angle - wrist2_angle) / 2
+                    self.CURR_ANGLE[4] = float((wrist1_angle + wrist2_angle) / (2 * WRIST_RATIO))
+                    self.CURR_ANGLE[5] = float((wrist1_angle - wrist2_angle) / 2)
                 
                 else:
-                    self.CURR_ANGLE[index] = self.CURR_POS[index]
+                    self.CURR_ANGLE[index] = float(self.CURR_POS[index])
 
 
 
