@@ -4,12 +4,12 @@
    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find arm_science_urdf_v2_2025)/urdf/arm_science_urdf_v2_2025.urdf"/>
 
    <arg name="ik_on" default="false"/>
-   <arg name="rvizconfig" default="$(find rover)/rover/simulation/rviz_config/arm_urdf.rviz"/>
+   <arg name="rvizconfig" default="$(find rsx_arm)/rsx_arm/simulation/rviz_config/arm_urdf.rviz"/>
 
    <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub"/>
 
    <!-- <node name="arm_ik" pkg="rover" type="arm_inverse_kinematics.py" if="$(arg ik_on)" output="screen"/> -->
-   <node name="arm_visualization" pkg="rover" type="arm_viz.py" output="screen"/>
+   <node name="visualization" pkg="rsx_arm" type="arm_viz.py" output="screen"/>
    <!-- <node name="fake_manual" pkg="rover" type="fake_manual.py" if="$(arg ik_on)" output="screen"/> -->
    <node unless="$(arg ik_on)" name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui"/>
 

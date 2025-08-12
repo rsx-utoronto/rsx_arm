@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'simulation'
+package_name = 'visualization'
 
 setup(
     name=package_name,
@@ -10,17 +10,19 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/urdfs', ['urdfs/arm_circ_2024.urdf', 'urdfs/arm_urdf.rviz']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='sanjay',
     maintainer_email='sanjay.ramnauth@mail.utoronto.ca',
-    description='TODO: Package description',
+    description='ROS2 arm visualization package',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'arm_viz = visualization.arm_viz:main',
+            'cam_compress = visualization.cam_compress:main',
+            'cam_conv = visualization.cam_conv:main',
         ],
     },
 )
