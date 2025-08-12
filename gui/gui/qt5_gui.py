@@ -33,12 +33,12 @@ class RobotControlGUI(QWidget):
         self.setMaximumSize(int(screen_size.width()*9/10), int(screen_size.height()*2/3)) 
 
         # The icon for the GUI!
-        self.setWindowIcon(QIcon("RsxLogo.png"))
+        self.setWindowIcon(QIcon(os.environ['GUI_DIR'] + 'RsxLogo.png'))
 
         # Load the YAML file
 
         # Ideally find a way to change this so that the gui doesn't have to be run from the exact same location every time
-        with open(os.getcwd()+'/src/rsx_arm/gui/gui/config.yaml', 'r') as file:
+        with open(os.environ['GUI_DIR'] + 'config.yaml', 'r') as file:
             config = yaml.safe_load(file)
 
         # Load the camera topics from the YAML file

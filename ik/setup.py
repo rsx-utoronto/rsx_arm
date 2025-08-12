@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             "arm_ik = ik.arm_inverse_kinematics:main",
-            "arm_sci_ik = ik.arm_sci:main"
+            "arm_sci_ik = ik.arm_sci:main",
+            "fake_manual = ik.fake_manual:main",
         ],
     },
 )
