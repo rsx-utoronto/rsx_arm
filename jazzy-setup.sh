@@ -13,7 +13,7 @@ cd ../.. && \
 source /opt/ros/jazzy/setup.bash && \
 echo "Setup requires sudo privileges for installing python3-venv." && \
 sudo apt install -y python3-venv && \
-python3 -m venv arm_env --system-site-packages --symlinks && \
+python3.12 -m venv arm_env --system-site-packages --symlinks && \
 source ~/arm_ros2_ws/arm_env/bin/activate && \
 
 # Go back to the source directory and install pip requirements 
