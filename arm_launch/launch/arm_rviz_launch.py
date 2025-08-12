@@ -62,7 +62,6 @@ def generate_launch_description():
         executable='joint_state_publisher_gui',
         name='joint_state_publisher',
         parameters=[{'robot_description': robot_description}],
-        condition=UnlessCondition(LaunchConfiguration('ik_on')),
     )
 
     rviz_node = Node(
