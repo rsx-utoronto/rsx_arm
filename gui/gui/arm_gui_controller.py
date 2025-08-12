@@ -35,25 +35,25 @@ class GuiControllerNode(Node):
         GuiToController.options      = 0
         GuiToController.r3           = 0
 
-        #self.speedMultiplier = 6900
+        # self.speedMultiplier = 6900
         try:
             # left vertical joystick emulation
             if command == "Forward" or command == "joint1plus":
-                GuiToController.l_vertical = 1 * self.speedMultiplier
+                GuiToController.l_vertical = float(1 * self.speedMultiplier)
             elif command == "Backward" or command == "joint1minus":
-                GuiToController.l_vertical = -1 * self.speedMultiplier
+                GuiToController.l_vertical = float(-1 * self.speedMultiplier)
 
             # left horizontal joystick emulation
             if command == "Left" or command == "joint0plus":
-                GuiToController.l_horizontal = 1 * self.speedMultiplier
+                GuiToController.l_horizontal = float(1 * self.speedMultiplier)
             elif command == "Right" or command == "joint0minus":
-                GuiToController.l_horizontal = -1 * self.speedMultiplier
+                GuiToController.l_horizontal = float(-1 * self.speedMultiplier)
 
             # left and right triggers
             if command == "Up" or command == "joint5plus":
-                GuiToController.r2 = 1 * self.speedMultiplier
+                GuiToController.r2 = float(1 * self.speedMultiplier)
             if command == "Down" or command == "joint5minus":
-                GuiToController.l2 = 1 * self.speedMultiplier
+                GuiToController.l2 = float(-1 * self.speedMultiplier)
 
             # Rx
             if command == "Rx" or command == "joint4plus":
@@ -64,15 +64,15 @@ class GuiControllerNode(Node):
             
             # right vertical joystick emulation
             if command == "Ry" or command == "joint3plus":
-                GuiToController.r_vertical = 1 * self.speedMultiplier
+                GuiToController.r_vertical = float(1 * self.speedMultiplier)
             elif command == "-Ry" or command == "joint3minus":
-                GuiToController.r_vertical = -1 * self.speedMultiplier
+                GuiToController.r_vertical = float(-1 * self.speedMultiplier)
 
             # right horizontal joystick emulation
             if command == "Rz" or command == "joint2plus":
-                GuiToController.r_horizontal = 1 * self.speedMultiplier
+                GuiToController.r_horizontal = float(1 * self.speedMultiplier)
             elif command == "-Rz" or command == "joint2minus":
-                GuiToController.r_horizontal = -1 * self.speedMultiplier
+                GuiToController.r_horizontal = float(-1 * self.speedMultiplier)
 
             # shape button emulation
             if command == "Open Grip" or command == "joint6plus":
@@ -124,6 +124,10 @@ class GuiControllerNode(Node):
         #else:
         self.inputPublisher.publish(GuiToController)
 
+    '''
+    TODO: in my opinion this isn't great logic, we should remove the second publishing and only publish the inputs received, increment 
+    the arm state according to that input held for a certain amount of time, and then wait for the next input to continue updating. 
+    '''
     def on_release(self):
         keyboardToController = ArmInputs()
 
