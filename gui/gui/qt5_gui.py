@@ -16,7 +16,7 @@ from .arm_gui_controller import GuiControllerNode  # Class for sending commands 
 
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'IK')))
 
-from .ik_library import createDHTable, calculateTransformToLink, calculateRotationAngles, createTransformationMatrix
+from ik import ik_library
 
 class RobotControlGUI(QWidget):
     def __init__(self, node):

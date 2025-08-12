@@ -1,4 +1,4 @@
 #!/bin/bash
 
-ros2 run rover qt5_gui.py &
-ros2 launch arm_rviz.launch.py ik_on:=true
+ros2 run gui arm_gui &
+ros2 launch arm_launch arm_rviz_launch.py ik_on:=false 
