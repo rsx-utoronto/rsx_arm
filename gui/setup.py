@@ -23,4 +23,7 @@ setup(
             'arm_gui = gui.qt5_gui:main'
         ],
     },
+    scripts=[
+        'scripts/run_gui.bash',
+    ],
 )

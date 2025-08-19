@@ -4,7 +4,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String, Float32MultiArray
 
-from rover.msg import ArmInputs  # Replace with your actual msg definition
+from arm_msgs.msg import ArmInputs  # Replace with your actual msg definition
 
 '''
 This code is just to help debug arm control code when
@@ -24,9 +24,9 @@ class FakeManualNode(Node):
         self.real_joint_pub = self.create_publisher(Float32MultiArray, 'arm_curr_pos', 10)
 
         # Subscribers
-        self.create_subscription(String, 'arm_state', self.update_states, 10)
-        self.create_subscription(Float32MultiArray, 'arm_goal_pos', self.update_real_angles, 10)
-        self.create_subscription(ArmInputs, 'arm_inputs', self.update_controller, 10)
+        self.create_subscription(String, 'arm_state', self.updateStates, 10)
+        self.create_subscription(Float32MultiArray, 'arm_goal_pos', self.updateRealAngles, 10)
+        self.create_subscription(ArmInputs, 'arm_inputs', self.updateController, 10)
 
 
     def updateStates(self, msg):
