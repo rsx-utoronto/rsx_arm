@@ -1,0 +1,13 @@
+# Default initial positions for Arm_URDF_2025's ros2_control fake system
+
+initial_positions:
+  camera_joint: 0
+  finger_joint_1: 0
+  finger_joint_2: 0
+  joint_1: 0
+  joint_2: 0
+  joint_3: 0
+  joint_4: 0
+  joint_5: 0
+  joint_6: 0
+  virtual_joint: 0

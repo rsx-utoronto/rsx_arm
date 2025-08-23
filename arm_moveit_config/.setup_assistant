@@ -1,0 +1,25 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: simulation
+    relative_path: urdfs/Arm_URDF_2025.urdf
+  srdf:
+    relative_path: config/Arm_URDF_2025.srdf
+  package_settings:
+    author_name: rsx_utoronto
+    author_email: todo@todo.todo
+    generated_timestamp: 1755972576
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
