@@ -64,7 +64,7 @@ class ArmVisualizationNode(Node):
 
         self.create_subscription(String, "arm_state", self.updateState, 10)
         self.create_subscription(Float32MultiArray, "arm_viz_pos", self.displayArmGoalPos, 10)
-        # self.create_subscription(Float32MultiArray, "arm_curr_pos", self.displayArmLivePos, 10)
+        self.create_subscription(Float32MultiArray, "arm_curr_pos", self.displayArmLivePos, 10)
 
         # Create TF broadcaster
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)

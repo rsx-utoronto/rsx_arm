@@ -7,6 +7,7 @@
 import rclpy
 from rclpy.node import Node
 import scipy as sp
+from scipy import spatial
 import numpy as np
 from . import ik_library as ik
 import geometry_msgs.msg
@@ -177,7 +178,6 @@ class ForwardKin(ScriptState):
 
         armPos.publish(temp2)
 
-        print(temp)
         self.updateDesiredEETransformation(newTargetValues)
         # publishNewAngles(liveArmAngles)
 
@@ -189,7 +189,6 @@ class IKMode(ScriptState):
         global prevTargetValues
         global prevTargetTransform
         global goToPosValues
-        
         ikNode.publishNewAngles(curArmAngles)
         
 
@@ -650,7 +649,7 @@ class InverseKinematicsNode(Node):
         self.buttonStatus= {"X": False, "CIRCLE": False, "TRIANGLE": False, "SQUARE": False, "L1": False, "R1": False, "L2": False, 
                                "R2": False, "SHARE": False, "OPTIONS": False, "PLAY_STATION": False, "L3": False, "R3": False,"UP": False, 
                                "DOWN": False, "LEFT": False, "RIGHT": False} 
-
+        print("Successfully initialized IK node!")
     def getJoystickButtonStatus(self, tempButton:list) -> dict: # setting up the buttons
         ''' Gets the Status of the Pressed Buttons on Joystick
 
@@ -875,6 +874,16 @@ class InverseKinematicsNode(Node):
 # Main Area
 def main(args = None):
     global liveArmAngles
+    global curArmAngles
+    global prevArmAngles
+    global prevTargetValues
+    global isIKEntered
+    global movementSpeed
+    global isMovementNormalized
+    global angleCorrections
+    global goToPosValues
+    global savedCanAngles
+    global nRevTheta
     rclpy.init(args=args)
     ikNode = InverseKinematicsNode()
 
@@ -896,13 +905,19 @@ def main(args = None):
 
     nRevTheta = [0, 0, 0, 0, 0, 0, 0]
         
-    
 
-    while rclpy.ok():
-        #try:  
-        ikNode.scriptMode.main(ikNode)
-        #except Exception as ex:
-        #    print(ex)
-        ikNode.rate.sleep()
+    try:
+        while rclpy.ok():
+            #try:  
+
+            ikNode.scriptMode.main(ikNode)
+            rclpy.spin_once(ikNode, timeout_sec=0.5)
+
+            #except Exception as ex:
+            #    print(ex)
+            # SLEEP IS FUCKED UP AS FUCK THIS WILL RUN AT MACH 50 BUT WE GOTTA DEAL W IT FOR NOW
+            # ikNode.rate.sleep()
+    except KeyboardInterrupt:
+        pass
 if __name__ == "__main__":
     main()
