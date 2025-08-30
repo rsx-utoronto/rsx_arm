@@ -49,20 +49,20 @@ def generate_launch_description():
         output='screen',
     )
 
-    viz_node = Node(
-        package='visualization',
-        executable='arm_viz',
-        name='visualization',
-        parameters=[{'gazebo_on': LaunchConfiguration('gazebo_on')}],
-        output='screen',
-    )
+    # viz_node = Node(
+    #     package='visualization',
+    #     executable='arm_viz',
+    #     name='visualization',
+    #     parameters=[{'gazebo_on': LaunchConfiguration('gazebo_on')}],
+    #     output='screen',
+    # )
 
-    jsp_gui_node = Node(
-        package='joint_state_publisher_gui',
-        executable='joint_state_publisher_gui',
-        name='joint_state_publisher',
-        parameters=[{'robot_description': robot_description}],
-    )
+    # jsp_gui_node = Node(
+    #     package='joint_state_publisher_gui',
+    #     executable='joint_state_publisher_gui',
+    #     name='joint_state_publisher',
+    #     parameters=[{'robot_description': robot_description}],
+    # )
 
     rviz_node = Node(
         package='rviz2',
@@ -85,7 +85,7 @@ def generate_launch_description():
         ik_on_arg,
         rvizconfig_arg,
         rsp_node,
-        viz_node,
-        jsp_gui_node,
+        # viz_node,
+        # jsp_gui_node,
         rviz_after_rsp
     ])

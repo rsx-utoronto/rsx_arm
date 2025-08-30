@@ -10,6 +10,7 @@ from std_msgs.msg import String, Float32MultiArray, Header, Float64
 from numpy import deg2rad, subtract, array
 from math import pi
 from copy import deepcopy
+import scipy as sp
 
 
 def anglePosition():
@@ -171,8 +172,8 @@ class ArmVisualizationNode(Node):
         # Angles in radians [Joint_1, Joint_2, ....], re-run this script and change the values to see it work.
         newJointState.position = angles
         self.jointPublisher.publish(newJointState)  # send data to be published
-        # positionArray = framePosition() # Display End Effector position with a transform
-        # displayEndEffectorTransform(positionArray)
+        positionArray = framePosition() # Display End Effector position with a transform
+        self.displayEndEffectorTransform(positionArray) #TODO UNCOMMENT AFTER 
 
     def runNewRealJointState(self, angles):
         '''
@@ -317,7 +318,7 @@ class ArmVisualizationNode(Node):
             self.liveArmAngles = deepcopy(tempAngles)
 
             tempAngles.append(tempAngles[6])
-            tempAngles.append(0)
+            tempAngles.append(0.)
 
             self.runNewRealJointState(tempAngles)
 

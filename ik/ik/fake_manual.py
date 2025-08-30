@@ -15,7 +15,7 @@ class FakeManualNode(Node):
     def __init__(self):
         super().__init__('fake_manual')
 
-        self.arm_angles = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.arm_angles = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.state = "Idle"
         self.scale = 0.0001
 
