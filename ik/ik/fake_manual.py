@@ -17,7 +17,7 @@ class FakeManualNode(Node):
 
         self.arm_angles = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.state = "Idle"
-        self.scale = 0.0001
+        self.scale = 0.1 # Originally 0.0001 but too slow
 
         # Publishers
         self.joint_pub = self.create_publisher(Float32MultiArray, 'arm_goal_pos', 10)

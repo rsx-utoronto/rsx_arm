@@ -184,9 +184,9 @@ class ArmVisualizationNode(Node):
         newJointState = JointState()
         newJointState.header = Header()
         newJointState.header.stamp = self.get_clock().now().to_msg()
-        newJointState.name = ["real_joint_1", "real_joint_2", "real_joint_3", "real_joint_4", 
-                            "real_joint_5", "real_joint_6", "real_finger_joint_1", "real_finger_joint_2", 
-                            "real_camera_joint"]
+        newJointState.name = ["joint_1", "joint_2", "joint_3", "joint_4", 
+                            "joint_5", "joint_6", "finger_joint_1", "finger_joint_2", 
+                            "camera_joint"]
         # Angles in radians [Joint_1, Joint_2, ....], re-run this script and change the values to see it work.
         newJointState.position = angles
         self.jointPublisher.publish(newJointState)  # send data to be published

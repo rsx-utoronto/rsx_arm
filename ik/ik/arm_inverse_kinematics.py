@@ -214,8 +214,8 @@ class IKMode(ScriptState):
         Helps arm joints move in sync (ish)
 
         '''
-
-        jointSpeeds = [0.005, 0.003, 0.01, 0.075, 0.075, 0.0375, 0.04]
+        # TODO: CHANGE BACK!!! MADE 100x FASTER FOR TESTING!!!
+        jointSpeeds = [0.5, 0.3, 1, 7.5, 7.5, 3.75, 4]
         angleDelta = list(np.subtract(np.array(newArmAngles), np.array(curArmAngles)))
         # slowedDownAngles = copy.deepcopy(newArmAngles)
 
