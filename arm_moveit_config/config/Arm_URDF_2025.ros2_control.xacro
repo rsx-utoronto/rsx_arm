@@ -8,13 +8,6 @@
                 <!-- By default, set up controllers for simulation. This won't work on real hardware -->
                 <plugin>mock_components/GenericSystem</plugin>
             </hardware>
-            <joint name="virtual_joint">
-                <command_interface name="position"/>
-                <state_interface name="position">
-                  <param name="initial_value">${initial_positions['virtual_joint']}</param>
-                </state_interface>
-                <state_interface name="velocity"/>
-            </joint>
             <joint name="joint_1">
                 <command_interface name="position"/>
                 <state_interface name="position">
@@ -54,13 +47,6 @@
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['joint_6']}</param>
-                </state_interface>
-                <state_interface name="velocity"/>
-            </joint>
-            <joint name="camera_joint">
-                <command_interface name="position"/>
-                <state_interface name="position">
-                  <param name="initial_value">${initial_positions['camera_joint']}</param>
                 </state_interface>
                 <state_interface name="velocity"/>
             </joint>

@@ -3,32 +3,29 @@ controller_manager:
   ros__parameters:
     update_rate: 100  # Hz
 
-    arm_joint_controller:
+    rover_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
 
-    arm_ee_controller:
+    end_effector_controller:
       type: position_controllers/GripperActionController
 
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
-arm_joint_controller:
+rover_arm_controller:
   ros__parameters:
     joints:
-      - virtual_joint
       - joint_1
       - joint_2
       - joint_3
       - joint_4
       - joint_5
-      - joint_6
     command_interfaces:
-      - position
+      []
     state_interfaces:
-      - position
-      - velocity
-arm_ee_controller:
+      []
+end_effector_controller:
   ros__parameters:
-    joint: finger_joint_1
+    joint: joint_6
