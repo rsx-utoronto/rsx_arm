@@ -19,8 +19,8 @@ setup(
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
-    'console_scripts': [
-        'safety_node = safety.safety_node:main',
-    ],
-},
+        'console_scripts': [
+            'safety_node = safety.safety_node:main',
+        ],
+    },
 )

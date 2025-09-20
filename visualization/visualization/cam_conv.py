@@ -10,6 +10,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 # import numpy
 
+
 class ImageConverterNode(Node):
 
     def __init__(self):
@@ -17,9 +18,10 @@ class ImageConverterNode(Node):
         self.image_pub = self.create_publisher(Image, "image_topic_2", 10)
 
         self.bridge = CvBridge()
-        self.image_sub = self.create_subscription(Image, "/encoded_image_topic", self.callback, 10)
+        self.image_sub = self.create_subscription(
+            Image, "/encoded_image_topic", self.callback, 10)
 
-    def callback(self,data):
+    def callback(self, data):
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data, "mono8")
             # newImg = cv_image
@@ -41,6 +43,7 @@ class ImageConverterNode(Node):
     # except CvBridgeError as e:
     #   print(e)
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = ImageConverterNode()
@@ -52,7 +55,7 @@ def main(args=None):
         node.destroy_node()
         cv2.destroyAllWindows()
         rclpy.shutdown()
-        
+
 
 if __name__ == '__main__':
     main()

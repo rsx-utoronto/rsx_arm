@@ -5,6 +5,7 @@ from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 
+
 def generate_launch_description():
     # Define path shortcuts
     rover_pkg = FindPackageShare('rover')

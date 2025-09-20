@@ -6,12 +6,14 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
+
 def generate_launch_description():
     # arguments
     rvizconfig_arg = DeclareLaunchArgument(
         'rvizconfig',
         default_value=PathJoinSubstitution(
-            [FindPackageShare('rover'), 'rover', 'simulation', 'rviz_config', 'point_cloud_testing.rviz']
+            [FindPackageShare('rover'), 'rover', 'simulation',
+             'rviz_config', 'point_cloud_testing.rviz']
         ),
     )
 
@@ -22,6 +24,6 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz',
             arguments=['-d', LaunchConfiguration('rvizconfig')],
-            on_exit=[Shutdown()], 
+            on_exit=[Shutdown()],
         ),
     ])

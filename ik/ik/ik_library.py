@@ -4,6 +4,7 @@ import math
 
 # Custom Exceptions
 
+
 class CannotReachTransform(Exception):
     """Exception Raised when transformation cannot be reached by arm
     """
@@ -44,30 +45,30 @@ def createRotationMatrix(roll: float, pitch: float, yaw: float, order: str = "yp
     # Define sine and cosine of each angle to reduce # of calculations
 
     cRoll = math.cos(roll)
-    sRoll = math.sin(roll) # 
+    sRoll = math.sin(roll)
 
     cPitch = math.cos(pitch)
-    sPitch = math.sin(pitch) # beta
+    sPitch = math.sin(pitch)  # beta
 
-    cYaw = math.cos(yaw) 
-    sYaw = math.sin(yaw) # alpha
+    cYaw = math.cos(yaw)
+    sYaw = math.sin(yaw)  # alpha
 
     # Assemble 3x3 rotation matrices
     # Rotations are applied in the same order each time:
     # Yaw --> Pitch --> Roll
 
     yawRotation = np.array([
-                            [cYaw, -sYaw, 0],
-                            [sYaw, cYaw, 0],
-                            [0, 0, 1]
-                            ])
-    
+        [cYaw, -sYaw, 0],
+        [sYaw, cYaw, 0],
+        [0, 0, 1]
+    ])
+
     pitchRotation = np.array([
-                            [cPitch, 0, sPitch],
-                            [0, 1, 0],
-                            [-sPitch, 0, cPitch]
-                            ])
-    
+        [cPitch, 0, sPitch],
+        [0, 1, 0],
+        [-sPitch, 0, cPitch]
+    ])
+
     rollRotation = np.array([
                             [1, 0, 0],
                             [0, cRoll, -sRoll],
@@ -76,11 +77,13 @@ def createRotationMatrix(roll: float, pitch: float, yaw: float, order: str = "yp
 
     rotMatrices = {"r": rollRotation, "p": pitchRotation, "y": yawRotation}
 
-    rotationMatrix = np.matmul(np.matmul(rotMatrices[order[0]], rotMatrices[order[1]]), rotMatrices[order[2]])
-    
+    rotationMatrix = np.matmul(
+        np.matmul(rotMatrices[order[0]], rotMatrices[order[1]]), rotMatrices[order[2]])
+
     # Returns matrix
 
     return rotationMatrix
+
 
 def calculateRotationAngles(transformationMatrix):
     ''' Returns the roll, pitch, and yaw angles of a transformation matrix
@@ -106,11 +109,13 @@ def calculateRotationAngles(transformationMatrix):
         a list of floats containing the angles in the form [roll, pitch, yaw]
     '''
 
-    roll = math.atan2(transformationMatrix[2,1], transformationMatrix[2,2])
-    pitch = math.atan2(-transformationMatrix[2,0], math.sqrt(transformationMatrix[2,1]**2 + transformationMatrix[2,2]**2))
-    yaw = math.atan2(transformationMatrix[1,0], transformationMatrix[0,0])
+    roll = math.atan2(transformationMatrix[2, 1], transformationMatrix[2, 2])
+    pitch = math.atan2(-transformationMatrix[2, 0], math.sqrt(
+        transformationMatrix[2, 1]**2 + transformationMatrix[2, 2]**2))
+    yaw = math.atan2(transformationMatrix[1, 0], transformationMatrix[0, 0])
 
     return [roll, pitch, yaw]
+
 
 def createEndEffectorTransform(roll: float, pitch: float, yaw: float, position):
     ''' Creates the matrix that defines the transform of the end effector based on target
@@ -136,22 +141,24 @@ def createEndEffectorTransform(roll: float, pitch: float, yaw: float, position):
     '''
     # define exception - outOfWorkspace
 
-    # Raised when end effector coordinates are out of arm's range   
+    # Raised when end effector coordinates are out of arm's range
 
     # checks for out of workspace
 
     positionArray = np.array([position])
-    
+
     # create 4x4 block matrix
     # | (rotation matrx) (position) |
     # |   0      0       0       1  |
 
     endEffectorTransform = np.block([
-                                    [createRotationMatrix(roll, pitch, yaw), np.transpose(positionArray)],
+                                    [createRotationMatrix(
+                                        roll, pitch, yaw), np.transpose(positionArray)],
                                     [0, 0, 0, 1]
                                     ])
 
     return endEffectorTransform
+
 
 def createTransformationMatrix(r, alpha, d, theta):
     ''' Creates a transform matrix based on dh-table paramters.
@@ -177,7 +184,7 @@ def createTransformationMatrix(r, alpha, d, theta):
     '''
     # convert theta and alpha to radians
 
-    #DELETED SOME STUFF
+    # DELETED SOME STUFF
 
     # define cos and sin for theta and alpha
 
@@ -188,13 +195,16 @@ def createTransformationMatrix(r, alpha, d, theta):
     sinAlpha = math.sin(alpha)
 
     DHTransformMatrix = np.array([
-        [cosTheta, (-sinTheta * cosAlpha), (sinTheta * sinAlpha), (r * cosTheta)],
-        [sinTheta, (cosTheta * cosAlpha), (-cosTheta * sinAlpha), (r * sinTheta)],
+        [cosTheta, (-sinTheta * cosAlpha),
+         (sinTheta * sinAlpha), (r * cosTheta)],
+        [sinTheta, (cosTheta * cosAlpha),
+         (-cosTheta * sinAlpha), (r * sinTheta)],
         [0, sinAlpha, cosAlpha, d],
         [0, 0, 0, 1]
-        ])
+    ])
 
     return DHTransformMatrix
+
 
 def calculateTransformToLink(dhTable, linkNumber):
     ''' Find the transform matrix to specified location
@@ -217,10 +227,12 @@ def calculateTransformToLink(dhTable, linkNumber):
     transformToLink = np.eye(4)
 
     for i in range(0, linkNumber):
-        ithTransform = createTransformationMatrix(dhTable[i, 0], dhTable[i, 1], dhTable[i, 2], dhTable[i, 3])
+        ithTransform = createTransformationMatrix(
+            dhTable[i, 0], dhTable[i, 1], dhTable[i, 2], dhTable[i, 3])
         transformToLink = np.matmul(transformToLink, ithTransform)
 
     return transformToLink
+
 
 def createDHTable(jointAngles):
     ''' Create DH Table for arm based on current position 
@@ -245,8 +257,8 @@ def createDHTable(jointAngles):
                         [115, math.pi/2, 0, jointAngles[2]],
                         [0, -math.pi/2, 389, jointAngles[3]],
                         [0, math.pi/2, 0, jointAngles[4]],
-                        [0, 0, 219, jointAngles[5]]]) #253.125
-    
+                        [0, 0, 219, jointAngles[5]]])  # 253.125
+
     # DHTable = np.array([[0, math.pi/2, 75, jointAngles[0]],
     #                     [375, 0, 0, jointAngles[1]],
     #                     [69.55, math.pi/2, 0, jointAngles[2]],
@@ -254,6 +266,7 @@ def createDHTable(jointAngles):
     #                     [0, math.pi/2, 0, jointAngles[4]],
     #                     [0, 0, 155, jointAngles[5]]]) #253.125
     return DHTable
+
 
 def inverseKinematics(dhTable, targetPos):
     ''' Calculates joint angles based on desired EE position and DH-Table Paramters
@@ -289,22 +302,27 @@ def inverseKinematics(dhTable, targetPos):
     d4 = dhTable[3][2]
     d6 = dhTable[5][2]
 
-    desiredWristRotation = np.array([targetPos[0][:3], targetPos[1][:3], targetPos[2][:3]])
-    desiredWristOrigin = np.transpose([np.array([targetPos[0][3], targetPos[1][3], targetPos[2][3]])])
+    desiredWristRotation = np.array(
+        [targetPos[0][:3], targetPos[1][:3], targetPos[2][:3]])
+    desiredWristOrigin = np.transpose(
+        [np.array([targetPos[0][3], targetPos[1][3], targetPos[2][3]])])
 
     # calculate wrist center
-    rotationAdjustment = d6 * np.matmul(desiredWristRotation, np.transpose(np.array([0, 0, 1])))
-    
+    rotationAdjustment = d6 * \
+        np.matmul(desiredWristRotation, np.transpose(np.array([0, 0, 1])))
+
     wristCenter = desiredWristOrigin - np.transpose([rotationAdjustment])
-    
+
     wristCenterX = wristCenter[0][0]
     wristCenterY = wristCenter[1][0]
     wristCenterZ = wristCenter[2][0]
 
     theta1 = math.atan2(wristCenterY, wristCenterX)
 
-    link3Hypotenuse = math.sqrt(r3**2 + d4**2) # adjust for offset of arm at link 3
-    cosTheta3Numerator = wristCenterX**2 + wristCenterY**2 + (wristCenterZ-d1)**2 - r2**2 - link3Hypotenuse**2
+    # adjust for offset of arm at link 3
+    link3Hypotenuse = math.sqrt(r3**2 + d4**2)
+    cosTheta3Numerator = wristCenterX**2 + wristCenterY**2 + \
+        (wristCenterZ-d1)**2 - r2**2 - link3Hypotenuse**2
     cosTheta3 = cosTheta3Numerator/(2*r2*link3Hypotenuse)
 
     if abs(cosTheta3) > 1:  # cos(x) cannot be greater than 1, so throw error
@@ -312,18 +330,23 @@ def inverseKinematics(dhTable, targetPos):
 
     # positive in front of square root assumes elbow up
     theta3 = math.atan2(cosTheta3, math.sqrt(1 - cosTheta3**2))
-    theta3Adjusted = theta3 - math.atan2(r3, d4) # assumes that zero is right angle down
+    # assumes that zero is right angle down
+    theta3Adjusted = theta3 - math.atan2(r3, d4)
 
-    innerAngle = math.atan2(link3Hypotenuse*math.sin(theta3 - math.pi/2), r2 + link3Hypotenuse*math.cos(theta3 - math.pi/2))
-    theta2 = math.atan2(wristCenterZ - d1, math.sqrt(wristCenterX**2 + wristCenterY**2)) - innerAngle
+    innerAngle = math.atan2(link3Hypotenuse*math.sin(theta3 - math.pi/2),
+                            r2 + link3Hypotenuse*math.cos(theta3 - math.pi/2))
+    theta2 = math.atan2(
+        wristCenterZ - d1, math.sqrt(wristCenterX**2 + wristCenterY**2)) - innerAngle
 
     # transform matrix from base to third link
-    t03 = calculateTransformToLink(createDHTable([theta1, theta2, theta3Adjusted, 0, 0, 0]), 3)
+    t03 = calculateTransformToLink(createDHTable(
+        [theta1, theta2, theta3Adjusted, 0, 0, 0]), 3)
 
-    
-    r03 = np.array([t03[0][:3], t03[1][:3], t03[2][:3]]) # rotation matrix of third link
-    
-    r36 = np.matmul(np.linalg.inv(r03), desiredWristRotation) # rotation matrix from third link to EE
+    # rotation matrix of third link
+    r03 = np.array([t03[0][:3], t03[1][:3], t03[2][:3]])
+
+    # rotation matrix from third link to EE
+    r36 = np.matmul(np.linalg.inv(r03), desiredWristRotation)
 
     theta5 = math.atan2(math.sqrt(1-r36[2][2]**2), r36[2][2])
 
@@ -332,5 +355,3 @@ def inverseKinematics(dhTable, targetPos):
     theta6 = math.atan2(r36[2][1], -r36[2][0])
 
     return [theta1, theta2, theta3Adjusted, theta4, theta5, theta6]
-
-    

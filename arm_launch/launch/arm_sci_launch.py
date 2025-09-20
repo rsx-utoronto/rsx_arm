@@ -8,10 +8,11 @@ from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitut
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
+
 def generate_launch_description():
     # parameters
     robot_description = {
-        'robot_description':Command([
+        'robot_description': Command([
             'xacro',
             '--inorder',
             PathJoinSubstitution([
@@ -107,7 +108,7 @@ def generate_launch_description():
         #     executable='rviz2',
         #     name='rviz',
         #     arguments=['-d', LaunchConfiguration('rvizconfig')],
-        #     # on_exit=[Shutdown()], 
+        #     # on_exit=[Shutdown()],
         # ),
         # Node(
         #     package='rover',

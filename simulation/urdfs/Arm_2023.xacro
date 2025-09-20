@@ -1,0 +1,588 @@
+<?xml version="1.0" ?>
+<robot name="Arm_2023" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:include filename="$(find rover)/rover/simulation/urdfs/Arm_2023/materials.xacro" />
+<link name="base_link">
+  <inertial>
+    <origin xyz="0.049999999999908465 0.03732491617294113 0.003125" rpy="0 0 0"/>
+    <mass value="0.3438852516301944"/>
+    <inertia ixx="0.000173" iyy="0.000307" izz="0.000477" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- Target Position Arm -->
+
+<link name="Link_2">
+  <inertial>
+    <origin xyz="0.025 -3.469446951953614e-17 0.18250000000000027" rpy="0 0 0"/>
+    <mass value="1.86067089388539"/>
+    <inertia ixx="0.02649" iyy="0.026465" izz="0.001376" ixy="-0.0" iyz="0.0" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.025 -0.043125 -0.1039" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_2_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.025 -0.043125 -0.1039" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_2_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Link_3">
+  <inertial>
+    <origin xyz="0.03437499999999986 -0.04852387230509649 0.01494234846228587" rpy="0 0 0"/>
+    <mass value="0.4930537063853911"/>
+    <inertia ixx="0.000808" iyy="0.000697" izz="0.001059" ixy="0.0" iyz="0.000147" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.025 -0.043125 -0.4689" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_3_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.025 -0.043125 -0.4689" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_3_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Link_4">
+  <inertial>
+    <origin xyz="-4.544770722816893e-05 5.898059818321144e-17 0.13249483155448072" rpy="0 0 0"/>
+    <mass value="1.3362092993202992"/>
+    <inertia ixx="0.010972" iyy="0.01038" izz="0.00176" ixy="0.0" iyz="0.0" ixz="-5e-06"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.059375 0.025375 -0.5139" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_4_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.059375 0.025375 -0.5139" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_4_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Link_5">
+  <inertial>
+    <origin xyz="-0.024457508265359702 0.028875000000000362 -0.00023164099942307725" rpy="0 0 0"/>
+    <mass value="1.03093485941646"/>
+    <inertia ixx="0.000373" iyy="0.001033" izz="0.001033" ixy="0.0" iyz="0.0" ixz="-8e-06"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.0667 0.05425 -0.790676" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_5_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.0667 0.05425 -0.790676" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_5_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Link_1">
+  <inertial>
+    <origin xyz="-7.179673522372809e-14 -0.00017173384764001404 0.045632894964534494" rpy="0 0 0"/>
+    <mass value="0.4382416946666404"/>
+    <inertia ixx="0.000836" iyy="0.000966" izz="0.000383" ixy="0.0" iyz="4e-06" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.05 -0.04 -0.00625" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_1_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.05 -0.04 -0.00625" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_1_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Link_6">
+  <inertial>
+    <origin xyz="0.0007934173167834443 -0.0006657561778822887 0.04453519096184422" rpy="0 0 0"/>
+    <mass value="3.060647277391577"/>
+    <inertia ixx="0.003765" iyy="0.003842" izz="0.003929" ixy="0.000217" iyz="7.2e-05" ixz="-8.6e-05"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.059375 0.025375 -0.815676" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_6_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.059375 0.025375 -0.815676" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_6_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Link_7">
+  <inertial>
+    <origin xyz="-0.0017868967775850602 -0.005028096180721024 0.04636811966902066" rpy="0 0 0"/>
+    <mass value="0.07042769953386388"/>
+    <inertia ixx="9.8e-05" iyy="9.8e-05" izz="1e-06" ixy="0.0" iyz="3e-06" ixz="-4e-06"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.007887 -0.037592 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_7_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.007887 -0.037592 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_7_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Camera_link">
+  <inertial>
+    <origin xyz="-0.01999999999995162 3.608224830031759e-16 0.0008309682104639116" rpy="0 0 0"/>
+    <mass value="0.5216667986958432"/>
+    <inertia ixx="0.000144" iyy="0.000144" izz="0.000135" ixy="0.0" iyz="0.0" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.015625 0.025375 -0.79" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Camera_link_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.015625 0.025375 -0.79" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Camera_link_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Link_8">
+  <inertial>
+    <origin xyz="-0.002703449377635364 0.004600114186135835 0.04636811966902088" rpy="0 0 0"/>
+    <mass value="0.07042769953386384"/>
+    <inertia ixx="9.8e-05" iyy="9.8e-05" izz="1e-06" ixy="-0.0" iyz="1e-06" ixz="5e-06"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.150846 0.014323 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_8_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.150846 0.014323 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_8_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Link_9">
+  <inertial>
+    <origin xyz="0.005000000000008033 0.001863066826134921 0.04636811966902088" rpy="0 0 0"/>
+    <mass value="0.07042769953386384"/>
+    <inertia ixx="9.8e-05" iyy="9.8e-05" izz="1e-06" ixy="-0.0" iyz="-5e-06" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.054375 0.117375 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_9_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.054375 0.117375 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_9_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="Joint_1" type="continuous">
+  <origin xyz="0.05 0.04 0.00625" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="Link_1"/>
+  <axis xyz="0.0 0.0 1.0"/>
+</joint>
+
+<joint name="Joint_2" type="continuous">
+  <origin xyz="-0.025 0.003125 0.09765" rpy="0 0 0"/>
+  <parent link="Link_1"/>
+  <child link="Link_2"/>
+  <axis xyz="1.0 0.0 -0.0"/>
+</joint>
+
+<joint name="Joint_3" type="continuous">
+  <origin xyz="0.0 0.0 0.365" rpy="-1.57 0 0"/>
+  <parent link="Link_2"/>
+  <child link="Link_3"/>
+  <axis xyz="-1.0 -0.0 0.0"/>
+</joint>
+
+<joint name="Joint_4" type="continuous">
+  <origin xyz="0.034375 -0.0685 0.045" rpy="0 0 -1.57"/>
+  <parent link="Link_3"/>
+  <child link="Link_4"/>
+  <axis xyz="0.0 0.0 1.0"/>
+</joint>
+
+<joint name="Joint_5" type="continuous">
+  <origin xyz="0.007325 -0.028875 0.276776" rpy="0 0 0"/>
+  <parent link="Link_4"/>
+  <child link="Link_5"/>
+  <axis xyz="-0.0 1.0 -0.0"/>
+</joint>
+
+<joint name="Joint_6" type="continuous">
+  <origin xyz="-0.007325 0.028875 0.025" rpy="0 0 0"/>
+  <parent link="Link_5"/>
+  <child link="Link_6"/>
+  <axis xyz="-0.0 0.0 1.0"/>
+</joint>
+
+<joint name="Joint_7" type="continuous">
+  <origin xyz="-0.067262 0.062967 0.0835" rpy="0 0 0"/>
+  <parent link="Link_6"/>
+  <child link="Link_7"/>
+  <axis xyz="0.642788 0.766044 0.0"/>
+</joint>
+
+<joint name="Camera_Joint" type="fixed">
+  <origin xyz="-0.082325 0.028875 -0.000676" rpy="0 0 0"/>
+  <parent link="Link_5"/>
+  <child link="Camera_link"/>
+</joint>
+
+<joint name="Joint_8" type="continuous">
+  <origin xyz="0.091471 0.011052 0.0835" rpy="0 0 0"/>
+  <parent link="Link_6"/>
+  <child link="Link_8"/>
+  <axis xyz="0.173648 -0.984808 -0.0"/>
+</joint>
+
+<joint name="Joint_9" type="continuous">
+  <origin xyz="-0.005 -0.092 0.0835" rpy="0 0 0"/>
+  <parent link="Link_6"/>
+  <child link="Link_9"/>
+  <axis xyz="-1.0 0.0 0.0"/>
+</joint>
+
+<!-- Real Arm -->
+
+<link name="Real_Link_2">
+  <inertial>
+    <origin xyz="0.025 -3.469446951953614e-17 0.18250000000000027" rpy="0 0 0"/>
+    <mass value="1.86067089388539"/>
+    <inertia ixx="0.02649" iyy="0.026465" izz="0.001376" ixy="-0.0" iyz="0.0" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.025 -0.043125 -0.1039" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_2_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.025 -0.043125 -0.1039" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_2_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Link_3">
+  <inertial>
+    <origin xyz="0.03437499999999986 -0.04852387230509649 0.01494234846228587" rpy="0 0 0"/>
+    <mass value="0.4930537063853911"/>
+    <inertia ixx="0.000808" iyy="0.000697" izz="0.001059" ixy="0.0" iyz="0.000147" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.025 -0.043125 -0.4689" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_3_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.025 -0.043125 -0.4689" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_3_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Link_4">
+  <inertial>
+    <origin xyz="-4.544770722816893e-05 5.898059818321144e-17 0.13249483155448072" rpy="0 0 0"/>
+    <mass value="1.3362092993202992"/>
+    <inertia ixx="0.010972" iyy="0.01038" izz="0.00176" ixy="0.0" iyz="0.0" ixz="-5e-06"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.059375 0.025375 -0.5139" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_4_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.059375 0.025375 -0.5139" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_4_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Link_5">
+  <inertial>
+    <origin xyz="-0.024457508265359702 0.028875000000000362 -0.00023164099942307725" rpy="0 0 0"/>
+    <mass value="1.03093485941646"/>
+    <inertia ixx="0.000373" iyy="0.001033" izz="0.001033" ixy="0.0" iyz="0.0" ixz="-8e-06"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.0667 0.05425 -0.790676" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_5_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.0667 0.05425 -0.790676" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_5_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Link_1">
+  <inertial>
+    <origin xyz="-7.179673522372809e-14 -0.00017173384764001404 0.045632894964534494" rpy="0 0 0"/>
+    <mass value="0.4382416946666404"/>
+    <inertia ixx="0.000836" iyy="0.000966" izz="0.000383" ixy="0.0" iyz="4e-06" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.05 -0.04 -0.00625" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_1_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.05 -0.04 -0.00625" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_1_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Link_6">
+  <inertial>
+    <origin xyz="0.0007934173167834443 -0.0006657561778822887 0.04453519096184422" rpy="0 0 0"/>
+    <mass value="3.060647277391577"/>
+    <inertia ixx="0.003765" iyy="0.003842" izz="0.003929" ixy="0.000217" iyz="7.2e-05" ixz="-8.6e-05"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.059375 0.025375 -0.815676" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_6_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.059375 0.025375 -0.815676" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_6_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Link_7">
+  <inertial>
+    <origin xyz="-0.0017868967775850602 -0.005028096180721024 0.04636811966902066" rpy="0 0 0"/>
+    <mass value="0.07042769953386388"/>
+    <inertia ixx="9.8e-05" iyy="9.8e-05" izz="1e-06" ixy="0.0" iyz="3e-06" ixz="-4e-06"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.007887 -0.037592 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_7_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="0.007887 -0.037592 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_7_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Camera_link">
+  <inertial>
+    <origin xyz="-0.01999999999995162 3.608224830031759e-16 0.0008309682104639116" rpy="0 0 0"/>
+    <mass value="0.5216667986958432"/>
+    <inertia ixx="0.000144" iyy="0.000144" izz="0.000135" ixy="0.0" iyz="0.0" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.015625 0.025375 -0.79" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Camera_link_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="0.015625 0.025375 -0.79" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Camera_link_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Link_8">
+  <inertial>
+    <origin xyz="-0.002703449377635364 0.004600114186135835 0.04636811966902088" rpy="0 0 0"/>
+    <mass value="0.07042769953386384"/>
+    <inertia ixx="9.8e-05" iyy="9.8e-05" izz="1e-06" ixy="-0.0" iyz="1e-06" ixz="5e-06"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.150846 0.014323 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_8_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.150846 0.014323 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_8_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Real_Link_9">
+  <inertial>
+    <origin xyz="0.005000000000008033 0.001863066826134921 0.04636811966902088" rpy="0 0 0"/>
+    <mass value="0.07042769953386384"/>
+    <inertia ixx="9.8e-05" iyy="9.8e-05" izz="1e-06" ixy="-0.0" iyz="-5e-06" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.054375 0.117375 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_9_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="sky-blue"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.054375 0.117375 -0.899176" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rover/rover/simulation/meshes/Arm_2023/Link_9_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="Real_Joint_1" type="continuous">
+  <origin xyz="0.05 0.04 0.00625" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="Real_Link_1"/>
+  <axis xyz="0.0 0.0 1.0"/>
+</joint>
+
+<joint name="Real_Joint_2" type="continuous">
+  <origin xyz="-0.025 0.003125 0.09765" rpy="0 0 0"/>
+  <parent link="Real_Link_1"/>
+  <child link="Real_Link_2"/>
+  <axis xyz="1.0 0.0 -0.0"/>
+</joint>
+
+<joint name="Real_Joint_3" type="continuous">
+  <origin xyz="0.0 0.0 0.365" rpy="-1.57 0 0"/>
+  <parent link="Real_Link_2"/>
+  <child link="Real_Link_3"/>
+  <axis xyz="1.0 -0.0 0.0"/>
+</joint>
+
+<joint name="Real_Joint_4" type="continuous">
+  <origin xyz="0.034375 -0.0685 0.045" rpy="0 0 -1.57"/>
+  <parent link="Real_Link_3"/>
+  <child link="Real_Link_4"/>
+  <axis xyz="0.0 0.0 1.0"/>
+</joint>
+
+<joint name="Real_Joint_5" type="continuous">
+  <origin xyz="0.007325 -0.028875 0.276776" rpy="0 0 0"/>
+  <parent link="Real_Link_4"/>
+  <child link="Real_Link_5"/>
+  <axis xyz="-0.0 -1.0 -0.0"/>
+</joint>
+
+<joint name="Real_Joint_6" type="continuous">
+  <origin xyz="-0.007325 0.028875 0.025" rpy="0 0 0"/>
+  <parent link="Real_Link_5"/>
+  <child link="Real_Link_6"/>
+  <axis xyz="-0.0 0.0 -1.0"/>
+</joint>
+
+<joint name="Real_Joint_7" type="continuous">
+  <origin xyz="-0.067262 0.062967 0.0835" rpy="0 0 0"/>
+  <parent link="Real_Link_6"/>
+  <child link="Real_Link_7"/>
+  <axis xyz="0.642788 0.766044 0.0"/>
+</joint>
+
+<joint name="Real_Camera_Joint" type="fixed">
+  <origin xyz="-0.082325 0.028875 -0.000676" rpy="0 0 0"/>
+  <parent link="Real_Link_5"/>
+  <child link="Real_Camera_link"/>
+</joint>
+
+<joint name="Real_Joint_8" type="continuous">
+  <origin xyz="0.091471 0.011052 0.0835" rpy="0 0 0"/>
+  <parent link="Real_Link_6"/>
+  <child link="Real_Link_8"/>
+  <axis xyz="0.173648 -0.984808 -0.0"/>
+</joint>
+
+<joint name="Real_Joint_9" type="continuous">
+  <origin xyz="-0.005 -0.092 0.0835" rpy="0 0 0"/>
+  <parent link="Real_Link_6"/>
+  <child link="Real_Link_9"/>
+  <axis xyz="-1.0 0.0 0.0"/>
+</joint>
+
+</robot>

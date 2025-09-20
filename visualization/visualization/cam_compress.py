@@ -11,7 +11,7 @@ from cv_bridge import CvBridge, CvBridgeError
 # # if (len(argvs) != 2):
 # #     print('Usage: # python %s imagefilename' % argvs[0])
 # #     quit()
- 
+
 # # imagefilename = argvs[1]
 
 
@@ -25,9 +25,9 @@ from cv_bridge import CvBridge, CvBridgeError
 # #encode param image quality 0 to 100. default:95
 # #if you want to shrink data size, choose low image quality.
 # while(True):
-#     ret, img = vid.read()  
+#     ret, img = vid.read()
 #     # cv2.imshow('Source Image',img)
-#     # cv2.waitKey(0)      
+#     # cv2.waitKey(0)
 #     encode_param=[int(cv2.IMWRITE_JPEG_QUALITY),10]
 #     result,encimg=cv2.imencode('.jpg',img,encode_param)
 #     if False==result:
@@ -40,7 +40,7 @@ from cv_bridge import CvBridge, CvBridgeError
 #     cv2.imshow('Decoded image',decimg)
 #     cv2.waitKey(0)
 #     # cv2.destroyAllWindows()
-#     # publish(image data) 
+#     # publish(image data)
 
 # import cv2
 # import sys
@@ -75,7 +75,7 @@ class CameraCompressNode(Node):
         if not ret:
             print("image not received, exiting")
             return
-            
+
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 10]
         result, encimg = cv2.imencode('.jpg', img, encode_param)
 
@@ -90,9 +90,11 @@ class CameraCompressNode(Node):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
         try:
-            self.pub.publish(self.bridge.cv2_to_imgmsg(encimg, 'mono8')) #change to 'bgr' encoding if need to publish original image
+            # change to 'bgr' encoding if need to publish original image
+            self.pub.publish(self.bridge.cv2_to_imgmsg(encimg, 'mono8'))
         except CvBridgeError as e:
             print(f"Error publishing image: {e}")
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -105,6 +107,6 @@ def main(args=None):
         node.destroy_node()
         rclpy.shutdown()
 
+
 if __name__ == "__main__":
     main()
-                    
