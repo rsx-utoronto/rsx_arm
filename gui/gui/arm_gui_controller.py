@@ -14,26 +14,27 @@ class GuiControllerNode(Node):
 
         self.speedMultiplier = 1
 
-        self.inputPublisher = self.create_publisher(ArmInputs, "arm_inputs", 10)
+        self.inputPublisher = self.create_publisher(
+            ArmInputs, "arm_inputs", 10)
         self.statePublisher = self.create_publisher(String, "arm_state", 10)
-        
+
     def on_press(self, command):
         GuiToController = ArmInputs()
 
         # DATA TYPES ARE CRITICAL HERE
         GuiToController.l_horizontal = 0.0
-        GuiToController.l_vertical   = 0.0
+        GuiToController.l_vertical = 0.0
         GuiToController.r_horizontal = 0.0
-        GuiToController.r_vertical   = 0.0
-        GuiToController.l1           = 0
-        GuiToController.r1           = 0
-        GuiToController.l2           = 0.0
-        GuiToController.r2           = 0.0
-        GuiToController.x            = 0
-        GuiToController.o            = 0
-        GuiToController.share        = 0
-        GuiToController.options      = 0
-        GuiToController.r3           = 0
+        GuiToController.r_vertical = 0.0
+        GuiToController.l1 = 0
+        GuiToController.r1 = 0
+        GuiToController.l2 = 0.0
+        GuiToController.r2 = 0.0
+        GuiToController.x = 0
+        GuiToController.o = 0
+        GuiToController.share = 0
+        GuiToController.options = 0
+        GuiToController.r3 = 0
 
         # self.speedMultiplier = 6900
         try:
@@ -58,10 +59,11 @@ class GuiControllerNode(Node):
             # Rx
             if command == "Rx" or command == "joint4plus":
                 for i in range(100):
-                    GuiToController.l1 = 1 #* 127#int(self.speedMultiplier)#/100)
+                    # * 127#int(self.speedMultiplier)#/100)
+                    GuiToController.l1 = 1
             elif command == "-Rx" or command == "joint4minus":
-                GuiToController.r1 = 1 #* 127#int(self.speedMultiplier)#/100)
-            
+                GuiToController.r1 = 1  # * 127#int(self.speedMultiplier)#/100)
+
             # right vertical joystick emulation
             if command == "Ry" or command == "joint3plus":
                 GuiToController.r_vertical = float(1 * self.speedMultiplier)
@@ -76,10 +78,10 @@ class GuiControllerNode(Node):
 
             # shape button emulation
             if command == "Open Grip" or command == "joint6plus":
-                GuiToController.x = 1 
+                GuiToController.x = 1
                 self.get_logger().info("grip opened!!!")
             if command == "Close Grip" or command == "joint6minus":
-                GuiToController.o = 1 
+                GuiToController.o = 1
                 self.get_logger().info("grip not opened!!!")
             if command == "useless":
                 GuiToController.triangle = 1
@@ -93,18 +95,18 @@ class GuiControllerNode(Node):
                 GuiToController.options = 1
             if command == "useless":
                 GuiToController.r3 = 1
-                
+
             # emulate d-pad as arrow keys
             if command == "Manual":
                 msg = String()
                 msg.data = "Manual"
                 self.statePublisher.publish(msg)
-                self.speedMultiplier = 1#6900
+                self.speedMultiplier = 1  # 6900
             if command == "Inverse Kin":
                 msg = String()
                 msg.data = "IK"
                 self.statePublisher.publish(msg)
-                self.speedMultiplier = 1#69
+                self.speedMultiplier = 1  # 69
             if command == "Setup":
                 msg = String()
                 msg.data = "Setup"
@@ -117,35 +119,37 @@ class GuiControllerNode(Node):
             self.get_logger().error(f"Error in on_press: {e}")
 
         # Only joint 5 (the slow moving one) is published 100 times
-        # (TEMPORARY FIX) 
-        #if (command == "joint4plus" or command == "joint4minus"):    
-            #for i in range(100):    
-                #self.inputPublisher.publish(GuiToController)
-        #else:
+        # (TEMPORARY FIX)
+        # if (command == "joint4plus" or command == "joint4minus"):
+            # for i in range(100):
+            # self.inputPublisher.publish(GuiToController)
+        # else:
         self.inputPublisher.publish(GuiToController)
 
     '''
     TODO: in my opinion this isn't great logic, we should remove the second publishing and only publish the inputs received, increment 
     the arm state according to that input held for a certain amount of time, and then wait for the next input to continue updating. 
     '''
+
     def on_release(self):
         keyboardToController = ArmInputs()
 
         keyboardToController.l_horizontal = 0.0
-        keyboardToController.l_vertical   = 0.0
+        keyboardToController.l_vertical = 0.0
         keyboardToController.r_horizontal = 0.0
-        keyboardToController.r_vertical   = 0.0
-        keyboardToController.l1           = 0
-        keyboardToController.r1           = 0
-        keyboardToController.l2           = 0.0
-        keyboardToController.r2           = 0.0
-        keyboardToController.x            = 0
-        keyboardToController.o            = 0
-        keyboardToController.share        = 0
-        keyboardToController.options      = 0
-        keyboardToController.r3           = 0
+        keyboardToController.r_vertical = 0.0
+        keyboardToController.l1 = 0
+        keyboardToController.r1 = 0
+        keyboardToController.l2 = 0.0
+        keyboardToController.r2 = 0.0
+        keyboardToController.x = 0
+        keyboardToController.o = 0
+        keyboardToController.share = 0
+        keyboardToController.options = 0
+        keyboardToController.r3 = 0
 
         self.inputPublisher.publish(keyboardToController)
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -158,6 +162,7 @@ def main(args=None):
         if 'gui_controller_node' in locals():
             gui_controller_node.destroy_node()
         rclpy.shutdown()
-        
+
+
 if __name__ == "__main__":
     main()

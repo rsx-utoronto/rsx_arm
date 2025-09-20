@@ -12,3 +12,4 @@ scipy
 geometry_msgs
 rclpy
 python-can==4.6.0
+autopep8

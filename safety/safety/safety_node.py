@@ -11,13 +11,16 @@ import os
 ############ ENUMERATIONS #############
 
 # Enum for all the errors
+
+
 class Errors(Enum):
-    ERROR_NONE              = 0
-    ERROR_EXCEEDING_POS     = 1
+    ERROR_NONE = 0
+    ERROR_EXCEEDING_POS = 1
     ERROR_EXCEEDING_CURRENT = 2
-    ERROR_LIMIT_SWITCH      = 3
+    ERROR_LIMIT_SWITCH = 3
 
 ############### CLASSES ###############
+
 
 class Safety_Node(Node):
     """
@@ -30,39 +33,48 @@ class Safety_Node(Node):
     def __init__(self):
         super().__init__('Safety')
         # Attributes to hold data from subscribed topics
-        self.GOAL_POS             = [0., 0., 0., 0., 0., 0., 0.]
-        self.CURR_POS             = [0., 0., 0., 0., 0., 0., 0.]
-        self.MOTOR_CURR           = [0., 0., 0., 0., 0., 0., 0.]
-        self.LIMIT_SWITCH         = [False, False, False, False, False, False, False]
-        self.STATE                = 'Idle'
+        self.GOAL_POS = [0., 0., 0., 0., 0., 0., 0.]
+        self.CURR_POS = [0., 0., 0., 0., 0., 0., 0.]
+        self.MOTOR_CURR = [0., 0., 0., 0., 0., 0., 0.]
+        self.LIMIT_SWITCH = [False, False, False, False, False, False, False]
+        self.STATE = 'Idle'
 
         # Attributes to hold data for publishing to topics
-        self.ERRORS               = UInt8MultiArray()
-        self.ERRORS.data          = [0, 0, 0, 0, 0, 0, 0]
-        self.SAFE_GOAL_POS        = Float32MultiArray()
-        self.SAFE_GOAL_POS.data   = [0., 0., 0., 0., 0., 0., 0.]
-        self.ERROR_OFFSET         = Float32MultiArray()
-        self.ERROR_OFFSET.data    = [0., 0., 0., 0., 0., 0., 0.]
+        self.ERRORS = UInt8MultiArray()
+        self.ERRORS.data = [0, 0, 0, 0, 0, 0, 0]
+        self.SAFE_GOAL_POS = Float32MultiArray()
+        self.SAFE_GOAL_POS.data = [0., 0., 0., 0., 0., 0., 0.]
+        self.ERROR_OFFSET = Float32MultiArray()
+        self.ERROR_OFFSET.data = [0., 0., 0., 0., 0., 0., 0.]
 
         # Attributes needed for detecting whether motor current is exceeding
-        self.TIME                 = [0., 0., 0., 0., 0., 0., 0.]
-        self.FIRST                = [True, True, True, True, True, True, True]
+        self.TIME = [0., 0., 0., 0., 0., 0., 0.]
+        self.FIRST = [True, True, True, True, True, True, True]
 
         # Variables for ROS publishers and subscribers
-        self.Goal_sub             = self.create_subscription(Float32MultiArray, "arm_goal_pos", self.callback_Goal, 10)
-        self.MotorCurr_sub        = self.create_subscription(Float32MultiArray, "arm_motor_curr", self.callback_MotorCurr, 10)
-        self.CurrPos_sub          = self.create_subscription(Float32MultiArray, "arm_curr_pos", self.callback_CurrPos, 10)
-        self.LimitSwitch_sub      = self.create_subscription(UInt8MultiArray, "arm_limit_switch", self.callback_LimitSwitch, 10)
-        self.KillSwitch_sub       = self.create_subscription(UInt8, "arm_killswitch", self.callback_KillSwitch, 10)
-        self.State_sub            = self.create_subscription(String, "arm_state", self.CallbackState, 10)
-        self.SafePos_pub          = self.create_publisher(Float32MultiArray, "arm_safe_goal_pos", 10)
-        self.Error_pub            = self.create_publisher(UInt8MultiArray, "arm_error_msg", 10)
-        self.Offset_pub           = self.create_publisher(Float32MultiArray, "arm_error_offset", 10)
+        self.Goal_sub = self.create_subscription(
+            Float32MultiArray, "arm_goal_pos", self.callback_Goal, 10)
+        self.MotorCurr_sub = self.create_subscription(
+            Float32MultiArray, "arm_motor_curr", self.callback_MotorCurr, 10)
+        self.CurrPos_sub = self.create_subscription(
+            Float32MultiArray, "arm_curr_pos", self.callback_CurrPos, 10)
+        self.LimitSwitch_sub = self.create_subscription(
+            UInt8MultiArray, "arm_limit_switch", self.callback_LimitSwitch, 10)
+        self.KillSwitch_sub = self.create_subscription(
+            UInt8, "arm_killswitch", self.callback_KillSwitch, 10)
+        self.State_sub = self.create_subscription(
+            String, "arm_state", self.CallbackState, 10)
+        self.SafePos_pub = self.create_publisher(
+            Float32MultiArray, "arm_safe_goal_pos", 10)
+        self.Error_pub = self.create_publisher(
+            UInt8MultiArray, "arm_error_msg", 10)
+        self.Offset_pub = self.create_publisher(
+            Float32MultiArray, "arm_error_offset", 10)
 
-    def callback_KillSwitch(self, data : UInt8):
+    def callback_KillSwitch(self, data: UInt8):
         """
         (UInt8) -> (None)
-        
+
         Receives and stores killswitch input from the controller node. If pressed, we shut down CAN_Send node
         after sending the curr_pos as the latest position.
 
@@ -70,7 +82,7 @@ class Safety_Node(Node):
 
         data (UInt8): Input indicating whether killswitch is pressed or not
         """
-        
+
         # Storing the boolean value
         killswitch = data.data
 
@@ -78,13 +90,13 @@ class Safety_Node(Node):
             self.SAFE_GOAL_POS.data = self.CURR_POS
             self.SafePos_pub.publish(self.SAFE_GOAL_POS)
             rclpy.sleep(0.001)
-            os.system("rosnode kill "+ "CAN_Send")
-        
+            os.system("rosnode kill " + "CAN_Send")
+
         else:
-            os.system("rosrun rover "+ "CAN_send.py")
+            os.system("rosrun rover " + "CAN_send.py")
             self.SAFE_GOAL_POS.data = self.CURR_POS
 
-    def CallbackState (self, status: String) -> None:
+    def CallbackState(self, status: String) -> None:
         """
         (String) -> (None)
 
@@ -97,15 +109,15 @@ class Safety_Node(Node):
 
         # Update the state
         self.STATE = status.data
-        
+
         # # If state is setup, do setup
         # if self.STATE == 'Setup':
         #     self.setup()
 
-    def callback_LimitSwitch(self, limitSwitch_data : UInt8MultiArray) -> None:
+    def callback_LimitSwitch(self, limitSwitch_data: UInt8MultiArray) -> None:
         """
         (UInt8MultiArray) -> (None)
-        
+
         Receives and stores limit switch inputs from SparkMax through the LIMIT_SWITCH topic
         into LIMIT_SWITCH attribute. Also updates the ERRORS attribute if needed and publishes it on 
         ERROR_MSG topic
@@ -117,13 +129,13 @@ class Safety_Node(Node):
 
         # Store the received limit switch data
         self.LIMIT_SWITCH = limitSwitch_data.data
-        #print(self.LIMIT_SWITCH)
+        # print(self.LIMIT_SWITCH)
 
         # # Updating the ERRORS attribute if needed and publishing it
         # self.limitSwitch_check()
         # self.Error_pub.publish(self.ERRORS)
 
-    def callback_Goal(self, goal_data : Float32MultiArray) -> None:
+    def callback_Goal(self, goal_data: Float32MultiArray) -> None:
         """
         (Float32MultiArray) -> (None)
 
@@ -141,13 +153,12 @@ class Safety_Node(Node):
         self.GOAL_POS = list(goal_data.data)
 
         # self.GOAL_POS      = list(np.array(self.GOAL_POS) - np.array(self.ERROR_OFFSET.data))
-        #print("Received inputs:", self.GOAL_POS[0])
+        # print("Received inputs:", self.GOAL_POS[0])
 
         # Update the SAFE_GOAL_POS and publish if the received position is safe
         self.update_safe_goal_pos(self.GOAL_POS)
 
-    
-    def callback_MotorCurr(self, MotorCurr_data : Float32MultiArray) -> None:
+    def callback_MotorCurr(self, MotorCurr_data: Float32MultiArray) -> None:
         """
         (Float32MultiArray) -> (None)
 
@@ -159,15 +170,15 @@ class Safety_Node(Node):
 
         MotorCurr_data (Float32MultiArray): List containing current values (amps, I think) of each motor
         """
-        
+
         # Store the received motor current value
         self.MOTOR_CURR = MotorCurr_data.data
 
         # # Check if motor current is exceeding and publish the errors
         # self.current_check()
         # self.Error_pub.publish(self.ERRORS)
-    
-    def callback_CurrPos(self, CurrPos_data : Float32MultiArray) -> None:
+
+    def callback_CurrPos(self, CurrPos_data: Float32MultiArray) -> None:
         """
         (Float32MultiArray) -> (None)
 
@@ -181,7 +192,7 @@ class Safety_Node(Node):
         # Store the received current position values
         self.CURR_POS = CurrPos_data.data
 
-    def update_safe_goal_pos(self, final_pos : list) -> None:
+    def update_safe_goal_pos(self, final_pos: list) -> None:
         """
         (list(float)) -> (None)
 
@@ -197,7 +208,7 @@ class Safety_Node(Node):
         # if self.STATE == "IK":
 
         #     # Speed Limits
-        #     SPEED_LIMIT = [0.005, 0.003, 0.01, 0.075, 
+        #     SPEED_LIMIT = [0.005, 0.003, 0.01, 0.075,
         #                             0.075, 0.075, 0.075]
 
         #     # Update the final pos according to direction we are going in
@@ -205,22 +216,22 @@ class Safety_Node(Node):
 
         #     for i in range(len(self.GOAL_POS)):
         #         direction[i] = sign(self.GOAL_POS[i] - self.CURR_POS[i])
-            
+
         #     final_pos = list(np.array(self.CURR_POS) + np.array(direction) * np.array(SPEED_LIMIT))
-            
+
         #     # Do position check on this final_pos as well as all the other checks
         #     self.postion_check(pos= final_pos)
         #     self.current_check(pos= final_pos)
         #     self.limitSwitch_check(pos= final_pos)
-        
+
         if self.STATE == "Manual" or self.STATE == "IK":
-            
-            # Check if the goal position is safe 
-            #self.GOAL_POS      = list(np.array(self.GOAL_POS) - np.array(self.ERROR_OFFSET.data))
+
+            # Check if the goal position is safe
+            # self.GOAL_POS      = list(np.array(self.GOAL_POS) - np.array(self.ERROR_OFFSET.data))
             self.postion_check()
             # self.current_check()
             # self.limitSwitch_check()
-            #self.GOAL_POS      = list(np.array(self.GOAL_POS) - np.array(self.ERROR_OFFSET.data))
+            # self.GOAL_POS      = list(np.array(self.GOAL_POS) - np.array(self.ERROR_OFFSET.data))
 
         else:
             return
@@ -228,34 +239,34 @@ class Safety_Node(Node):
         # Publish the errors
         self.Error_pub.publish(self.ERRORS)
 
-        #print("goal: {}, error: {}".format(final_pos, self.ERRORS.data))
+        # print("goal: {}, error: {}".format(final_pos, self.ERRORS.data))
 
         # Check if there are any errors
         if self.ERRORS.data.count(Errors.ERROR_EXCEEDING_POS.value) == 0 or self.STATE == 'IK':
 
             # Print/Publish the position to SAFE_GOAL_POS topic
-            #print(self.GOAL_POS)
+            # print(self.GOAL_POS)
             self.SAFE_GOAL_POS.data = self.GOAL_POS
             self.SafePos_pub.publish(self.SAFE_GOAL_POS)
 
             # Publish any errors that we need to
             self.Offset_pub.publish(self.ERROR_OFFSET)
-            #pass
-            self.ERROR_OFFSET.data  = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        
+            # pass
+            self.ERROR_OFFSET.data = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
         # If there are any errors, publish the error offsets and reset them
         elif Errors.ERROR_EXCEEDING_POS.value in self.ERRORS.data:
 
             print("publishing offsets:", self.ERROR_OFFSET.data)
             self.Offset_pub.publish(self.ERROR_OFFSET)
-            #pass
-            self.ERROR_OFFSET.data  = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        
+            # pass
+            self.ERROR_OFFSET.data = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
         # # Repeat the function if needed in 'IK' mode
         # if self.STATE == "IK" and max(abs(np.array(self.GOAL_POS) - np.array(self.CURR_POS))):
         #     self.update_safe_goal_pos(self.GOAL_POS)
-    
-    def postion_check(self, pos : list = None) -> None:
+
+    def postion_check(self, pos: list = None) -> None:
         '''
         (lsit(float)) -> (None)
 
@@ -270,25 +281,26 @@ class Safety_Node(Node):
         '''
         # TODO
         # Limits for position safety (Need to test these values)
-        #limit = [1.25, 1.25, 1.25, 20, 1.25, 1.25, 1.25]
-        limit = [10, 10, 10, 30, 120, 120, 80000] # 40 was an old value for this limit, no clue if it is correct for now
+        # limit = [1.25, 1.25, 1.25, 20, 1.25, 1.25, 1.25]
+        # 40 was an old value for this limit, no clue if it is correct for now
+        limit = [10, 10, 10, 30, 120, 120, 80000]
 
         if not pos:
             pos = self.GOAL_POS
 
         # Going through each element of GOAL_POS
-        #for i in range(len(self.GOAL_POS)):
-        for i in [0, 1, 2, 3, 4, 5, 6]:    
+        # for i in range(len(self.GOAL_POS)):
+        for i in [0, 1, 2, 3, 4, 5, 6]:
             # Doing position comparisons for safety
             if (abs(pos[i] - self.CURR_POS[i]) > limit[i]):
 
                 # Calculating the offset, applying it to goal position and storing it
-                offset                     = pos[i] - self.CURR_POS[i]
-                self.ERROR_OFFSET.data[i]  = offset #- sign(offset) * limit[i]
-                #spark_input[i] = arm_can.pos_to_sparkdata(CURR_POS[i])
+                offset = pos[i] - self.CURR_POS[i]
+                self.ERROR_OFFSET.data[i] = offset  # - sign(offset) * limit[i]
+                # spark_input[i] = arm_can.pos_to_sparkdata(CURR_POS[i])
 
                 # # Update the error if no other error is set
-                # if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or 
+                # if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or
                 #     self.ERRORS.data[i] == Errors.ERROR_EXCEEDING_POS.value):
 
                 # Set the error for the motor
@@ -296,19 +308,18 @@ class Safety_Node(Node):
 
             # NOTE
             # Remove the error if it is no longer there
-            # By design, the EXCEEDING_POS error should not be there after one 
+            # By design, the EXCEEDING_POS error should not be there after one
             # cycle of the loop as the offset to controller input will bring
             # the input back to a safe value.
             else:
-                ## Call other checks just to confirm there are no errors
+                # Call other checks just to confirm there are no errors
                 # self.current_check()
                 # self.limitSwitch_check()
-                # if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or 
+                # if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or
                 #     self.ERRORS.data[i] == Errors.ERROR_EXCEEDING_POS.value):
                 self.ERRORS.data[i] = Errors.ERROR_NONE.value
 
-
-    def current_check(self, pos : list = None) -> None:
+    def current_check(self, pos: list = None) -> None:
         '''
         (None) -> (None)
 
@@ -332,27 +343,27 @@ class Safety_Node(Node):
             if self.MOTOR_CURR[i] > max_current[i]:
 
                 # Check if the motor has an error associated with it already
-                if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or 
-                    self.ERRORS.data[i] == Errors.ERROR_EXCEEDING_CURRENT.value):
-                    
-                    # Checking if the input from controller is making it go further into 
+                if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or
+                        self.ERRORS.data[i] == Errors.ERROR_EXCEEDING_CURRENT.value):
+
+                    # Checking if the input from controller is making it go further into
                     # the direction that increases current
-                    #if (sign(pos[i] - self.CURR_POS[i]) == sign(pos[i])):
+                    # if (sign(pos[i] - self.CURR_POS[i]) == sign(pos[i])):
 
-                        # Change the error associated with the motor to EXCEEDING_CURRENT
-                        self.ERRORS.data[i] = Errors.ERROR_EXCEEDING_CURRENT.value
+                    # Change the error associated with the motor to EXCEEDING_CURRENT
+                    self.ERRORS.data[i] = Errors.ERROR_EXCEEDING_CURRENT.value
 
-                        # # Calculating the offset, applying it to goal position and storing it
-                        # offset                  = list(np.array(self.GOAL_POS) - np.array(self.CURR_POS))
-                        # self.ERROR_OFFSET.data  = offset
+                    # # Calculating the offset, applying it to goal position and storing it
+                    # offset                  = list(np.array(self.GOAL_POS) - np.array(self.CURR_POS))
+                    # self.ERROR_OFFSET.data  = offset
 
-                        # Check if this is the first time this error is set 
-                        if self.FIRST[i]:
+                    # Check if this is the first time this error is set
+                    if self.FIRST[i]:
 
-                            # Collect time stamp since the error was set
-                            self.TIME[i]    = time.time()
-                            self.FIRST[i]   = False
-                
+                        # Collect time stamp since the error was set
+                        self.TIME[i] = time.time()
+                        self.FIRST[i] = False
+
                     # If the controller input is in the direction that reduces the current
                     # else:
 
@@ -360,20 +371,20 @@ class Safety_Node(Node):
                     #     self.ERRORS.data[i] = Errors.ERROR_NONE.value
                     #     self.FIRST[i]       = True
                     #     self.TIME[i]        = 0
-            
+
             # Checking if the current has been under the max limit for more than 10 ms
             elif self.MOTOR_CURR[i] < max_current[i] and time.time() - self.TIME[i] > 0.01:
 
                 # Check if the motor has an error associated with it already
                 if (self.ERRORS.data[i] == Errors.ERROR_EXCEEDING_CURRENT.value or
-                    self.ERRORS.data[i] == Errors.ERROR_NONE.value):
+                        self.ERRORS.data[i] == Errors.ERROR_NONE.value):
 
                     # Remove the error and set TIME and FIRST back to original form
                     self.ERRORS.data[i] = Errors.ERROR_NONE.value
-                    self.FIRST[i]  = True
-                    self.TIME[i]   = 0
+                    self.FIRST[i] = True
+                    self.TIME[i] = 0
 
-    def limitSwitch_check(self, pos : list = None) -> None:
+    def limitSwitch_check(self, pos: list = None) -> None:
         '''
         (None) -> (None)
 
@@ -390,50 +401,50 @@ class Safety_Node(Node):
 
         # Going through each limit switch input
         for i in range(len(self.LIMIT_SWITCH)):
-            
+
             # Checking if any other error is set already
             if self.LIMIT_SWITCH[i]:
-            
-                #print(i)
 
-                # Checking if the input from controller is making it go further into 
+                # print(i)
+
+                # Checking if the input from controller is making it go further into
                 # the direction that presses the limit switch
-                #if (sign(pos[i] - self.CURR_POS[i]) == sign(pos[i])):
-                    
-                    #print(self.LIMIT_SWITCH[6])
+                # if (sign(pos[i] - self.CURR_POS[i]) == sign(pos[i])):
 
-                    # Checking if limit switch is being pressed, 
-                    # if yes then change the error status for the motor
-                    #if i == 6:
-                        #print(self.LIMIT_SWITCH[i])
-                        if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or 
-                            self.ERRORS.data[i] == Errors.ERROR_LIMIT_SWITCH.value):
-                            #print("error in", i)
-                            self.ERRORS.data[i]     = Errors.ERROR_LIMIT_SWITCH.value
+                # print(self.LIMIT_SWITCH[6])
+
+                # Checking if limit switch is being pressed,
+                # if yes then change the error status for the motor
+                # if i == 6:
+                # print(self.LIMIT_SWITCH[i])
+                if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or
+                        self.ERRORS.data[i] == Errors.ERROR_LIMIT_SWITCH.value):
+                    # print("error in", i)
+                    self.ERRORS.data[i] = Errors.ERROR_LIMIT_SWITCH.value
 
                     # # Calculating the offset, applying it to goal position and storing it
                     # offset                  = list(np.array(self.GOAL_POS) - np.array(self.CURR_POS))
                     # print(self.GOAL_POS[2], self.CURR_POS[2], offset[2])
                     # self.ERROR_OFFSET.data  = offset
-                
-                #else:
-                    # if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or 
+
+                # else:
+                    # if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or
                     #     self.ERRORS.data[i] == Errors.ERROR_LIMIT_SWITCH.value):
                     #     self.ERRORS.data[i] = Errors.ERROR_NONE.value
 
             else:
-                if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or 
-                    self.ERRORS.data[i] == Errors.ERROR_LIMIT_SWITCH.value):
+                if (self.ERRORS.data[i] == Errors.ERROR_NONE.value or
+                        self.ERRORS.data[i] == Errors.ERROR_LIMIT_SWITCH.value):
                     self.ERRORS.data[i] = Errors.ERROR_NONE.value
 
     def setup(self):
         # For each motor...
-        #for i in range(len(self.SAFE_GOAL_POS) - 1):
+        # for i in range(len(self.SAFE_GOAL_POS) - 1):
         for i in [0]:
             # Store current angles
             initial_pos = self.CURR_POS[i]
             # Send in a large value to hit limit switch
-            #self.SAFE_GOAL_POS.data[i] = 10000000
+            # self.SAFE_GOAL_POS.data[i] = 10000000
             # When an error occurs, check again and reverse angle change
             while Errors.ERROR_LIMIT_SWITCH.value != self.ERRORS.data[i]:
                 self.SAFE_GOAL_POS.data[i] += 1
@@ -442,32 +453,32 @@ class Safety_Node(Node):
             final_pos = self.CURR_POS[i]
             print(final_pos)
 
-            self.SAFE_GOAL_POS.data[i] = final_pos- (final_pos - initial_pos)
+            self.SAFE_GOAL_POS.data[i] = final_pos - (final_pos - initial_pos)
             self.SafePos_pub.publish(self.SAFE_GOAL_POS)
-
 
 
 ############## FUNCTIONS ##############
 
-def sign(x : float) -> int:
-	'''
-	(float) -> (int)
+def sign(x: float) -> int:
+    '''
+    (float) -> (int)
 
-	Returns the sign of the given number
+    Returns the sign of the given number
 
-	@parameters
+    @parameters
 
-	x (float) = The number for which sign is needed
-	'''
+    x (float) = The number for which sign is needed
+    '''
 
-	return (x > 0) - (x < 0)
+    return (x > 0) - (x < 0)
 
 ###################### MAIN #########################
+
 
 def main() -> None:
     '''
     (None) -> (None)
-    
+
     Main function that initializes the safety node
     '''
 
@@ -483,6 +494,7 @@ def main() -> None:
 
     except KeyboardInterrupt:
         pass
+
 
 if __name__ == "__main__":
 

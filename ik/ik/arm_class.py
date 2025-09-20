@@ -2,8 +2,9 @@ import numpy as np
 from math import pi, sin, cos, atan2, sqrt
 from copy import deepcopy
 
+
 class Arm():
-    def __init__(self, numJoints:int, dhTable, offsets, angleOrientation, startingAngles):
+    def __init__(self, numJoints: int, dhTable, offsets, angleOrientation, startingAngles):
         ''' Object That represents a robot arm config with common functions
 
         Parameters
@@ -15,9 +16,9 @@ class Arm():
 
         '''
         self.isHomed = False
-        self.numJoints:int = numJoints
+        self.numJoints: int = numJoints
         self.curAngles = [0]*numJoints
-        self.goalAngles = [0]*numJoints 
+        self.goalAngles = [0]*numJoints
         self.prevGoalAngles = [0]*numJoints
         self.sparkMaxOffsets = [0]*self.numJoints
         self.trueStartingAngles = [0]*self.numJoints
@@ -29,30 +30,34 @@ class Arm():
         self.goalAngles = deepcopy(startingAngles)
 
         if len(dhTable) != numJoints:
-            print("The number of joints in the DH table does not match the nuber specified")
+            print(
+                "The number of joints in the DH table does not match the nuber specified")
             raise TypeError
-        self.dhTable = np.array(dhTable) # pass [d, Theta, r, alpha]
+        self.dhTable = np.array(dhTable)  # pass [d, Theta, r, alpha]
 
         if len(offsets) != numJoints:
-            print("The number of joints in the offsets list does not match the nuber specified")
+            print(
+                "The number of joints in the offsets list does not match the nuber specified")
             raise TypeError
         self.offsets = offsets
 
         if len(angleOrientation) != numJoints:
-            print("The number of joints in the angle orientation does not match the nuber specified")
+            print(
+                "The number of joints in the angle orientation does not match the nuber specified")
             raise TypeError
         self.angleOrientation = angleOrientation
 
-        self.target = [0]*6 # [x, y, z, roll , pitch, yaw]
-        self.prevTarget = [0]*6 # [x, y, z, roll , pitch, yaw]
+        self.target = [0]*6  # [x, y, z, roll , pitch, yaw]
+        self.prevTarget = [0]*6  # [x, y, z, roll , pitch, yaw]
         self.modes = ["Forward"]
-        self.curMode = self.modes[0] # makes this a data structure function callback
+        # makes this a data structure function callback
+        self.curMode = self.modes[0]
         self.numModes = len(self.modes)
-        self.CONTROL_SPEED = 0.003 
-    
+        self.CONTROL_SPEED = 0.003
+
     def updateDHTable(self, newAngles):
         ''' Updates to the DH Table to have the current joint angles
-        
+
         Update the theta values of the DH table. Will only succesfully run if the
         length of the jointAngles list equals self.numJoints.
 
@@ -62,7 +67,7 @@ class Arm():
             list of angles for each joint
 
         '''
-        self.dhTable[:, 1] = newAngles 
+        self.dhTable[:, 1] = newAngles
 
     def getDHTable(self):
         return self.dhTable
@@ -95,7 +100,7 @@ class Arm():
         '''
         if newMode in self.modes:
             self.curMode = newMode
-            return True 
+            return True
         return False
 
     def getCurMode(self) -> str:
@@ -114,7 +119,7 @@ class Arm():
     def controlEndEffector(self, goalPos):
         pass
 
-    def setCurAngles(self, angles:np.ndarray):
+    def setCurAngles(self, angles: np.ndarray):
         self.curAngles = angles
 
     def getGoalAngles(self):
@@ -123,14 +128,14 @@ class Arm():
     def getOffsetGoalAngles(self):
         angles = self.getGoalAngles()
         offsetAngles = [0]*self.numJoints
-        for i in range(len(angles)): 
-            offsetAngles[i] = angles[i] + self.offsets[i] 
-        return deepcopy(offsetAngles) 
+        for i in range(len(angles)):
+            offsetAngles[i] = angles[i] + self.offsets[i]
+        return deepcopy(offsetAngles)
 
     def removeOffsets(self, angles):
         correctedAngles = [0]*self.numJoints
         for i in range(len(angles)):
-            correctedAngles[i] = angles[i] - self.offsets[i] 
+            correctedAngles[i] = angles[i] - self.offsets[i]
         return deepcopy(correctedAngles)
 
     def getPublishingAngles(self):
@@ -159,8 +164,9 @@ class Arm():
         if len(angles) != self.numJoints:
             return angles
         for i in range(self.numJoints):
-            offsetAngles[i] += self.sparkMaxOffsets[i] #- self.trueStartingAngles[i] 
-            # offsetAngles[i] +=  - self.trueStartingAngles[i] 
+            # - self.trueStartingAngles[i]
+            offsetAngles[i] += self.sparkMaxOffsets[i]
+            # offsetAngles[i] +=  - self.trueStartingAngles[i]
         return offsetAngles
 
     def storeSparkMaxOffsets(self, sparkMaxAngles):
@@ -204,9 +210,10 @@ class Arm():
             a list of floats containing the angles in the form [roll, pitch, yaw]
         '''
 
-        roll = atan2(transformationMatrix[2,1], transformationMatrix[2,2])
-        pitch = atan2(-transformationMatrix[2,0], sqrt(transformationMatrix[2,1]**2 + transformationMatrix[2,2]**2))
-        yaw = atan2(transformationMatrix[1,0], transformationMatrix[0,0])
+        roll = atan2(transformationMatrix[2, 1], transformationMatrix[2, 2])
+        pitch = atan2(-transformationMatrix[2, 0], sqrt(
+            transformationMatrix[2, 1]**2 + transformationMatrix[2, 2]**2))
+        yaw = atan2(transformationMatrix[1, 0], transformationMatrix[0, 0])
 
         return [roll, pitch, yaw]
 
@@ -234,7 +241,7 @@ class Arm():
         '''
         # convert theta and alpha to radians
 
-        #DELETED SOME STUFF
+        # DELETED SOME STUFF
 
         # define cos and sin for theta and alpha
 
@@ -245,17 +252,19 @@ class Arm():
         sinAlpha = sin(alpha)
 
         DHTransformMatrix = np.array([
-            [cosTheta, (-sinTheta * cosAlpha), (sinTheta * sinAlpha), (r * cosTheta)],
-            [sinTheta, (cosTheta * cosAlpha), (-cosTheta * sinAlpha), (r * sinTheta)],
+            [cosTheta, (-sinTheta * cosAlpha),
+             (sinTheta * sinAlpha), (r * cosTheta)],
+            [sinTheta, (cosTheta * cosAlpha),
+             (-cosTheta * sinAlpha), (r * sinTheta)],
             [0, sinAlpha, cosAlpha, d],
             [0, 0, 0, 1]
-            ])
+        ])
         # print(np.round(DHTransformMatrix, 2))
         return DHTransformMatrix
 
     def calculateTransformToLink(self, linkNumber):
         ''' Find the transform matrix to specified location
-        
+
         Basically just multiplies all element transforms from 0 to linkNumber. Uses createTransformMatrix().
 
         Paramters
@@ -271,13 +280,14 @@ class Arm():
         numpy matrix
             the multiplied matrix
         '''
-        dhTable = self.getDHTable() 
-        # dhTable[3, 1] += atan2(92,67) 
+        dhTable = self.getDHTable()
+        # dhTable[3, 1] += atan2(92,67)
         # print(dhTable)
         transformToLink = np.eye(4)
 
         for i in range(0, linkNumber):
-            ithTransform = self.createTransformationMatrix(dhTable[i][0], dhTable[i][1], dhTable[i][2], dhTable[i][3])
+            ithTransform = self.createTransformationMatrix(
+                dhTable[i][0], dhTable[i][1], dhTable[i][2], dhTable[i][3])
             transformToLink = np.matmul(transformToLink, ithTransform)
 
         return transformToLink
@@ -297,4 +307,3 @@ class Arm():
         ''' Defined in each arm class
         '''
         pass
-

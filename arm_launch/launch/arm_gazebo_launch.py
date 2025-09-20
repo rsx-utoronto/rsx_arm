@@ -8,14 +8,16 @@ from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitut
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
+
 def generate_launch_description():
     # parameters
     controller_yaml = PathJoinSubstitution(
-        [FindPackageShare('rover'), 'rover', 'simulation', 'config', 'arm_2023_joints.yaml']
+        [FindPackageShare('rover'), 'rover', 'simulation',
+         'config', 'arm_2023_joints.yaml']
     )
 
     robot_description = {
-        'robot_description':Command([
+        'robot_description': Command([
             'xacro',
             '--inorder',
             PathJoinSubstitution([
@@ -33,14 +35,16 @@ def generate_launch_description():
     rvizconfig_arg = DeclareLaunchArgument(
         'rvizconfig',
         default_value=PathJoinSubstitution(
-            [FindPackageShare('rover'), 'rover', 'simulation', 'rviz_config', 'arm_urdf.rviz']
+            [FindPackageShare('rover'), 'rover', 'simulation',
+             'rviz_config', 'arm_urdf.rviz']
         ),
     )
 
     model_arg = DeclareLaunchArgument(
         'model',
         default_value=PathJoinSubstitution(
-            [FindPackageShare('rover'), 'rover', 'simulation', 'urdfs', 'Arm_2023', 'Arm_2023_gazebo.xacro']
+            [FindPackageShare('rover'), 'rover', 'simulation',
+             'urdfs', 'Arm_2023', 'Arm_2023_gazebo.xacro']
         ),
     )
 
@@ -48,7 +52,7 @@ def generate_launch_description():
         'paused',
         default_value='false',
     )
-    
+
     ik_on_arg = DeclareLaunchArgument(
         'ik_on',
         default_value='false',
@@ -115,7 +119,8 @@ def generate_launch_description():
         Node(
             package='controller_manager',
             executable='spawner',
-            arguments=['joint_state_controller', '--controller-manager-timeout', '50'],
+            arguments=['joint_state_controller',
+                       '--controller-manager-timeout', '50'],
             namespace='arm',
             output='screen',
         ),

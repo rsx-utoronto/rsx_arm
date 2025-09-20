@@ -1,8 +1,9 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
+
 def generate_launch_description():
-    
+
     # Arm_Controller node
     arm_controller_node = Node(
         package='controller',
@@ -30,8 +31,9 @@ def generate_launch_description():
     return LaunchDescription([
         arm_controller_node,
         arm_manual_node,
-        arm_safety_node        
+        arm_safety_node
     ])
+
 
 '''
 Need to convert the following to Python (it was commented out in XML

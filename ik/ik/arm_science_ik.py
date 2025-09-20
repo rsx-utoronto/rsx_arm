@@ -3,18 +3,20 @@ from math import pi, atan2, sin, cos, sqrt, acos, asin
 from .arm_class import Arm
 from copy import deepcopy
 
+
 class KinematicsMode():
     def __init__(self, name, kinCalcCallback, targetUpdateCallback):
         self.name = name
         self.kinCalcCallback = kinCalcCallback
         self.targetUpdateCallback = targetUpdateCallback
 
+
 class SciArm(Arm):
-    def __init__(self, numJoints:int, dhTable, offsets, angleOrientation, startingAngles):
+    def __init__(self, numJoints: int, dhTable, offsets, angleOrientation, startingAngles):
         super().__init__(numJoints, dhTable, offsets, angleOrientation, startingAngles)
         self.modes = ["Forward", "Cyl"]
-        self.cylTarget = [0, 208.65, 722.49, 0, 0] # [theta, r, z, alpha, EE]
-        self.prevTarget = [0, 208.65, 722.49, 0, 0] # [theta, r, z, alpha, EE]
+        self.cylTarget = [0, 208.65, 722.49, 0, 0]  # [theta, r, z, alpha, EE]
+        self.prevTarget = [0, 208.65, 722.49, 0, 0]  # [theta, r, z, alpha, EE]
         self.trueStartingAngles = [0, pi/2, 0, 0, 0]
 
     def move_to_position(self, position_name):
@@ -28,29 +30,31 @@ class SciArm(Arm):
         # Move to collection position
         if not self.move_to_position("collect"):
             return False
-        
+
         # Move to intermediate position
         if not self.move_to_position("intermediate"):
             return False
         # Move to deposit position
         if not self.move_to_position("deposit"):
             return False
-        
-        return True 
+
+        return True
 
     def getDHTable(self):
         adjustedAngles = deepcopy(self.goalAngles)
         adjustedAngles[3] += atan2(92, 67)
         self.updateDHTable(adjustedAngles)
         return super().getDHTable()
-            
+
     def setTarget(self, goalPos):
         self.cylTarget = goalPos
 
     def controlTarget(self, isButtonPressed, joystickStatus):
         if self.curMode == "Cyl":
-            self.cylTarget[0] += joystickStatus["L-Right"]*self.CONTROL_SPEED # theta
-            self.cylTarget[1] -= joystickStatus["L-Down"]*self.CONTROL_SPEED*500
+            self.cylTarget[0] += joystickStatus["L-Right"] * \
+                self.CONTROL_SPEED  # theta
+            self.cylTarget[1] -= joystickStatus["L-Down"] * \
+                self.CONTROL_SPEED*500
             self.cylTarget[3] += joystickStatus["R-Down"]*self.CONTROL_SPEED
 
             if isButtonPressed["R2"]:
@@ -79,7 +83,8 @@ class SciArm(Arm):
         self.cylTarget[3] = asin((s - z)/link4Hyp)
 
     def activeForwardKinematics(self, isButtonPressed, joystickStatus):
-        self.goalAngles[0] += joystickStatus["L-Right"]*self.CONTROL_SPEED # theta
+        self.goalAngles[0] += joystickStatus["L-Right"] * \
+            self.CONTROL_SPEED  # theta
         self.goalAngles[1] -= joystickStatus["L-Down"]*self.CONTROL_SPEED
         self.goalAngles[2] += joystickStatus["R-Down"]*self.CONTROL_SPEED
 
@@ -92,7 +97,7 @@ class SciArm(Arm):
             self.goalAngles[4] += self.CONTROL_SPEED*10000
         if isButtonPressed["L1"]:
             self.goalAngles[4] -= self.CONTROL_SPEED*10000
-        self.forwardKinematics() 
+        self.forwardKinematics()
 
     def passiveForwardKinematics(self):
         self.goalAngles = deepcopy(self.curAngles)
@@ -100,7 +105,7 @@ class SciArm(Arm):
 
     def inverseKinematics(self) -> bool:
         ''' Inverse
-        
+
         Parameters
         ----------
         dhTable
@@ -129,7 +134,7 @@ class SciArm(Arm):
         link4Hyp = sqrt(r4**2 + d5**2)
 
         r_w = r - link4Hyp*cos(alpha)
-        s = z  + link4Hyp*sin(alpha)
+        s = z + link4Hyp*sin(alpha)
         # print(f'{r_w} = {r} - {link4Hyp*cos(alpha)}')
         # print(f'{s} = {z} + {link4Hyp*sin(alpha)}')
 
@@ -142,9 +147,9 @@ class SciArm(Arm):
         if abs(cosTheta3) > 1:
             self.cylTarget = deepcopy(self.prevTarget)
             self.goalAngles = self.prevGoalAngles
-            return False 
+            return False
 
-        theta3 = atan2(-sqrt(1 - cosTheta3**2), cosTheta3) 
+        theta3 = atan2(-sqrt(1 - cosTheta3**2), cosTheta3)
 
         innerAngle = atan2(r3*sin(theta3), r2 + r3*cos(theta3))
         theta2 = atan2(s - d1, r_w) - innerAngle
@@ -163,8 +168,6 @@ class SciArm(Arm):
         theta4 = -atan2(sqrt(1 - cosTheta4**2), cosTheta4)
 
         self.prevTarget = deepcopy(self.cylTarget)
-        self.prevGoalAngles = self.getGoalAngles() 
+        self.prevGoalAngles = self.getGoalAngles()
         self.goalAngles = [theta1, theta2, theta3, theta4, self.cylTarget[4]]
         return True
-
-

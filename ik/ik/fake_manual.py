@@ -11,6 +11,7 @@ This code is just to help debug arm control code when
 the real arm isn't plugged in an manual is needed
 '''
 
+
 class FakeManualNode(Node):
     def __init__(self):
         super().__init__('fake_manual')
@@ -20,14 +21,17 @@ class FakeManualNode(Node):
         self.scale = 0.0001
 
         # Publishers
-        self.joint_pub = self.create_publisher(Float32MultiArray, 'arm_goal_pos', 10)
-        self.real_joint_pub = self.create_publisher(Float32MultiArray, 'arm_curr_pos', 10)
+        self.joint_pub = self.create_publisher(
+            Float32MultiArray, 'arm_goal_pos', 10)
+        self.real_joint_pub = self.create_publisher(
+            Float32MultiArray, 'arm_curr_pos', 10)
 
         # Subscribers
         self.create_subscription(String, 'arm_state', self.updateStates, 10)
-        self.create_subscription(Float32MultiArray, 'arm_goal_pos', self.updateRealAngles, 10)
-        self.create_subscription(ArmInputs, 'arm_inputs', self.updateController, 10)
-
+        self.create_subscription(
+            Float32MultiArray, 'arm_goal_pos', self.updateRealAngles, 10)
+        self.create_subscription(
+            ArmInputs, 'arm_inputs', self.updateController, 10)
 
     def updateStates(self, msg):
         ''' Callback function for the /arm_states topic'''
@@ -58,7 +62,7 @@ class FakeManualNode(Node):
         angles_msg.data = self.arm_angles
         self.joint_pub.publish(angles_msg)
         self.real_joint_pub.publish(angles_msg)
-            #print(armAngles)
+        # print(armAngles)
 
     def updateRealAngles(self, msg):
         ''' Callback function for /arm_goal_pos topic
@@ -72,6 +76,7 @@ class FakeManualNode(Node):
         angles_msg = Float32MultiArray()
         angles_msg.data = self.arm_angles
         self.real_joint_pub.publish(angles_msg)
+
 
 def main():
     rclpy.init()
