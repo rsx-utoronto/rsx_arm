@@ -1,0 +1,84 @@
+x-common-env: &common_env
+  ROS_DISTRO: humble
+  WS_DIR: /rover_ws
+  ROS_LOCALHOST_ONLY: "1"
+  RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+  ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-7}
+  SYNC_DOTFILES_ON_START: ${SYNC_DOTFILES_ON_START:-1}
+
+x-common-vols: &common_vols
+  - ./:/rover_ws/src/rsx-rover:rw
+  - ${HOME}/.ssh:/home/dev/.ssh:ro
+  - ${HOST_HOME}:/host_home:ro   # <— host home (set by scripts)
+
+services:
+  rsxrover:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USERNAME: dev
+        USER_UID: ${UID:-1000}
+        USER_GID: ${GID:-1000}
+        SHELL_FLAVOR: ${SHELL_FLAVOR:-zsh}     # zsh|bash
+        EDITOR_FLAVOR: ${EDITOR_FLAVOR:-nvim}  # nvim|vscode
+    image: rsxrover:humble
+    container_name: rsxrover
+    working_dir: /rover_ws
+
+    environment: *common_env
+    volumes: *common_vols
+    networks: [ default ]
+    tty: true
+    stdin_open: true
+    user: "${UID:-1000}:${GID:-1000}"
+    profiles: [ "base" ]
+
+  rsxrover-wayland:
+    extends: rsxrover
+    container_name: rsxrover-wayland
+    environment:
+      <<: *common_env
+      QT_QPA_PLATFORM: wayland
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-1}
+      XDG_RUNTIME_DIR: /run/user/1000          # ← set container-side path
+      DISPLAY: ${DISPLAY}                      # ← allow X11 fallback too
+    volumes:
+      - ./:/rover_ws/src/rsx-rover:rw
+      - ${HOME}/.ssh:/home/dev/.ssh:ro
+      - ${HOST_HOME}:/host_home:ro
+      - ${HOME}/.config/nvim:/home/dev/.config/nvim:ro
+      - ${HOME}/.config/lazygit:/home/dev/.config/lazygit:ro
+      - ${XDG_RUNTIME_DIR}:/run/user/1000      # ← mount the WHOLE runtime dir
+      - /dev/dri:/dev/dri
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw       # ← for X11 fallback
+    devices: [ "/dev/dri" ]
+    network_mode: host
+    profiles: [ "hyprland" ]
+
+  rsxrover-x11:
+    extends: rsxrover
+    container_name: rsxrover-x11
+    environment:
+      <<: *common_env
+      DISPLAY: ${DISPLAY}
+    volumes:
+      - ./:/rover_ws/src/rsx-rover:rw
+      - ${HOME}/.ssh:/home/dev/.ssh:ro
+      - ${HOST_HOME}:/host_home:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    network_mode: host
+    profiles: [ "x11" ]
+
+  rsxrover-mac:
+    extends: rsxrover
+    container_name: rsxrover-mac
+    profiles: [ "mac" ]
+
+  rsxrover-win:
+    extends: rsxrover
+    container_name: rsxrover-win
+    profiles: [ "windows" ]
+
+networks:
+  default: {}
