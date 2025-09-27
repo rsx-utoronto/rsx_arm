@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # Workspace root; default to /rover_ws
-WS_DIR="${WS_DIR:-/rover_ws}"
+WS_DIR="${WS_DIR:-/arm_ros2_ws}"
 : "${ROS_DISTRO:=humble}"
 
 # Always operate from the workspace root

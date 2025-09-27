@@ -6,4 +6,4 @@ param(
 $env:SHELL_FLAVOR = $Shell
 $env:EDITOR_FLAVOR = $Editor
 docker compose build rsxrover
-docker compose up -d ("rsxrover-" + $Profile.Trim())
+docker compose up -d ("rsxarm-" + $Profile.Trim())

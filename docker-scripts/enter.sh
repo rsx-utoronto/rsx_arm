@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SVC="${1:-rsxrover}"
+SVC="${1:-rsxarm}"
 
 # Set HOST_HOME just like up.sh does
 OS="$(uname -s)"

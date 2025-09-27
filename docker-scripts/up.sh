@@ -14,11 +14,11 @@ export HOST_UID="${UID:-$(id -u)}"
 export HOST_GID="$(id -g)"
 
 case "$PROFILE" in
-hyprland) svc="rsxrover-wayland" ;;
-x11) svc="rsxrover-x11" ;;
-mac) svc="rsxrover-mac" ;;
-windows) svc="rsxrover-win" ;;
-*) svc="rsxrover" ;;
+hyprland) svc="rsxarm-wayland" ;;
+x11) svc="rsxarm-x11" ;;
+mac) svc="rsxarm-mac" ;;
+windows) svc="rsxarm-win" ;;
+*) svc="rsxarm" ;;
 esac
 
 docker compose up -d "$svc"

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Workspace root; default to /rover_ws
-WS_DIR="${WS_DIR:-/rover_ws}"
+WS_DIR="${WS_DIR:-/arm_ros2_ws}"
 
 # Safety check: don't nuke '/' by accident
 if [[ -z "${WS_DIR}" || "${WS_DIR}" == "/" ]]; then
