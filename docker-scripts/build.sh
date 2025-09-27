@@ -16,5 +16,5 @@ export SHELL_FLAVOR EDITOR_FLAVOR
 export HOST_UID="${UID:-$(id -u)}"
 export HOST_GID="$(id -g)"
 
-docker compose build rsxrover
+docker compose build rsxarm
 echo "Built image with SHELL=${SHELL_FLAVOR}, EDITOR=${EDITOR_FLAVOR}, HOST_HOME=${HOST_HOME}"
