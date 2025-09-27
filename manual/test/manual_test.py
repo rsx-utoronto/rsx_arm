@@ -6,7 +6,8 @@ from rclpy.executors import MultiThreadedExecutor
 import threading
 import manual.manual as manual
 # import manual 
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32MultiArray
+
 import time
 
 # TODO: move to utilities folder (can just copy past into test folers for now)
@@ -22,11 +23,13 @@ class test_node(Node):
         self.test_subscribers = {}
         for subscriber in subscribers:
             self.test_subscribers[subscriber[0]] = self.create_subscription(subscriber[1], subscriber[2], self.listener_callback, 10)
-
+    def listener_callback(self,msg):
+        self.arm_goal_pos = msg.data
+      
 
 def test_sample():
     assert 2+2==4
-
+"""
 def test_manual_init():
     args = None
     rclpy.init(args=args)
@@ -40,3 +43,28 @@ def test_manual_init():
     time.sleep(0.2)
     assert manual_node.status == "Manual", "Manual node did not update status to Manual"
     rclpy.shutdown()
+"""
+
+
+def test_arm_goal_pos():
+    args = None
+    rclpy.init(args=args)
+    manual_node = manual.Manual()
+    test = test_node([],[("arm_goal_pos",Float32MultiArray,"arm_goal_pos")])
+
+    assert rclpy.ok(), "rclpy did not initialize correctly"
+    #assert manual_node.status == "Idle", "Manual node did not initialize to Idle"
+    
+    tests = [[1., 0., 0., 0., 0., 0., 0.],
+           [1.78, 94.3, -9.3, 0.1, 3.14, 5.5],
+           [1.325, -34.5, 434.5, -32.14, 64.1, 12.3]
+           ]
+
+    for arr in tests:
+        manual_node.goal.publish(Float32MultiArray(data=arr))
+        rclpy.spin_once(test, timeout_sec=1)
+        time.sleep(0.2)
+        assert test.arm_goal_pos == Float32MultiArray(data=arr).data
+    
+    rclpy.shutdown()
+    
