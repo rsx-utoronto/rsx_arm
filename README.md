@@ -161,6 +161,51 @@ If you are placing a file into one of the python packages:
       ```
 - Track progress with an issue board (e.g., "Migrate node X", "Convert launch file Y").
 
+## Docker Workflow
+1. Build the image
+```bash
+# zsh + Neovim (default)
+./docker-scripts/build.sh zsh nvim
+
+# bash + VS Code (i.e., don’t install nvim)
+./docker-scripts/build.sh bash vscode
+```
+
+2. Start the container.
+```bash
+# Linux + Hyprland (Wayland)
+# Notes:
+# Hyprland commonly wayland-1
+# xhost +local: is used in wayland for using x11 when using Gazebo
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"   
+xhost +local:
+./docker-scripts/up.sh hyprland
+
+# Linux + X11
+xhost +local:
+./docker-scripts/up.sh x11
+
+# macOS
+./docker-scripts/up.sh mac
+
+# Windows (PowerShell)
+./docker-scripts/windows-up.ps1 -Profile windows -Shell zsh -Editor nvim
+```
+
+3. Enter the dev shell.
+```bash
+# choose service if you used a profile name (rsxarm, rsxarm-x11, rsxarm-wayland, etc.)
+./docker-scripts/enter.sh rsxarm
+```
+
+4. Inside the container: Install deps & build
+```bash
+./docker-scripts/deps.sh
+./docker-scripts/build_ws.sh
+# run your nodes/launch files; ROS environment is sourced automatically by the entrypoint
+```
+
 # Collaboration Code of Conduct:
 
   1. Engineering Specification and Background Research (FOCs, Research into task)
