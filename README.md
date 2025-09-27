@@ -1,13 +1,13 @@
 # RSX's ARM Repository, now on ROS2!
 
-Welcome to `arm-ros2`! This repository will host the ROS 2 (Jazzy) version of the RSX arm control software, migrated from the `arm/` folder in the old ROS 1 `rsx-rover` repo. Proceed with caution.
+Welcome to `arm-ros2`! This repository will host the ROS 2 (Humble) version of the RSX arm control software, migrated from the `arm/` folder in the old ROS 1 `rsx-rover` repo. Proceed with caution.
 
 ## Prerequisites
 
 Make sure you have the following:
 
-- **Ubuntu 24.04 LTS** 
-- **ROS 2 Jazzy** installed per [these](https://docs.ros.org/en/jazzy/Installation.html) instructions
+- **Ubuntu 22.04 LTS** 
+- **ROS 2 Humble** installed per [these](https://docs.ros.org/en/humble/Installation.html) instructions
 
 Get the essential tools: 
 ```bash
@@ -37,7 +37,7 @@ git clone https://github.com/rsx-utoronto/rsx_arm.git
 3. Run the new_repo_setup.sh script to get the environment set up!
 ```bash
 cd rsx_arm
-source new_repo_setup.sh
+source humble-setup.sh
 ```
 The final command above also gives you access to the ```workon_arm``` and ```build_arm``` commands for a convenient way to, well, work on and build the arm. 😊
 
