@@ -38,6 +38,14 @@ def test_manual_init():
 
     assert rclpy.ok(), "rclpy did not initialize correctly"
     assert manual_node.status == "Idle", "Manual node did not initialize to Idle"
+    assert manual_node.controller_input == [0., 0., 0., 0., 0., 0, 0] and [type(value) for value in manual_node.controller_input] == [type(value) for value in [0., 0., 0., 0., 0., 0, 0]], "controller_input is not zero!"
+    goal_pos_data = Float32MultiArray()
+    goal_pos_data.data = [0., 0., 0., 0., 0., 0., 0.]
+    assert manual_node.goal_pos.data == goal_pos_data.data and [type(value) for value in manual_node.goal_pos.data] == [type(value) for value in goal_pos_data.data], "goal_pos is not zero!"
+    assert manual_node.error_messages == [0, 0, 0, 0, 0, 0, 0], "error_messages is not zero!"
+    assert manual_node.error_offsets == [0, 0, 0, 0, 0, 0, 0], "error_offsets is not zero!"
+    assert manual_node.SPEED_LIMIT == [-0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 20], "SPEED_LIMIT does not match the values!"
+
     test.test_publishers["arm_state"].publish(String(data="Manual"))
     rclpy.spin_once(manual_node, timeout_sec=1)
     time.sleep(0.2)
