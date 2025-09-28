@@ -29,7 +29,7 @@ class test_node(Node):
 
 def test_sample():
     assert 2+2==4
-"""
+
 def test_manual_init():
     args = None
     rclpy.init(args=args)
@@ -51,7 +51,6 @@ def test_manual_init():
     time.sleep(0.2)
     assert manual_node.status == "Manual", "Manual node did not update status to Manual"
     rclpy.shutdown()
-"""
 
 
 def test_arm_goal_pos():
