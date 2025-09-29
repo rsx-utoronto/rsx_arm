@@ -76,20 +76,22 @@ def test_update_pos_length_mismatch():
     speed = [3.0, 4.0, 5.0]
     manual_node = manual.Manual()
     try:
+        updated = True
         manual_node.update_pos(joy, goal, speed)
-        assert False, "Mismatched list lengths error"
+
     except Exception:
+        updated = False
         pass  
-    
+    assert not updated, "Length mismatch should raise an error"
 def test_update_pos_zero_speed():
-    m = manual.Manual()
+    manual_node = manual.Manual()
     joy, goal, speed = [1.0], [10.0], [0.0]
-    out = m.update_pos(joy, goal, speed)
+    out = manual_node.update_pos(joy, goal, speed)
     assert out == [10.0], "Zero speed should block movement"
 
 def test_update_pos_negative_speed_current_behavior():
-    m = manual.Manual()
+    manual_node = manual.Manual()
     joy, goal, speed = [1.0], [10.0], [-5.0]
-    out = m.update_pos(joy, goal, speed)
+    out = manual_node.update_pos(joy, goal, speed)
     assert out == [5.0], "Negative speed reverses direction"
 
