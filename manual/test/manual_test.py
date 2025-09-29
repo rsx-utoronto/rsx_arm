@@ -173,3 +173,58 @@ def test_arm_input_sub_manual():
 
     rclpy.shutdown()
     
+    
+def test_update_pos_general():
+    joy = [0.5, -1.0]
+    goal = [10.0, 20.0]
+    speed = [4.0, 2.0]
+    
+    args = None
+    rclpy.init(args=args)
+    manual_node = manual.Manual()
+
+    out = manual_node.update_pos(joy, goal, speed)
+
+    assert out == [12.0, 18.0], "update_pos did not compute correctly"
+
+def test_update_pos_zero_input():
+    joy = [0.0, 0.0]
+    goal = [5.0, 15.0]
+    speed = [10.0, 10.0]
+    manual_node = manual.Manual()
+    out = manual_node.update_pos(joy, goal, speed)
+    assert out == goal, "Zero joystick should not change goal position" #checking correctness
+
+def test_update_pos_negative_input():
+    joy = [-0.5, -1.0]
+    goal = [100.0, 50.0]
+    speed = [20.0, 10.0]
+    manual_node = manual.Manual()
+    out = manual_node.update_pos(joy, goal, speed)
+    assert out == [90.0, 40.0], "Negative inputs should decrease position"
+
+def test_update_pos_length_mismatch():
+    joy = [0.1, 0.2, 0.3]
+    goal = [1.0, 2.0]
+    speed = [3.0, 4.0, 5.0]
+    manual_node = manual.Manual()
+    try:
+        updated = True
+        manual_node.update_pos(joy, goal, speed)
+
+    except Exception:
+        updated = False
+        pass  
+    assert not updated, "Length mismatch should raise an error"
+def test_update_pos_zero_speed():
+    manual_node = manual.Manual()
+    joy, goal, speed = [1.0], [10.0], [0.0]
+    out = manual_node.update_pos(joy, goal, speed)
+    assert out == [10.0], "Zero speed should block movement"
+
+def test_update_pos_negative_speed_current_behavior():
+    manual_node = manual.Manual()
+    joy, goal, speed = [1.0], [10.0], [-5.0]
+    out = manual_node.update_pos(joy, goal, speed)
+    assert out == [5.0], "Negative speed reverses direction"
+
