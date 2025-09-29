@@ -14,3 +14,7 @@ int8 share
 int8 options
 int8 r3
 int8 l3
+int8 dpad_up
+int8 dpad_down
+int8 dpad_left
+int8 dpad_right
