@@ -202,7 +202,8 @@ xhost +local:
 4. Inside the container: Install deps & build
 ```bash
 ./docker-scripts/deps.sh
-./docker-scripts/build_ws.sh
+./docker-scripts/setup_ws.sh
+source ./docker-scripts/add_alias.sh
 # run your nodes/launch files; ROS environment is sourced automatically by the entrypoint
 ```
 
