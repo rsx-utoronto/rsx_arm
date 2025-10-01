@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Workspace root; default to /rover_ws
+# Workspace root; default to /arm_ros2_ws
 WS_DIR="${WS_DIR:-/arm_ros2_ws}"
 : "${ROS_DISTRO:=humble}"
+: "${BUILD_TYPE:=RelWithDebInfo}"
 
 # Always operate from the workspace root
 cd "$WS_DIR"
@@ -21,11 +22,22 @@ source_relaxed() {
   if ((had_nounset)); then set -u; fi
 }
 
-# Source ROS 2 env and build
+echo "==> Sourcing ROS: /opt/ros/${ROS_DISTRO}/setup.sh"
 source_relaxed "/opt/ros/${ROS_DISTRO}/setup.sh"
-colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-# Overlay (for this subshell)
+# ----------------- Optional system deps via rosdep -----------------
+# (Uncomment if you want this script to ensure deps inside the container)
+# rosdep update
+# rosdep install --from-paths src --ignore-src -r -y
+
+# ----------------- Build -----------------
+echo "==> Building workspace (colcon)"
+colcon build --symlink-install \
+  --cmake-args -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  "$@"
+
+# Overlay for this shell
+echo "==> Sourcing overlay: ${WS_DIR}/install/setup.sh"
 source_relaxed "${WS_DIR}/install/setup.sh"
 
 echo "Build complete at ${WS_DIR}."
