@@ -84,6 +84,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3-pynvim 
  && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pyright
 
+# --- Python tooling pin + project deps (keeps colcon happy) ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-${ROS_DISTRO}-geometry-msgs \
+    ros-${ROS_DISTRO}-rclpy \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-evdev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /tmp/requirements.txt
+RUN python3 -m pip install --upgrade pip \
+ && python3 -m pip install "setuptools<80" wheel \
+ && python3 -m pip install --no-cache-dir --root-user-action=ignore --upgrade-strategy only-if-needed -r /tmp/requirements.txt
+
+
 # Make Node & Mason bins available in all interactive shells + hard symlinks for pyright
 RUN set -eux; \
   printf '%s\n' \

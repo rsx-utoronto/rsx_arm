@@ -6,10 +6,10 @@ empy<4
 lark
 numpy
 python-xlib
-evdev
+# evdev
 pynput
 scipy
-geometry_msgs
-rclpy
+# geometry_msgs
+# rclpy
 python-can==4.6.0
 autopep8

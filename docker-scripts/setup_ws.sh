@@ -40,5 +40,10 @@ colcon build --symlink-install \
 echo "==> Sourcing overlay: ${WS_DIR}/install/setup.sh"
 source_relaxed "${WS_DIR}/install/setup.sh"
 
+# Install the requirements
+echo "==> Install python packages: ${WS_DIR}/src/rsx_arm/requirements.txt"
+python3 -m pip install --upgrade pip setuptools wheel
+python3 -m pip install --no-cache-dir -r "${WS_DIR}/src/rsx_arm/requirements.txt"
+
 echo "Build complete at ${WS_DIR}."
 echo "Tip: open a new shell (or 'source ${WS_DIR}/install/setup.sh') to overlay your current session."
