@@ -7,6 +7,7 @@ ARG USER_UID=1000
 ARG USER_GID=1000
 ARG SHELL_FLAVOR=zsh     # zsh | bash
 ARG EDITOR_FLAVOR=nvim   # nvim | vscode
+ARG WITH_GUI=1           
 
 ENV DEBIAN_FRONTEND=noninteractive \
     ROS_DISTRO=humble \
@@ -96,7 +97,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt /tmp/requirements.txt
 RUN python3 -m pip install --upgrade pip \
- && python3 -m pip install "setuptools<80" wheel \
+ && python3 -m pip install "setuptools>=70" wheel \
  && python3 -m pip install --no-cache-dir --root-user-action=ignore --upgrade-strategy only-if-needed -r /tmp/requirements.txt
 
 
@@ -179,14 +180,16 @@ RUN echo ". /etc/profile.d/ros2_auto.sh" >> /etc/bash.bashrc && \
 
 # --- ROS 2 visualization + sim (Humble) ---
 # RViz2 + rqt suite + Gazebo Classic + helpers for graphs & GL
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-humble-rviz2 \
-    ros-humble-rqt ros-humble-rqt-graph ros-humble-rqt-image-view ros-humble-rqt-tf-tree \
-    ros-humble-joint-state-publisher-gui \
-    ros-humble-gazebo-ros-pkgs gazebo \
-    graphviz python3-pydot \
-    qtwayland5 libgl1-mesa-dri mesa-utils \
- && rm -rf /var/lib/apt/lists/*
+RUN if [ "$WITH_GUI" = "1" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+        ros-humble-rviz2 \
+        ros-humble-rqt ros-humble-rqt-graph ros-humble-rqt-image-view ros-humble-rqt-tf-tree \
+        ros-humble-joint-state-publisher-gui \
+        ros-humble-gazebo-ros-pkgs gazebo \
+        graphviz python3-pydot \
+        qtwayland5 libgl1-mesa-dri mesa-utils \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # --- Gazebo Wayland->X11 fallback wrappers (for Hyprland) ---
 RUN set -eux; \

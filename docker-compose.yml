@@ -22,6 +22,7 @@ services:
         USER_GID: ${GID:-1000}
         SHELL_FLAVOR: ${SHELL_FLAVOR:-zsh}     # zsh|bash
         EDITOR_FLAVOR: ${EDITOR_FLAVOR:-nvim}  # nvim|vscode
+        WITH_GUI: ${WITH_GUI:-1}               # include GUI tools [0 for headless build]
     image: rsxarm:humble
     container_name: rsxarm
     working_dir: /arm_ros2_ws
@@ -41,17 +42,17 @@ services:
       <<: *common_env
       QT_QPA_PLATFORM: wayland
       WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-1}
-      XDG_RUNTIME_DIR: /run/user/1000          # ← set container-side path
-      DISPLAY: ${DISPLAY}                      # ← allow X11 fallback too
+      XDG_RUNTIME_DIR: /run/user/${UID:-1000}   # ← set container-side path
+      DISPLAY: ${DISPLAY}                       # ← allow X11 fallback too
     volumes:
       - ./:/arm_ros2_ws/src/rsx_arm:rw
       - ${HOME}/.ssh:/home/dev/.ssh:ro
       - ${HOST_HOME}:/host_home:ro
       - ${HOME}/.config/nvim:/home/dev/.config/nvim:ro
       - ${HOME}/.config/lazygit:/home/dev/.config/lazygit:ro
-      - ${XDG_RUNTIME_DIR}:/run/user/1000      # ← mount the WHOLE runtime dir
+      - ${XDG_RUNTIME_DIR}:/run/user/${UID:-1000}      # ← mount the WHOLE runtime dir
       - /dev/dri:/dev/dri
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw       # ← for X11 fallback
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw        # ← for X11 fallback
     devices: [ "/dev/dri" ]
     network_mode: host
     profiles: [ "hyprland" ]
