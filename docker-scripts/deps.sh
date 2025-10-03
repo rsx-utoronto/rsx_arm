@@ -6,4 +6,10 @@ cd "${WS_DIR:-/arm_ros2_ws}"
 # Using --rosdistro explicit to avoid surprises
 sudo apt-get update
 rosdep update
-rosdep install --from-paths . --ignore-src -r -y --rosdistro "$ROS_DISTRO"
+
+# If anything is missing, install; otherwise, skip
+if ! rosdep check --from-paths src --ignore-src --rosdistro "${ROS_DISTRO:-humble}" >/dev/null; then
+  rosdep install --from-paths src --ignore-src -r -y --rosdistro "${ROS_DISTRO:-humble}"
+else
+  echo "# rosdep: all dependencies already satisfied."
+fi
