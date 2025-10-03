@@ -23,6 +23,7 @@ services:
         SHELL_FLAVOR: ${SHELL_FLAVOR:-zsh}     # zsh|bash
         EDITOR_FLAVOR: ${EDITOR_FLAVOR:-nvim}  # nvim|vscode
         WITH_GUI: ${WITH_GUI:-1}               # include GUI tools [0 for headless build]
+        HOST_FLAVOR: ${HOST_FLAVOR:-linux-x11}
     image: rsxarm:humble
     container_name: rsxarm
     working_dir: /arm_ros2_ws
@@ -56,6 +57,7 @@ services:
     devices: [ "/dev/dri" ]
     network_mode: host
     profiles: [ "hyprland" ]
+    group_add: [ "video" ]
 
   rsxarm-x11:
     extends: rsxarm
@@ -63,11 +65,13 @@ services:
     environment:
       <<: *common_env
       DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
     volumes:
       - ./:/arm_ros2_ws/src/rsx_arm:rw
       - ${HOME}/.ssh:/home/dev/.ssh:ro
       - ${HOST_HOME}:/host_home:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    devices: [ "/dev/dri" ]
     network_mode: host
     profiles: [ "x11" ]
 
@@ -75,11 +79,39 @@ services:
     extends: rsxarm
     container_name: rsxarm-mac
     profiles: [ "mac" ]
+    environment:
+      <<: *common_env
+      DISPLAY: host.docker.internal:0
+      LIBGL_ALWAYS_INDIRECT: "1"
+      QT_X11_NO_MITSHM: "1"
+
 
   rsxarm-win:
     extends: rsxarm
     container_name: rsxarm-win
     profiles: [ "windows" ]
+    environment:
+      <<: *common_env
+      DISPLAY: host.docker.internal:0.0
+      QT_X11_NO_MITSHM: "1"
+
+  rsxarm-win-wsl:
+    extends: rsxarm
+    container_name: rsxarm-win-wsl
+    environment:
+      <<: *common_env
+      DISPLAY: ${DISPLAY}
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-0}
+      XDG_RUNTIME_DIR: /mnt/wslg/runtime-dir
+    volumes:
+      - ./:/arm_ros2_ws/src/rsx_arm:rw
+      - ${HOME}/.ssh:/home/dev/.ssh:ro
+      - ${HOST_HOME}:/host_home:ro
+      - /mnt/wslg/.X11-unix:/tmp/.X11-unix:ro
+      - /mnt/wslg/runtime-dir:/mnt/wslg/runtime-dir:ro
+    profiles: [ "windows-wsl" ]
+
+
 
 networks:
   default: {}

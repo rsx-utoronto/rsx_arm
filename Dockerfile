@@ -146,6 +146,31 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*; \
   fi
 
+# --- VS Code (desktop GUI app) ---
+ARG HOST_FLAVOR=linux-x11  # linux-x11 | linux-wayland | mac-xquartz | win-xserver (informational)
+RUN set -eux; \
+  apt-get update && apt-get install -y --no-install-recommends wget gpg apt-transport-https ca-certificates; \
+  wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg; \
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" \
+    > /etc/apt/sources.list.d/vscode.list; \
+  apt-get update && apt-get install -y --no-install-recommends \
+    code \
+    libasound2 libxkbfile1 libsecret-1-0 libnss3 libx11-xcb1 libxshmfence1 libgbm1 libxrandr2 libxi6 libgtk-3-0; \
+  rm -rf /var/lib/apt/lists/*
+
+# Launchers for explicit X11 vs Wayland
+RUN printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'exec /usr/bin/code --no-sandbox --unity-launch "$@"' \
+  > /usr/local/bin/code-x11 && chmod +x /usr/local/bin/code-x11 && \
+  printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'export ELECTRON_OZONE_PLATFORM_HINT=wayland' \
+  'export OZONE_PLATFORM=wayland' \
+  'export GTK_BACKEND=wayland' \
+  'exec /usr/bin/code --no-sandbox --ozone-platform=wayland --enable-features=WaylandWindowDecorations "$@"' \
+  > /usr/local/bin/code-wayland && chmod +x /usr/local/bin/code-wayland
+
 # ---------- rosdep ----------
 RUN rosdep init || true
 RUN rosdep update
@@ -229,6 +254,10 @@ USER ${USERNAME}
 WORKDIR ${WS_DIR}
 RUN cp -n /etc/skel/.bashrc ~/.bashrc || true; \
     if [ "${SHELL_FLAVOR}" = "zsh" ]; then cp -n /etc/skel/.zshrc ~/.zshrc || true; fi
+
+# Give GUI user access to GPU devices commonly exposed (/dev/dri)
+RUN groupadd -f video && groupadd -f render || true && \
+    usermod -aG video,render ${USERNAME} || true
 
 SHELL ["/bin/bash", "-lc"]
 ENTRYPOINT ["/usr/local/bin/ros2_entrypoint.sh"]
