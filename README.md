@@ -197,8 +197,17 @@ xhost +local:
 ```
 
 3. Enter the dev shell.
+Choose service based on your platform.
+- Linux: `rsxarm-x11`
+- Linux (Wayland): `rsxarm-wayland`
+- Mac: `rsxarm-mac`
+- WSL: `rsxarm-wsl`
+- Windows(PowerShell): `rsxarm-win`
+
 ```bash
-# choose service if you used a profile name (rsxarm, rsxarm-x11, rsxarm-wayland, rsxarm-mac, rsxarm-win, rsxarm-win-wsl)
+# choose service if you used a profile name 
+# (rsxarm, rsxarm-x11, rsxarm-wayland, rsxarm-mac, rsxarm-win, rsxarm-wsl)
+
 ./docker-scripts/enter.sh rsxarm
 ```
 

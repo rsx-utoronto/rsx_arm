@@ -95,9 +95,9 @@ services:
       DISPLAY: host.docker.internal:0.0
       QT_X11_NO_MITSHM: "1"
 
-  rsxarm-win-wsl:
+  rsxarm-wsl:
     extends: rsxarm
-    container_name: rsxarm-win-wsl
+    container_name: rsxarm-wsl
     environment:
       <<: *common_env
       DISPLAY: ${DISPLAY}

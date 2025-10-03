@@ -18,7 +18,7 @@ hyprland) svc="rsxarm-wayland" ;;
 x11) svc="rsxarm-x11" ;;
 mac) svc="rsxarm-mac" ;;
 windows) svc="rsxarm-win" ;;
-wsl) svc="rsxarm-win-wsl" ;;
+wsl) svc="rsxarm-wsl" ;;
 *) svc="rsxarm" ;;
 esac
 
