@@ -191,11 +191,14 @@ xhost +local:
 
 # Windows (PowerShell)
 ./docker-scripts/windows-up.ps1 -Profile windows -Shell zsh -Editor nvim
+
+# Windows WSL (WSLG)
+./docker-scripts/up.sh wsl
 ```
 
 3. Enter the dev shell.
 ```bash
-# choose service if you used a profile name (rsxarm, rsxarm-x11, rsxarm-wayland, etc.)
+# choose service if you used a profile name (rsxarm, rsxarm-x11, rsxarm-wayland, rsxarm-mac, rsxarm-win, rsx.)
 ./docker-scripts/enter.sh rsxarm
 ```
 
@@ -203,8 +206,14 @@ xhost +local:
 ```bash
 ./docker-scripts/deps.sh
 ./docker-scripts/setup_ws.sh
-source ./docker-scripts/add_alias.sh
 # run your nodes/launch files; ROS environment is sourced automatically by the entrypoint
+```
+
+5. Add helpful alias.
+- `workon_arm`: `cd` into work dir, and source ROS. Note that this alias is redundant since sourcing is already done by Docker.
+- `build_arm`: call `workon_arm`, then call `colcon build` and `colcon test`
+```bash
+./docker-scripts/add_alias.sh --both
 ```
 
 # Collaboration Code of Conduct:
