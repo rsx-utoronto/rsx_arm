@@ -225,6 +225,18 @@ Choose service based on your platform.
 ./docker-scripts/add_alias.sh --both
 ```
 
+If you want use `VSCode` (use `NeoVim` instead for better experience :) )
+```bash
+# For normal code
+code .
+
+# For X11
+code-x11 .
+
+# For Wayland
+code-wayland .
+```
+
 # Collaboration Code of Conduct:
 
   1. Engineering Specification and Background Research (FOCs, Research into task)
