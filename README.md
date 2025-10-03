@@ -198,7 +198,7 @@ xhost +local:
 
 3. Enter the dev shell.
 ```bash
-# choose service if you used a profile name (rsxarm, rsxarm-x11, rsxarm-wayland, rsxarm-mac, rsxarm-win, rsx.)
+# choose service if you used a profile name (rsxarm, rsxarm-x11, rsxarm-wayland, rsxarm-mac, rsxarm-win, rsxarm-win-wsl)
 ./docker-scripts/enter.sh rsxarm
 ```
 
