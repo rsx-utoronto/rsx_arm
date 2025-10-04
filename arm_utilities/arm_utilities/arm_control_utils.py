@@ -1,7 +1,9 @@
 from sensor_msgs.msg import Joy
 from arm_msgs.msg import ArmInputs
 from geometry_msgs.msg import Pose
+from std_msgs.msg import Float32MultiArray
 from pynput import keyboard
+
 
 def handle_joy_input(msg: Joy):
     arm_inputs = ArmInputs()
@@ -37,6 +39,7 @@ def handle_joy_input(msg: Joy):
 
     return arm_inputs
 
+
 def handle_keyboard_input(key):
     arm_inputs = ArmInputs()  # defaults to 0.0/0
 
@@ -53,8 +56,8 @@ def handle_keyboard_input(key):
 
     # mapping for special keys
     special_map = {
-        keyboard.Key.space: ('r2', 1.0),
-        keyboard.Key.shift: ('l2', 1.0),
+        keyboard.Key.space: ('r_trigger', 1.0),
+        keyboard.Key.shift: ('l_trigger', 1.0),
         keyboard.Key.left:  ('dpad_left', 1),
         keyboard.Key.right: ('dpad_right', 1),
         keyboard.Key.up:    ('dpad_up', 1),
@@ -72,33 +75,46 @@ def handle_keyboard_input(key):
 
     return arm_inputs
 
-def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits : list , current_joints : list):
+
+def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_joints: list):
     manual_commands = {
         'base_rotation': arm_inputs.l_horizontal,
         'shoulder': arm_inputs.l_vertical,
         'elbow': arm_inputs.r_vertical,
         'wrist_pitch': arm_inputs.r_horizontal,
-        'wrist_roll': arm_inputs.r1 - arm_inputs.l1,  # R1 for clockwise, L1 for counterclockwise
-        'gripper': arm_inputs.r2 - arm_inputs.l2,  # R2 to open, L2 to close
+        # R1 for clockwise, L1 for counterclockwise
+        'wrist_roll': arm_inputs.r1 - arm_inputs.l1,
+        'gripper': arm_inputs.r_trigger - arm_inputs.l_trigger,  # R2 to open, L2 to close
     }
-    target_joints = []
+    target_joints = current_joints
     for n, key in enumerate(manual_commands.keys()):
-        target_joints[n] = manual_commands[key] * speed_limits[n] +  current_joints[n]
-    return manual_commands.values()
+        target_joints[n] = manual_commands[key] * \
+            speed_limits[n] + current_joints[n]
+    target_joints_msg = Float32MultiArray()
+    target_joints_msg.data = target_joints
+    return target_joints_msg
 
-def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose : Pose):
+
+def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
     delta = 0.01  # Incremental change for position
     delta_rot = 0.1  # Incremental change for orientation (radians)
 
     new_pose = Pose()
     new_pose.position.x = curr_pose.position.x + arm_inputs.l_horizontal * delta
     new_pose.position.y = curr_pose.position.y + arm_inputs.l_vertical * delta
-    new_pose.position.z = curr_pose.position.z + (arm_inputs.r_trigger - arm_inputs.l_trigger) * delta
+    new_pose.position.z = curr_pose.position.z + \
+        (arm_inputs.r_trigger - arm_inputs.l_trigger) * delta
 
     # For simplicity, only adjusting yaw (z-axis rotation) here
     new_pose.orientation.x = curr_pose.orientation.x
     new_pose.orientation.y = curr_pose.orientation.y
-    new_pose.orientation.z = curr_pose.orientation.z + arm_inputs.r_horizontal * delta_rot
+    new_pose.orientation.z = curr_pose.orientation.z + \
+        arm_inputs.r_horizontal * delta_rot
     new_pose.orientation.w = curr_pose.orientation.w
 
     return new_pose
+
+
+def clamp(value, min_value, max_value):
+    """Clamps a value within a specified range."""
+    return max(min_value, min(value, max_value))

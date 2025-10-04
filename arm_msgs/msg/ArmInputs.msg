@@ -4,10 +4,10 @@ float32 r_vertical
 float32 r_horizontal
 int8 l1
 int8 r1
-float32 l2
-float32 r2
+float32 l_trigger
+float32 r_trigger
 int8 x
-int8 o
+int8 circle
 int8 triangle
 int8 square
 int8 share

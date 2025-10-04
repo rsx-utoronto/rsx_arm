@@ -1,5 +1,7 @@
 from rclpy.node import Node
 
+MESSAGE_WAIT = 0.2
+
 
 class test_node(Node):
     def __init__(self, publishers, subscribers):
@@ -15,7 +17,7 @@ class test_node(Node):
         self.subscriber_data = {}
         for subscriber in subscribers:
             self.test_subscribers[subscriber[0]] = self.create_subscription(
-                subscriber[1], subscriber[2], self.listener_callback, 10)
+                subscriber[1], subscriber[2], lambda msg, t=subscriber[2]: self.listener_callback(msg, t), 10)
 
-    def listener_callback(self, msg):
-        self.subscriber_data[msg.topic] = msg.data
+    def listener_callback(self, msg, topic):
+        self.subscriber_data[topic] = msg.data
