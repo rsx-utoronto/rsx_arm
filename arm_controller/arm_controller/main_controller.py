@@ -70,6 +70,10 @@ class Controller(Node):
         self.joint_safety_sub = self.create_subscription(
             UInt8MultiArray, "joint_safety_state", self.process_safety, 10)
 
+        # Right switch subscriber
+        self.right_switch_sub = self.create_subscription(
+            bool, "right_switch_state", self.switch_homing_stage, 10)
+
         # Nonblocking keyboard listener
         self.keyboard_listener = keyboard.Listener(
             on_press=self.on_press,
@@ -146,16 +150,35 @@ class Controller(Node):
         zero_inputs = ArmInputs()
         self.update_arm(zero_inputs)
 
+    def switch_homing_stage(self, msg):
+        if msg:
+            self.homing_stage = 1    
+            self.l_horizontal_at_right_endpoint = self.current_joints.l_horizontal
+
     def home_arm(self):
+        #endpoint refers to positive-direction endpoint
+        self.l_horizontal_endpoint = 0
+        self.homing_stage = 0 
+
+        base_rotation_step = 0.01        
+        base_rotation_midspan = 1
+
         while self.homing == HomingStatus.ACTIVE:
-            # RUN BLOCKING HOMING ALGORITHM
-            if True:  # on homing completion
-                self.homed = True
-                self.homing = HomingStatus.COMPLETE
-                self.update_arm(None)
-            pass
+            update = self.current_joints
+            if homing_stage == 0:
+                update.l_horizontal += base_rotation_step
+            if homing_stage == 1:
+                if self.l_horizontal_endpoint - update.l_horizontal == base_rotation_midspan:
+                    self.homing = True
+                else:
+                    update.l_horizontal -= base_rotation_step
+            self.update_arm(update)
+
+        # on homing completion
+        self.homed = True
+        self.homing = HomingStatus.COMPLETE
+        self.update_arm(None)
         # Function to home the arm
-        pass
 
     def update_internal_joint_state(self, joints):
         self.current_joints = joints.data
