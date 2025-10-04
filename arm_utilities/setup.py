@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'safety'
+package_name = 'arm_utilities'
 
 setup(
     name=package_name,
@@ -13,14 +13,17 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='sanjay',
-    maintainer_email='sanjay.ramnauth@mail.utoronto.ca',
+    maintainer='sunny-rsx',
+    maintainer_email='sunny-rsx@todo.todo',
     description='TODO: Package description',
-    license='TODO: License declaration',
-    tests_require=['pytest'],
+    license='Apache-2.0',
+    extras_require={
+        'test': [
+            'pytest',
+        ],
+    },
     entry_points={
         'console_scripts': [
-            'safety_node = safety.safety_node:main',
         ],
     },
 )
