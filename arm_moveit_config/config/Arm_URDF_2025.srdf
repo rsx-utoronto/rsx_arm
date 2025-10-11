@@ -29,16 +29,15 @@
         <joint name="joint_3" value="0"/>
         <joint name="joint_4" value="0"/>
         <joint name="joint_5" value="0"/>
+        <joint name="joint_6" value="0"/>
     </group_state>
     <group_state name="open" group="end_effector">
         <joint name="finger_joint_1" value="0.5"/>
         <joint name="finger_joint_2" value="0.5"/>
-        <joint name="joint_6" value="0"/>
     </group_state>
     <group_state name="closed" group="end_effector">
         <joint name="finger_joint_1" value="-0.4"/>
         <joint name="finger_joint_2" value="-0.4"/>
-        <joint name="joint_6" value="0"/>
     </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
     <end_effector name="end_effector" parent_link="link_6" group="end_effector"/>
