@@ -18,7 +18,7 @@ int main(int argc, char * argv[])
   // Next step goes here
   // Create the MoveIt MoveGroup Interface
   using moveit::planning_interface::MoveGroupInterface;
-  auto move_group_interface = MoveGroupInterface(node, "end_effector");
+  auto move_group_interface = MoveGroupInterface(node, "rover_arm");
 
   // Set a target Pose
   auto const target_pose = []{
@@ -29,7 +29,8 @@ int main(int argc, char * argv[])
     msg.position.z = 0.5;
     return msg;
   }();
-  move_group_interface.setJointValueTarget(target_pose);
+
+  move_group_interface.setPoseTarget(target_pose);
 
   // Create a plan to that target pose
   auto const [success, plan] = [&move_group_interface]{
