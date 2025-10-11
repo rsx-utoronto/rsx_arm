@@ -119,6 +119,12 @@ def generate_launch_description():
         arguments=["rover_arm_controller", "-c", "/controller_manager"],
     )
 
+    ee_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["end_effector_controller", "-c", "/controller_manager"],
+    )
+
     return LaunchDescription(
         [
             rviz_config_arg,
@@ -129,5 +135,6 @@ def generate_launch_description():
             ros2_control_node,
             joint_state_broadcaster_spawner,
             arm_controller_spawner,
+            ee_controller_spawner,
         ]
     )
