@@ -24,6 +24,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
+        
+        'can_logic = arm_controller.can_logic_node:main',
+  	'can_sender = arm_controller.can_sender_node:main',
         ],
     },
 )
