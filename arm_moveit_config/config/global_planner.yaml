@@ -1,0 +1,6 @@
+# Originally from gpt; just a test file
+global_planner:
+  planning_plugin: ompl
+  group_name: manipulator
+  goal_tolerance: 0.01
+  max_planning_time: 5.0

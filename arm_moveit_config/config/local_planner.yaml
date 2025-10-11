@@ -1,0 +1,5 @@
+# Originally from gpt; just a test file
+local_planner:
+  controller_plugin: moveit_hybrid_planning/ForwardCommandController
+  joint_tolerance: 0.01
+  publish_rate: 50.0

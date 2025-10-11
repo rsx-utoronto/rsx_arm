@@ -23,9 +23,10 @@ rover_arm_controller:
       - joint_4
       - joint_5
     command_interfaces:
-      []
+      - position
     state_interfaces:
-      []
+      - position
+      - velocity
 end_effector_controller:
   ros__parameters:
     joint: joint_6
