@@ -17,6 +17,7 @@
         <joint name="joint_4"/>
         <joint name="joint_5"/>
         <joint name="joint_6"/>
+        <chain base_link="base_link" tip_link="link_6"/>
     </group>
     <group name="end_effector">
         <joint name="finger_joint_1"/>

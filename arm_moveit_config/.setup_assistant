@@ -7,7 +7,7 @@ moveit_setup_assistant_config:
   package_settings:
     author_name: sanjay
     author_email: sanjay.ramnauth@mail.utoronto.ca
-    generated_timestamp: 1760206477
+    generated_timestamp: 1760221541
   control_xacro:
     command:
       - position

@@ -18,7 +18,7 @@ import os
 
 def generate_launch_description():
     sim_share = get_package_share_directory('simulation')
-    rviz_path = os.path.join(sim_share, 'urdfs', 'arm_urdf.rviz')
+    rviz_path = os.path.join(sim_share, 'urdfs', 'arm_moveit_ompl.rviz')
 
     # Define xacro mappings for the robot description file
     launch_arguments = {

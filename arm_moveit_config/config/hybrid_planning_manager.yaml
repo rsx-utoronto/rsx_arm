@@ -1,5 +1,0 @@
-# Originally from gpt; just a test file
-hybrid_planning_manager:
-  planning_group: manipulator
-  global_planner_timeout: 5.0
-  local_planner_timeout: 2.0

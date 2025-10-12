@@ -24,9 +24,9 @@ int main(int argc, char * argv[])
   auto const target_pose = []{
     geometry_msgs::msg::Pose msg;
     msg.orientation.w = 1.0;
-    msg.position.x = 0.98;
-    msg.position.y = -0.2;
-    msg.position.z = 0.5;
+    msg.position.x = 0.05;
+    msg.position.y = 0.35;
+    msg.position.z = 0.6;
     return msg;
   }();
 
