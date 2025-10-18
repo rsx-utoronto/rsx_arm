@@ -7,7 +7,7 @@ from rclpy.node import Node
 import cv2
 
 # subscribe to camera data node (sensor_msg/msg/Image.msg)
-# publish cv_bridge image data converted to numpy array
+# cv_bridge image data converted to numpy array
 
 class CameraNode(Node):
 
@@ -20,19 +20,17 @@ class CameraNode(Node):
         self.camera_sub = self.create_subscription(Image, '/camera/camera/color/image_rect_raw', self.callback, 10)
         self.last_frame = np.ndarray
     def callback(self, data):
-        # try:
+        try:
             # convert Image to numpy array
             # "mono8": 8-bit grayscale image.
             # "bgr8": 8-bit color image with Blue-Green-Red channel order (common in OpenCV).
             # "rgb8": 8-bit color image with Red-Green-Blue channel order. 
-        cv_image = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
-        self.last_frame = cv_image
-        print("frame received!")
-        # self.camera_pub.publish(cv_image)
+            cv_image = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
+            self.last_frame = cv_image
 
-        # except CvBridgeError as e:
-            # rclpy.logerr(e)
-            # return
+        except CvBridgeError as e:
+            rclpy.logerr(e)
+            return
 
 def main(args=None):
     rclpy.init(args=args)
