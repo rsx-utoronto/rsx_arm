@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'controller'
+package_name = 'arm_controller'
 
 setup(
     name=package_name,
@@ -13,15 +13,17 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='sanjay',
-    maintainer_email='sanjay.ramnauth@mail.utoronto.ca',
+    maintainer='sunny-rsx',
+    maintainer_email='sunny-rsx@todo.todo',
     description='TODO: Package description',
-    license='TODO: License declaration',
-    tests_require=['pytest'],
+    license='Apache-2.0',
+    extras_require={
+        'test': [
+            'pytest',
+        ],
+    },
     entry_points={
         'console_scripts': [
-            'arm_controller = controller.arm_controller:main',
-            'arm_keyboard_controller = controller.arm_keyboard_controller:main',
         ],
     },
 )

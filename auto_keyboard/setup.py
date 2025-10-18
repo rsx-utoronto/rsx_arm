@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'manual'
+package_name = 'auto_keyboard'
 
 setup(
     name=package_name,
@@ -13,14 +13,18 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='sanjay',
-    maintainer_email='sanjay.ramnauth@mail.utoronto.ca',
+    maintainer='julianne_unix',
+    maintainer_email='julianne.deva@gmail.com',
     description='TODO: Package description',
     license='TODO: License declaration',
-    tests_require=['pytest'],
+    extras_require={
+        'test': [
+            'pytest',
+        ],
+    },
     entry_points={
         'console_scripts': [
-            "manual = manual.manual:main"
+            'camera_node=auto_keyboard.camera_node:main'
         ],
     },
 )

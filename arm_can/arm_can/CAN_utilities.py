@@ -236,6 +236,7 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
 
     if api:
         # API: Status Message 1 - Gives us information on limit switches
+        # TODO: needs to handle both forward and backward limit switching
         if api == CMD_API_STAT0:
             # 132 for forward and 68 for reverse
             limitswitch_pressed = data[3] & 0xC0
