@@ -7,11 +7,17 @@ from arm_utilities.arm_enum_utils import ArmState, SafetyErrors
 from arm_utilities.arm_control_utils import clamp
 import time
 import os
+import math
 
 
 class Safety_Node(Node):
     def __init__(self):
         super().__init__("Safety")
+
+        # TODO: max change in theta at a given step, need to test and put in a config file
+        self.max_d_theta = [10, 10, 10, 30, 120, 120, 80000]
+        # TODO: currently set arbitrarily, needs to correspond correctly with the actual arm
+        self.joint_limits = [(-math.pi, math.pi), (-math.pi/2, math.pi/2), (-math.pi/2, math.pi/2), (-math.pi, math.pi), (-math.pi/2, math.pi/2), (-math.pi/2, math.pi/2)]
 
         self.goal_pos = [0., 0., 0., 0., 0., 0., 0., 0.]
         self.curr_pos = [0., 0., 0., 0., 0., 0., 0., 0.]
@@ -107,8 +113,7 @@ class Safety_Node(Node):
         self.safe_pos_pub(self.goal_pos)
 
     def constrain_safe_pos(self, pos: list = None) -> None:
-        # TODO: max change in theta at a given step, need to test and put in a config file
-        self.max_d_theta = [10, 10, 10, 30, 120, 120, 80000]
+
 
         joint_pos_safety_status = [SafetyErrors.NONE.name]*len(self.goal_pos)
         if not pos:
@@ -117,13 +122,21 @@ class Safety_Node(Node):
         # Going through each element of GOAL_POS
         for i in range(len(self.goal_pos)):
             # Doing position comparisons for safety
-            safe_goal_pos = clamp(
-                pos[i], pos-self.max_d_theta[i], pos+self.max_d_theta[i])
+            safe_goal_pos[i] = clamp(
+                pos[i], self.curr_pos-self.max_d_theta[i], self.curr_pos+self.max_d_theta[i])
             if safe_goal_pos[i] != pos[i]:
 
                 self.logger().info("Constrained joint %d due to excessive change in angle" % i)
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.name
+                
+            pos[i] = safe_goal_pos[i]
 
+            safe_goal_pos[i] = clamp(pos[i], self.joint_limits[0], self.joint_limits[1])
+            if safe_goal_pos[i] != pos[i]:
+
+                self.logger().info("Constrained joint %d due to movement outside joint limits" % i)
+                joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.name
+                continue
         return safe_goal_pos, joint_pos_safety_status
 
     def current_check(self, pos: list = None) -> None:
