@@ -122,6 +122,11 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
 
 RUN mkdir -p /arm_ros2_ws/src/rsx_arm && chown -R ${USER_UID}:${USER_GID} /arm_ros2_ws
 
+# --- RealSense ROS wrapper + librealsense from ROS servers ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-${ROS_DISTRO}-realsense2-* \
+    ros-${ROS_DISTRO}-librealsense2* \
+  && rm -rf /var/lib/apt/lists/*
 
 # ---------- Optional shells & editors ----------
 ARG NEOVIM_VERSION=0.10.3 

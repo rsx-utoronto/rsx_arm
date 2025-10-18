@@ -11,6 +11,14 @@ x-common-vols: &common_vols
   - ${HOME}/.ssh:/home/dev/.ssh:ro
   - ${HOST_HOME}:/host_home:ro   # <— host home (set by scripts)
 
+x-realsense-usb: &realsense_usb
+  privileged: true         # simplest way to avoid cgroup/udev pain
+  devices:
+    - /dev/bus/usb:/dev/bus/usb
+    - /dev/dri:/dev/dri    # GPU for RViz etc. (not the camera, but useful)
+    # - /dev/video0:/dev/video0    # some RealSense models expose V4L nodes
+    # - /dev/video1:/dev/video1
+
 services:
   rsxarm:
     build:
@@ -54,7 +62,8 @@ services:
       - ${XDG_RUNTIME_DIR}:/run/user/${UID:-1000}      # ← mount the WHOLE runtime dir
       - /dev/dri:/dev/dri
       - /tmp/.X11-unix:/tmp/.X11-unix:rw        # ← for X11 fallback
-    devices: [ "/dev/dri" ]
+    # devices: ["/dev/dri"]
+    <<: *realsense_usb
     network_mode: host
     profiles: [ "hyprland" ]
     group_add: [ "video" ]
@@ -71,7 +80,8 @@ services:
       - ${HOME}/.ssh:/home/dev/.ssh:ro
       - ${HOST_HOME}:/host_home:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-    devices: [ "/dev/dri" ]
+    # devices: [ "/dev/dri" ]
+    <<: *realsense_usb
     network_mode: host
     profiles: [ "x11" ]
 
@@ -110,6 +120,7 @@ services:
       - /mnt/wslg/.X11-unix:/tmp/.X11-unix:ro
       - /mnt/wslg/runtime-dir:/mnt/wslg/runtime-dir:ro
     profiles: [ "windows-wsl" ]
+    <<: *realsense_usb
 
 
 

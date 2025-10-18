@@ -237,6 +237,13 @@ code-x11 .
 code-wayland .
 ```
 
+### RealSense for WSL
+On the Windows host, attach the camera to WSL with usbipd
+```bash
+usbipd wsl list
+usbipd wsl attach --busid <BUSID> --distribution <YourWSLDistroName>
+```
+
 # Collaboration Code of Conduct:
 
   1. Engineering Specification and Background Research (FOCs, Research into task)
