@@ -6,14 +6,15 @@ import threading
 import numpy as np
 
 from sensor_msgs.msg import Joy
-from std_msgs.msg import String, UInt8, Float32MultiArray, UInt8MultiArray
+from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
 from arm_msgs.msg import ArmInputs
 from geometry_msgs.msg import Pose
 
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
 
-
+import copy
+import functools
 from pynput import keyboard
 
 
@@ -37,9 +38,6 @@ class Controller(Node):
 
         # Attribute to store/publish killswitch value
         self.killswitch = 0
-
-        self.homed = False
-        self.home_confirmed = False
 
         # TODO load from config
         self.speed_limits = [0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 20]
@@ -70,10 +68,6 @@ class Controller(Node):
         self.joint_safety_sub = self.create_subscription(
             UInt8MultiArray, "joint_safety_state", self.process_safety, 10)
 
-        # Right switch subscriber
-        self.right_switch_sub = self.create_subscription(
-            bool, "right_switch_state", self.switch_homing_stage, 10)
-
         # Nonblocking keyboard listener
         self.keyboard_listener = keyboard.Listener(
             on_press=self.on_press,
@@ -81,8 +75,34 @@ class Controller(Node):
         )
         self.keyboard_listener.start()
 
-        self.homing_thread = threading.Thread(target=self.home_arm)
+        # Right switch subscriber
+        self.right_switch_sub = [0] * 6
+        for _joint_index in range(6):
+            self.right_switch_sub[_joint_index] = self.create_subscription(
+                Int16, f"right_switch_{str(_joint_index)}_state", functools.partial(self.switch_homing_stage, _joint_index), 10)
+
+        
+
+
+      
+        # Homing state/params
+        """joint index is numbered 0 to 5 in order of base rotation, shoulder, elbow, wrist_pitch, wrist_roll, gripper"""
+        self.homed = [False] * 6
         self.homing = HomingStatus.IDLE
+
+        self.has_reached_endpoint = [False] * 6
+        self.relative_endpoint_pos = [0.0] * 6
+
+        # Tunables for base homing motion
+        self.rotation_step = [1.0] * 6
+        self.rotation_span = [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+
+        # Threading controls
+        self._homing_thread = None
+        self._homing_stop = threading.Event()
+        self._homing_lock = threading.Lock()
+        self._shutdown = False # set true before shutdown to stop loops
+
 
     def update_arm(self, update):
 
@@ -150,35 +170,86 @@ class Controller(Node):
         zero_inputs = ArmInputs()
         self.update_arm(zero_inputs)
 
-    def switch_homing_stage(self, msg):
-        if msg:
-            self.homing_stage = 1    
-            self.l_horizontal_at_right_endpoint = self.current_joints.l_horizontal
+    def switch_homing_stage(self, joint_index, msg):
+        if msg.data == 1:
+            self.has_reached_endpoint[joint_index] = True
+            self.relative_endpoint_pos[joint_index] = self.current_joints[joint_index]
 
-    def home_arm(self):
+  
+    def home_arm(self, joint_index):
         #endpoint refers to positive-direction endpoint
-        self.l_horizontal_endpoint = 0
-        self.homing_stage = 0 
-
-        base_rotation_step = 0.01        
-        base_rotation_midspan = 1
-
-        while self.homing == HomingStatus.ACTIVE:
-            update = self.current_joints
-            if homing_stage == 0:
-                update.l_horizontal += base_rotation_step
-            if homing_stage == 1:
-                if self.l_horizontal_endpoint - update.l_horizontal == base_rotation_midspan:
-                    self.homing = True
+        """joint index is numbered 0 to 5 in order of base rotation, shoulder, elbow, wrist_pitch, wrist_roll, gripper"""
+    
+        target_joints = copy.deepcopy(self.current_joints)
+        
+        if self.homed[joint_index] == False:
+            if not self.has_reached_endpoint[joint_index]:
+                target_joints[joint_index] += self.rotation_step[joint_index]
+            else:
+                dist = abs(self.relative_endpoint_pos[joint_index] - self.current_joints[joint_index]) 
+                if dist >= self.rotation_span[joint_index]/2:
+                   # self.current_joints[0] = 0
+                    self.homed[joint_index] = True
                 else:
-                    update.l_horizontal -= base_rotation_step
-            self.update_arm(update)
+                    target_joints[joint_index] -= self.rotation_step[joint_index]
+     
+            target_joints_msg = Float32MultiArray()
+            target_joints_msg.data = target_joints
+            self.target_joint_pub.publish(target_joints_msg)
 
-        # on homing completion
-        self.homed = True
-        self.homing = HomingStatus.COMPLETE
-        self.update_arm(None)
-        # Function to home the arm
+            # not needed, only for convenience of test
+            self.current_joints = target_joints
+    
+    def start_homing(self):
+        """Start the homing loop in a background thread (idempotent)."""
+        with self._homing_lock:
+            if self._homing_thread and self._homing_thread.is_alive():
+                return  # already running
+            self.get_logger().info("Homing arm... press X to cancel.")
+            self.homing = HomingStatus.ACTIVE
+            self._homing_stop.clear()
+            self._homing_thread = threading.Thread(target=self._homing_loop, daemon=True)
+            self._homing_thread.start()
+
+    def cancel_homing(self):
+        """Request to cancel homing loop."""
+        with self._homing_lock:
+            if self.homing == HomingStatus.ACTIVE:
+                self.get_logger().info("Homing canceled.")
+            self.homing = HomingStatus.IDLE
+            self._homing_stop.set()
+
+    def _homing_loop(self, hz: float = 50.0):
+        """Call home_arm at a fixed rate until COMPLETE, CANCELED, or shutdown."""
+        period = 1.0 / hz
+        joint_index = 0
+
+        while not self._homing_stop.is_set() and not self._shutdown:
+            # If homing completed elsewhere, bail
+            if self.homing != HomingStatus.ACTIVE:
+                break
+
+            try:
+                self.home_arm(joint_index)
+            except Exception as e:
+                self.get_logger().error(f"Homing loop error: {e}")
+                # fail-safe: stop homing
+                self.cancel_homing()
+                break
+
+            if self.homed[joint_index]:
+                if(joint_index == 0): #change to 5
+                    self.homing = HomingStatus.COMPLETE
+                else:
+                    joint_index += 1
+            
+             # Stop when complete
+            if self.homing == HomingStatus.COMPLETE:
+                self.get_logger().info("Homing complete.")
+                self._homing_stop.set()
+                break
+
+            threading.Event().wait(period)
 
     def update_internal_joint_state(self, joints):
         self.current_joints = joints.data
