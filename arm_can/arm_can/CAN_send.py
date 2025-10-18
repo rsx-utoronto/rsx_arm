@@ -88,16 +88,17 @@ class CAN_Send(Node):
             self.SAFE_GOAL_POS)  # assuming data is safe
         print(self.SAFE_GOAL_POS)
 
+        set_pos_cmd_id = 0xc
         # Send data packets
         for i in range(1, len(spark_input)+1):
 
             # Motor number corresponds with device ID of the SparkMAX
-            motor_num = 10 + i
+            motor_num = i
 
             # print(spark_input)
             if motor_num > 10 and motor_num < 18:
                 # API WILL BE CHANGED WHEN USING THE POWER (DC) SETTING
-                id = generate_can_id(dev_id=motor_num, api=CMD_API_POS_SET)
+                id = generate_odrive_can_id(cmd_id=set_pos_cmd_id, motor_id=motor_num)
                 send_can_message(can_id=id, data=spark_input[i - 1])
 
             else:

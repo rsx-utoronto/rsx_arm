@@ -89,6 +89,27 @@ def generate_can_id(dev_id: int, api: int,
     can_id = (can_id | dev_id)
     return can_id
 
+def generate_odrive_can_id(cmd_id: int, motor_id: int):
+    """
+    (int, int, int, int, int) -> (int)
+
+    Generates a valid CAN ID for an ODrive CAN Command with a function with ID cmd_id executed on a motor with ID motor_id
+
+    @parameters
+
+    cmd_id (int) = The unique 5-bit number ID of the object in the CAN network (6 bits)
+    motor_id (int) = The unique 6-bit number ID of the motor the command will execute on (10 bits)
+
+    Note: The complete CAN ID should never be larger than 11 bits
+    """
+
+    cmd_id_reduced = cmd_id&0b11111 #reduce cmd_id to the first 5 bits
+    motor_id_reduced = motor_id&0b111111 #reduce node_id (called motor_id) to the first 6 bits
+    motor_id_shifted = motor_id<<5 #make the first 5 bits of node_id 0 by bit shifting it 5 bits to the left
+    cmdmotor_CAN_id = motor_id_shifted|motor_id_reduced #combine them into 1 full CAN ID
+
+    return cmdmotor_CAN_id
+
 
 def pos_to_sparkdata(f: float) -> list:
     """
@@ -108,6 +129,26 @@ def pos_to_sparkdata(f: float) -> list:
     return [eval('0x'+input_hex[-2:]), eval('0x'+input_hex[-4:-2]),
             eval('0x'+input_hex[-6:-4]), eval('0x'+input_hex[-8:-6]),
             0x00, 0x00, 0x00, 0x00]
+
+def pos_to_odrive_data(f: float) -> list:
+    """
+    float -> list(int)
+
+    Takes in a float position value (number of rotations) and returns the data packet in the form that
+    SparkMAX requires
+
+    @parameters:
+
+    f (float): Float value that needs to be converted
+    """
+    input_hex = hex(struct.unpack('<I', struct.pack('<f', f))[0])
+    if len(input_hex) != 10:
+        input_hex = input_hex[:2] + input_hex[2:] + (10-len(input_hex))*'0'
+
+    #check the last 2 int16 inputs as they might be too low
+    return [eval('0x'+input_hex[-2:]), eval('0x'+input_hex[-4:-2]),
+            eval('0x'+input_hex[-6:-4]), eval('0x'+input_hex[-8:-6]),
+            0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00] 
 
 
 def power_to_sparkdata(f: float) -> list:
@@ -338,7 +379,7 @@ def generate_data_packet(data_list: list) -> list:
         data_list[-3], data_list[-2])
 
     # Sparkmax Data list
-    spark_data = []
+    odrive_data = []
 
     for i in range(len(data_list)):
 
@@ -362,9 +403,9 @@ def generate_data_packet(data_list: list) -> list:
 
         # Converting the angle to spark data
         angle = angle/360 * REDUCTION[i]
-        spark_data.append(pos_to_sparkdata(angle))
+        odrive_data.append(pos_to_odrive_data(angle))
 
-    return spark_data
+    return odrive_data
 
 
 # Instantiate CAN bus
