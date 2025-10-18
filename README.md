@@ -164,6 +164,10 @@ If you are placing a file into one of the python packages:
 ## Docker Workflow
 1. Build the image
 ```bash
+# Export environment variables for realsense camera
+export VIDEO_GID=$(stat -c '%g' /dev/video0 2>/dev/null || echo "")
+export RENDER_GID=$(stat -c '%g' /dev/dri/renderD128)
+
 # zsh + Neovim (default)
 ./docker-scripts/build.sh zsh nvim
 

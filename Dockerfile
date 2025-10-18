@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake pkg-config \
     python3-pip python3-venv python3-colcon-common-extensions \
     python3-rosdep python3-vcstool \
-    iproute2 iputils-ping net-tools \
+    iproute2 iputils-ping net-tools usbutils \
     less nano vim \
     rsync \
     libpcl-dev \

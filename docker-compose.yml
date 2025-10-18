@@ -12,7 +12,7 @@ x-common-vols: &common_vols
   - ${HOST_HOME}:/host_home:ro   # <— host home (set by scripts)
 
 x-realsense-usb: &realsense_usb
-  privileged: true         # simplest way to avoid cgroup/udev pain
+  privileged: true         
   devices:
     - /dev/bus/usb:/dev/bus/usb
     - /dev/dri:/dev/dri    # GPU for RViz etc. (not the camera, but useful)
@@ -66,7 +66,7 @@ services:
     <<: *realsense_usb
     network_mode: host
     profiles: [ "hyprland" ]
-    group_add: [ "video" ]
+    group_add: [ "${RENDER_GID}", "${VIDEO_GID}" ]
 
   rsxarm-x11:
     extends: rsxarm
@@ -84,6 +84,7 @@ services:
     <<: *realsense_usb
     network_mode: host
     profiles: [ "x11" ]
+    group_add: [ "${RENDER_GID}", "${VIDEO_GID}" ]
 
   rsxarm-mac:
     extends: rsxarm
@@ -121,6 +122,7 @@ services:
       - /mnt/wslg/runtime-dir:/mnt/wslg/runtime-dir:ro
     profiles: [ "windows-wsl" ]
     <<: *realsense_usb
+    group_add: [ "${RENDER_GID}", "${VIDEO_GID}" ]
 
 
 
