@@ -91,7 +91,7 @@ def generate_can_id(dev_id: int, api: int,
 
 def generate_odrive_can_id(cmd_id: int, motor_id: int):
     """
-    (int, int, int, int, int) -> (int)
+    (int, int) -> (int)
 
     Generates a valid CAN ID for an ODrive CAN Command with a function with ID cmd_id executed on a motor with ID motor_id
 
@@ -106,7 +106,7 @@ def generate_odrive_can_id(cmd_id: int, motor_id: int):
     cmd_id_reduced = cmd_id&0b11111 #reduce cmd_id to the first 5 bits
     motor_id_reduced = motor_id&0b111111 #reduce node_id (called motor_id) to the first 6 bits
     motor_id_shifted = motor_id<<5 #make the first 5 bits of node_id 0 by bit shifting it 5 bits to the left
-    cmdmotor_CAN_id = motor_id_shifted|motor_id_reduced #combine them into 1 full CAN ID
+    cmdmotor_CAN_id = motor_id_shifted|cmd_id_reduced #combine them into 1 full CAN ID
 
     return cmdmotor_CAN_id
 
@@ -210,6 +210,7 @@ def initialize_bus(channel='can0', interface='socketcan') -> None:
 
     # Initializing the global BUS
     # BUS = can.ThreadSafeBus(channel= channel, interface= interface, receive_own_messages= False)
+    print("initializing bus")
     BUS = can.Bus(channel=channel, interface=interface,
                   receive_own_messages=False)
     print('BUS initialzed')
