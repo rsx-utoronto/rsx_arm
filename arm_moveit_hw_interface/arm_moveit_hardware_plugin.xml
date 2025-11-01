@@ -1,0 +1,10 @@
+<library path="lib/libarm_moveit_hardware.so">
+  <class
+    name="arm_moveit_hw_interface/ArmSystemHardware"
+    type="arm_moveit_hardware::ArmSystemHardware"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>
+      The hardware interface between MoveIt and the CAN Bus (for IK and path planning)
+    </description>
+  </class>
+</library>
