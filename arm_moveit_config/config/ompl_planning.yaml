@@ -44,6 +44,8 @@ planner_configs:
   RRTConnectkConfigDefault:
     type: geometric::RRTConnect
     range: 0.0  # Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on setup()
+    longest_valid_segment_fraction: 0.005
+
   RRTstarkConfigDefault:
     type: geometric::RRTstar
     range: 0.0  # Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on setup()

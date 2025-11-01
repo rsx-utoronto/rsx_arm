@@ -8,14 +8,33 @@
 
 #define NUM_JOINTS 6
 
+enum ArmState {
+    IDLE = 0,
+    MANUAL = 1,
+    IK = 2,
+    PATH_PLANNING = 3,
+    SCIENCE = 4
+};
+
 class PathPlannerNode: public rclcpp::Node {
 private:
+    ArmState _curr_state = ArmState::IDLE;
+    geometry_msgs::msg::Pose::SharedPtr _curr_pose;
+
     rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr _target_pose_sub;
+    rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr _curr_pose_sub;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _arm_state_sub;
+
+
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_pose_pub;
 
     void receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr msg) const;
-    void publishPath(moveit_msgs::msg::RobotTrajectory& trajectory) const;
+    void updateCurrPoseCallback(geometry_msgs::msg::Pose::SharedPtr msg);
+    void updateStateCallback(std_msgs::msg::String::SharedPtr msg);
 
+    void publishPath(moveit_msgs::msg::RobotTrajectory& trajectory) const;
+    void calculatePath(const geometry_msgs::msg::Pose::SharedPtr msg) const;
+    
     // move group 
     moveit::planning_interface::MoveGroupInterface* _move_group;
 public:
