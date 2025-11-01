@@ -15,7 +15,7 @@ from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_in
 
 
 from pynput import keyboard
-
+import time
 
 class Controller(Node):
     """
@@ -42,10 +42,11 @@ class Controller(Node):
         self.home_confirmed = False
 
         # TODO load from config
-        self.speed_limits = [0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 20]
+        self.speed_limits = [0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 5]
 
         self.current_pose = Pose()
-        self.current_joints = [0.0]*6
+        self.current_joints = [0.0]*7
+        self.target_joints = self.current_joints
 
         self.gripper_on = False
 
@@ -106,6 +107,9 @@ class Controller(Node):
                 self.get_logger().info("Switching to IK mode, homed and ready to move")
         elif inputs.dpad_right:
             self.state = ArmState.PATH_PLANNING
+        state_string = String()
+        state_string.data = self.state.name
+        self.state_pub.publish(state_string)
 
         match self.state:
             case ArmState.IDLE:
@@ -114,7 +118,8 @@ class Controller(Node):
                 pass
             case ArmState.MANUAL:
                 target_joints = map_inputs_to_manual(
-                    inputs, self.speed_limits, self.current_joints)
+                    inputs, self.speed_limits, self.target_joints)
+                self.target_joints = target_joints.data
                 self.target_joint_pub.publish(target_joints)
             case ArmState.IK:
                 if self.homed:
@@ -134,7 +139,7 @@ class Controller(Node):
                             "Arm not homed, cannot move in IK mode, press X and O simultaneously to home")
                         target_pose = self.current_pose
                         self.target_pose_pub.publish(target_pose)
-
+        time.sleep(0.01)
     def handle_joy(self, msg):
         self.update_arm(msg)
 
@@ -163,7 +168,7 @@ class Controller(Node):
         # Function to update internal joint state from feedback
         pass
 
-    def update_internal_pose_state(self):
+    def update_internal_pose_state(self, joints):
         """
         Function to update internal pose state through forward kinematics.
         - Get pose through IK solver instance in MoveIt.

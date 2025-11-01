@@ -342,7 +342,6 @@ def generate_data_packet(data_list: list) -> list:
     spark_data = []
 
     for i in range(len(data_list)):
-
         # Specific angle for wrist motor 1
         if i + 1 == 5:
             angle = wrist_motor1
@@ -355,7 +354,7 @@ def generate_data_packet(data_list: list) -> list:
         elif i + 1 == 7:
             # gripper_correction needs to be added according to previous
             angle = data_list[i]
-            # the gripper correction is in gripper controller - check this out further
+            # the gripper correction is in gripper ccchannelcchannelcchannelcchannelcchannelchannel = 'vcan0', interface = 'virtual'channel = 'vcan0', interface = 'virtual'channel = 'vcan0', interface = 'virtual'ontroller - check this out further
 
         # For any other motor
         else:

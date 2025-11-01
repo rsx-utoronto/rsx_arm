@@ -123,8 +123,9 @@ def test_arm_input_sub():
     time.sleep(MESSAGE_WAIT)
 
     # Expected target joints: everything zero
-    expected = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    expected = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     received = test.subscriber_data["arm_target_joints"]
+    assert len(received) == 7
     for n, item in enumerate(list(received)):
         assert item - \
             expected[n] < 1e-3, "Difference %f was greater than 1e-3" % item-expected[n]
@@ -151,11 +152,12 @@ def test_arm_input_sub():
     rclpy.spin_once(test, timeout_sec=MESSAGE_WAIT)
     time.sleep(MESSAGE_WAIT)
     # Expected based on speed limits
-    expected = [-1.0, -0.45, 0.6, 3.75, 1.2, 0.6]
+    expected = [-1.0, -0.45, 0.6, 3.75, 1.2, 0.6, 0.0]
 
     # Verify received arm_target_joints matches expected
     assert "arm_target_joints" in test.subscriber_data, "No data received on arm_target_joints"
     received = test.subscriber_data["arm_target_joints"]
+    assert len(received) == 7
     for n, item in enumerate(list(received)):
         assert item - \
             expected[n] < 1e-3, "Difference %f was greater than 1e-3" % item-expected[n]
