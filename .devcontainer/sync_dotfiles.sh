@@ -61,3 +61,8 @@ fi
 
 # Normalize ownership (in case of root-placed files)
 chown -R "$(id -u)":"$(id -g)" "${DEST_HOME}" || true
+
+# Ensure helper functions in the synced zshrc don't abort container startup.
+if [ -f "${DEST_HOME}/.zshrc" ]; then
+  perl -0pi -e 's/command -v "\$1" >\/dev\/null 2>&1 && "\$@";/command -v "\$1" >\/dev\/null 2>&1 && "\$@" || true;/' "${DEST_HOME}/.zshrc" || true
+fi
