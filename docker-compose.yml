@@ -49,7 +49,7 @@ services:
     container_name: rsxarm-wayland
     environment:
       <<: *common_env
-      QT_QPA_PLATFORM: wayland
+      QT_QPA_PLATFORM: xcb      # Qt Wayland + Ogre(GLX) fails; force X11 backend
       WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-1}
       XDG_RUNTIME_DIR: /run/user/${UID:-1000}   # ← set container-side path
       DISPLAY: ${DISPLAY}                       # ← allow X11 fallback too
