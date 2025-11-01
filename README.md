@@ -162,6 +162,8 @@ If you are placing a file into one of the python packages:
 - Track progress with an issue board (e.g., "Migrate node X", "Convert launch file Y").
 
 ## Docker Workflow
+The workflow is `env -> build -> up -> enter -> (inside container) cd src/rsx_arm -> deps -> setup_ws -> add_alias`
+
 1. Setup the environment variables
 ```bash
 # For Linux (Wayland)
