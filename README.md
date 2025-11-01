@@ -162,12 +162,20 @@ If you are placing a file into one of the python packages:
 - Track progress with an issue board (e.g., "Migrate node X", "Convert launch file Y").
 
 ## Docker Workflow
-1. Build the image
+1. Setup the environment variables
 ```bash
-# Export environment variables for realsense camera
-export VIDEO_GID=$(stat -c '%g' /dev/video0 2>/dev/null || echo "")
-export RENDER_GID=$(stat -c '%g' /dev/dri/renderD128)
+# For Linux (Wayland)
+source ./docker-scripts/env-linux.sh hyprland
 
+# For Linux (X11)
+source ./docker-scripts/env-linux.sh x11
+
+# For WSL-G
+source ./docker-scripts/env-wsl.sh
+```
+
+2. Build the image
+```bash
 # zsh + Neovim (default)
 ./docker-scripts/build.sh zsh nvim
 
@@ -175,7 +183,7 @@ export RENDER_GID=$(stat -c '%g' /dev/dri/renderD128)
 ./docker-scripts/build.sh bash vscode
 ```
 
-2. Start the container.
+3. Start the container.
 ```bash
 # Linux + Hyprland (Wayland)
 # Notes:
@@ -200,7 +208,7 @@ xhost +local:
 ./docker-scripts/up.sh wsl
 ```
 
-3. Enter the dev shell.
+4. Enter the dev shell.
 Choose service based on your platform.
 - Linux: `rsxarm-x11`
 - Linux (Wayland): `rsxarm-wayland`
@@ -215,14 +223,14 @@ Choose service based on your platform.
 ./docker-scripts/enter.sh rsxarm
 ```
 
-4. Inside the container: Install deps & build
+5. Inside the container: Install deps & build
 ```bash
 ./docker-scripts/deps.sh
 ./docker-scripts/setup_ws.sh
 # run your nodes/launch files; ROS environment is sourced automatically by the entrypoint
 ```
 
-5. Add helpful alias.
+6. Add helpful alias.
 - `workon_arm`: `cd` into work dir, and source ROS. Note that this alias is redundant since sourcing is already done by Docker.
 - `build_arm`: call `workon_arm`, then call `colcon build` and `colcon test`
 ```bash
