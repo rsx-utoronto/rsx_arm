@@ -212,13 +212,39 @@ RUN echo ". /etc/profile.d/ros2_auto.sh" >> /etc/bash.bashrc && \
 # RViz2 + rqt suite + Gazebo Classic + helpers for graphs & GL
 RUN if [ "$WITH_GUI" = "1" ]; then \
       apt-get update && apt-get install -y --no-install-recommends \
-        ros-humble-rviz2 \
-        ros-humble-rqt ros-humble-rqt-graph ros-humble-rqt-image-view ros-humble-rqt-tf-tree \
-        ros-humble-joint-state-publisher-gui \
-        ros-humble-gazebo-ros-pkgs gazebo \
+        "ros-${ROS_DISTRO}-rviz2" \
+        "ros-${ROS_DISTRO}-rqt" "ros-${ROS_DISTRO}-rqt-graph" "ros-${ROS_DISTRO}-rqt-image-view" "ros-${ROS_DISTRO}-rqt-tf-tree" \
+        "ros-${ROS_DISTRO}-joint-state-publisher-gui" \
+        "ros-${ROS_DISTRO}-gazebo-ros-pkgs" gazebo \
         graphviz python3-pydot \
         qtwayland5 libgl1-mesa-dri mesa-utils \
       && rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# --- RViz Wayland fallback shim ---
+RUN if [ "$WITH_GUI" = "1" ]; then \
+      rviz_bin="/opt/ros/${ROS_DISTRO}/lib/rviz2/rviz2"; \
+      if [ -x "${rviz_bin}" ] && [ ! -f "${rviz_bin}.real" ]; then \
+        mv "${rviz_bin}" "${rviz_bin}.real"; \
+        printf '%s\n' \
+          '#!/usr/bin/env bash' \
+          'set -euo pipefail' \
+          'RVIZ_REAL="/opt/ros/${ROS_DISTRO:-humble}/lib/rviz2/rviz2.real"' \
+          'if [ ! -x "$RVIZ_REAL" ]; then' \
+          '  echo "rviz2 backend not found at ${RVIZ_REAL}" >&2' \
+          '  exit 127' \
+          'fi' \
+          'if [ -n "${WAYLAND_DISPLAY:-}" ]; then' \
+          '  case "${QT_QPA_PLATFORM:-}" in' \
+          '    ""|wayland|wayland-egl)' \
+          '      export QT_QPA_PLATFORM=xcb' \
+          '      ;;' \
+          '  esac' \
+          'fi' \
+          'exec "$RVIZ_REAL" "$@"' \
+        > "${rviz_bin}"; \
+        chmod +x "${rviz_bin}"; \
+      fi; \
     fi
 
 # --- Gazebo Wayland->X11 fallback wrappers (for Hyprland) ---
