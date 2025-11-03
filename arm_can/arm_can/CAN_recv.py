@@ -18,7 +18,6 @@ class CAN_Recv(Node):
         print("gurt:yo")
 
         super().__init__('CAN_Recv')
-
         # Attributes to hold data from publishers or to publish
         self.CURR_POS = [0.0, 0.0, 0.0, 0.0, 0.0,
                          0.0, 0.0]  # ADDED BACK 7TH MOTOR

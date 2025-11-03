@@ -86,7 +86,6 @@ class CAN_Send(Node):
         # Convert SparkMAX angles to SparkMAX data packets
         spark_input = generate_data_packet(
             self.SAFE_GOAL_POS)  # assuming data is safe
-        print(self.SAFE_GOAL_POS)
 
         # Send data packets
         for i in range(1, len(spark_input)+1):
@@ -106,7 +105,8 @@ class CAN_Send(Node):
 
 def main():
     # # Instantiate CAN bus
-    # initialize_bus()
+    # global BUS
+    # initialize_bus(channel='vcan0', interface='virtual')
 
     # Broadcast heartbeat
     hb = can.Message(
