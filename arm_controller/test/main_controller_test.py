@@ -23,7 +23,7 @@ def test_main_controller_init():
     assert rclpy.ok(), "rclpy did not initialize correctly"
     assert controller_node.state == ArmState.IDLE, "Main Controller did not initialize to Idle"
     assert controller_node.speed_limits == [0.1, 0.09, 0.15, 0.75,
-                                            0.12, 0.12, 20], "speed limits does not match the values!"
+                                            0.12, 0.12, 5], "speed limits does not match the values!"
     rclpy.shutdown()
 
 
