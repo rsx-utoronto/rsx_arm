@@ -1,13 +1,14 @@
 '''
-    Launch file for running MoveIt without RViz to get joint targets
-    Basically the same as the other one but without anything related to RViz
+    Launch file for running MoveIt with RViz
+    Adapted from the MoveIt website to work with RSX's arm
 '''
 
 from launch import LaunchDescription
 from moveit_configs_utils import MoveItConfigsBuilder
+from moveit_configs_utils.launches import generate_demo_launch
 from launch_ros.actions import Node
 
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
@@ -40,6 +41,32 @@ def generate_launch_description():
         executable="move_group",
         output="screen",
         parameters=[moveit_config.to_dict()],
+    )
+
+    # Get the path to the RViz configuration file
+    rviz_config_arg = DeclareLaunchArgument(
+        "rviz_config",
+        default_value=rviz_path,
+        description="RViz configuration file",
+    )
+    rviz_base = LaunchConfiguration("rviz_config")
+    rviz_config = PathJoinSubstitution(
+        [FindPackageShare("arm_moveit_config"), "launch", rviz_base]
+    )
+
+    # Launch RViz
+    rviz_node = Node(
+        package="rviz2",
+        executable="rviz2",
+        output="log",
+        arguments=["-d", rviz_config],
+        parameters=[
+            moveit_config.robot_description,
+            moveit_config.robot_description_semantic,
+            moveit_config.robot_description_kinematics,
+            moveit_config.planning_pipelines,
+            moveit_config.joint_limits,
+        ],
     )
 
     # Static TF
@@ -100,6 +127,8 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            rviz_config_arg,
+            rviz_node,
             static_tf,
             robot_state_publisher,
             run_move_group_node,
