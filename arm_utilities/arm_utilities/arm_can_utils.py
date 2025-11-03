@@ -2,58 +2,10 @@
 
 import can
 import struct
+from arm_enum_utils import CANAPI
 
 ########## GLOBAL VARIABLES ##########
 
-# CAN bus instance
-global BUS
-
-# CANSpark APIs
-CMD_API_SETPNT_SET = 0x001
-CMD_API_DC_SET = 0x002
-CMD_API_SPD_SET = 0x012
-CMD_API_SMART_VEL_SET = 0x013
-CMD_API_POS_SET = 0x032
-CMD_API_VOLT_SET = 0x042
-CMD_API_CURRENT_SET = 0x043
-CMD_API_SMARTMOTION_SET = 0x052
-CMD_API_STAT0 = 0x060
-CMD_API_STAT1 = 0x061
-CMD_API_STAT2 = 0x062
-CMD_API_STAT3 = 0x063
-CMD_API_STAT4 = 0x064
-CMD_API_STAT5 = 0x065
-CMD_API_STAT6 = 0x066
-CMD_API_CLEAR_FAULTS = 0x06E
-CMD_API_DRV_STAT = 0x06A
-CMD_API_BURN_FLASH = 0x072
-CMD_API_SET_FOLLOWER = 0x073
-CMD_API_FACTORY_DEFAULT = 0x074
-CMD_API_FACTORY_RESET = 0x075
-CMD_API_IDENTIFY = 0x076
-CMD_API_NACK = 0x080
-CMD_API_ACK = 0x081
-CMD_API_BROADCAST = 0x090
-CMD_API_HEARTBEAT = 0x092
-CMD_API_SYNC = 0x093
-CMD_API_ID_QUERY = 0x094
-CMD_API_ID_ASSIGN = 0x095
-CMD_API_FIRMWARE = 0x098
-CMD_API_ENUM = 0x099
-CMD_API_LOCK = 0x09B
-CMD_API_LOCKB = 0x0B1
-CMD_API_NONRIO_HB = 0x0B2
-
-CMD_API_SWDL_BOOTLOADER = 0x1FF
-CMD_API_SWDL_DATA = 0x09C
-CMD_API_SWDL_CHKSUM = 0x09D
-CMD_API_SWDL_RETRANSMIT = 0x09E
-
-CMD_API_MECH_POS = 0x0A0
-CMD_API_I_ACCUM = 0x0A2
-CMD_API_ANALOG_POS = 0x0A3
-CMD_API_ALT_ENC_POS = 0x0A4
-CMD_API_PARAM_ACCESS = 0x300
 
 # REDUCTION Ratios
 # 7th Motor is a DC motor without a gearbox
@@ -90,7 +42,7 @@ def generate_can_id(dev_id: int, api: int,
     return can_id
 
 
-def pos_to_sparkdata(f: float) -> list:
+def pos_to_sparkdata(bus, f: float) -> list:
     """
     float -> list(int)
 
@@ -149,7 +101,7 @@ def sparkfixed_to_float(fixed: int, frac: int = 5) -> float:
     return f
 
 
-def initialize_bus(channel='can0', interface='socketcan') -> None:
+def initialize_bus(bus, channel='can0', interface='socketcan'):
     """
     (str, str) -> (None)
 
@@ -165,17 +117,16 @@ def initialize_bus(channel='can0', interface='socketcan') -> None:
 
     """
     # Getting global BUS
-    global BUS
 
     # Initializing the global BUS
     # BUS = can.ThreadSafeBus(channel= channel, interface= interface, receive_own_messages= False)
-    BUS = can.Bus(channel=channel, interface=interface,
+    bus = can.Bus(channel=channel, interface=interface,
                   receive_own_messages=False)
     print('BUS initialzed')
-    return
+    return bus
 
 
-def send_can_message(can_id: int, data=None, ext=True, err=False, rtr=False) -> None:
+def send_can_message(bus, can_id: int, data=None, ext=True, err=False, rtr=False) -> None:
     """
     (int, list(float), bool, bool, bool) -> (None)
 
@@ -193,9 +144,6 @@ def send_can_message(can_id: int, data=None, ext=True, err=False, rtr=False) -> 
         False by default
     """
 
-    # Getting global BUS
-    global BUS
-
     # Converting list data to byte
     if data:
         data = bytes(data)
@@ -211,7 +159,7 @@ def send_can_message(can_id: int, data=None, ext=True, err=False, rtr=False) -> 
 
     # Sending the created message
     try:
-        BUS.send(msg)
+        bus.send(msg)
         # print(f"Message sent on {BUS.channel_info}")
 
     except can.CanError:
@@ -366,19 +314,3 @@ def generate_data_packet(data_list: list) -> list:
 
     return spark_data
 
-
-# Instantiate CAN bus
-initialize_bus()
-
-# # Broadcast heartbeat
-# hb = can.Message(
-#     arbitration_id= generate_can_id(
-#         dev_id= 0x0,
-#         api= CMD_API_NONRIO_HB),
-#     data= bytes([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]),
-#     is_extended_id= True,
-#     is_remote_frame = False,
-#     is_error_frame = False
-# )
-# task = BUS.send_periodic(hb, 0.01)
-# print("Heartbeat initiated")

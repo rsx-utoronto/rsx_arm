@@ -12,7 +12,8 @@ from geometry_msgs.msg import Pose
 
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
-
+from can_connection import CAN_connection
+from safety import SafetyChecker
 
 from pynput import keyboard
 import time
@@ -25,9 +26,17 @@ class Controller(Node):
     its publishing and subscribing topics
     """
 
-    def __init__(self):
+    def __init__(self, can_update_rate = 1000, n_joints = 7):
         super().__init__("Arm_Controller")
 
+        self.n_joints = n_joints
+
+        self.can_con = CAN_connection(num_joints = n_joints)
+
+        self.can_send_timer = self.create_timer(1.0/self.can_con.send_rate, self.send_can_callback)
+        self.can_read_timer = self.create_timer(1.0/self.can_con.read_rate, self.read_can_callback)
+
+        self.safety_checker = SafetyChecker()
         # Attributes to hold data for publishing to topics
         # Attribute to publish state
         self.state = ArmState.IDLE
@@ -45,8 +54,11 @@ class Controller(Node):
         self.speed_limits = [0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 5]
 
         self.current_pose = Pose()
-        self.current_joints = [0.0]*7
+        self.current_joints = [0.0]*self.n_joints
         self.target_joints = self.current_joints
+        self.lim_switches = [0] * self.n_joints
+        self.motor_curr = [0.0] * self.n_joints
+        self.safety_flags = [0] * self.n_joints
 
         self.gripper_on = False
 
@@ -80,7 +92,10 @@ class Controller(Node):
 
         self.homing_thread = threading.Thread(target=self.home_arm)
         self.homing = HomingStatus.IDLE
-
+    def read_can_callback(self):
+        self.current_joints, self.lim_switches, self.motor_curr = self.can_con.read_message()
+    def send_can_callback(self):
+        self.can_con.send_message(self.safe_target_joints)
     def update_arm(self, update):
 
         match self.control_mode:
@@ -117,10 +132,9 @@ class Controller(Node):
                 # self.logger().info("Currently in IDLE: No control change")
                 pass
             case ArmState.MANUAL:
-                target_joints = map_inputs_to_manual(
-                    inputs, self.speed_limits, self.target_joints)
+                target_joints = map_inputs_to_manual(inputs, self.speed_limits, self.target_joints)
                 self.target_joints = target_joints.data
-                self.target_joint_pub.publish(target_joints)
+                self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(self.target_joints, self.current_joints)
             case ArmState.IK:
                 if self.homed:
                     # Join homing thread if just finished homing
