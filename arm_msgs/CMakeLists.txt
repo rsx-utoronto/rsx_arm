@@ -24,9 +24,14 @@ if(BUILD_TESTING)
 endif()
 
 find_package(rosidl_default_generators REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(moveit_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ArmInputs.msg"
- )
+  "srv/PlanMotion.srv"
+  "action/PlanAndExecute.action"
+  DEPENDENCIES geometry_msgs moveit_msgs
+)
 
 ament_package()

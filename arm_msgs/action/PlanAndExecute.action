@@ -1,0 +1,71 @@
+# PlanAndExecute action - plan and optionally execute trajectory
+# Target types
+uint8 TARGET_TYPE_JOINT = 0
+uint8 TARGET_TYPE_POSE = 1
+uint8 TARGET_TYPE_CARTESIAN = 2
+
+# Goal - combines planning request with execution option
+uint8 target_type
+
+# Joint targets (used when target_type == TARGET_TYPE_JOINT)
+string[] joint_names
+float64[] joint_values
+
+# Pose target (used when target_type == TARGET_TYPE_POSE)
+geometry_msgs/PoseStamped target_pose
+
+# Cartesian waypoints (used when target_type == TARGET_TYPE_CARTESIAN)
+geometry_msgs/PoseStamped[] waypoints
+float64 cartesian_max_step  # Maximum step size for Cartesian path (default: 0.01)
+float64 cartesian_jump_threshold  # Jump threshold (default: 0.0, disabled)
+
+# Reference frame
+string frame_id
+
+# Path constraints (optional)
+moveit_msgs/Constraints path_constraints
+
+# Goal constraints/tolerances
+float64 position_tolerance  # meters (default: 0.001)
+float64 orientation_tolerance  # radians (default: 0.01)
+float64 joint_tolerance  # radians (default: 0.01)
+
+# Planner configuration
+string planner_id  # e.g., "RRTConnectkConfigDefault", empty = use default
+float64 planning_time  # seconds (default: 5.0)
+uint32 num_planning_attempts  # default: 1
+float64 velocity_scaling_factor  # 0.0-1.0 (default: 0.1)
+float64 acceleration_scaling_factor  # 0.0-1.0 (default: 0.1)
+
+# Advanced options
+bool allow_replanning  # default: false
+bool deterministic  # use seeded RNG for reproducibility (default: false)
+uint64 random_seed  # seed value when deterministic=true (default: 0)
+
+# Execution option
+bool execute  # if true, execute the planned trajectory
+
+---
+
+# Result
+bool success
+int32 error_code  # MoveIt error codes
+string message
+
+# Planning result
+moveit_msgs/RobotTrajectory trajectory
+float64 planning_time
+uint32 waypoints_count
+string planner_used
+
+# Execution result (only if execute=true)
+bool execution_success
+int32 execution_error_code
+string execution_message
+
+---
+
+# Feedback
+string stage  # "planning", "time_parameterization", "validating", "executing"
+float64 percent_complete  # 0.0 to 100.0
+string status_message
