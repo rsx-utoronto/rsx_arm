@@ -148,7 +148,7 @@ def pos_to_odrive_data(f: float) -> list:
     #check the last 2 int16 inputs as they might be too low
     return [eval('0x'+input_hex[-2:]), eval('0x'+input_hex[-4:-2]),
             eval('0x'+input_hex[-6:-4]), eval('0x'+input_hex[-8:-6]),
-            0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00] 
+            0x00, 0x00, 0x00, 0x00] 
 
 
 def power_to_sparkdata(f: float) -> list:
@@ -210,7 +210,6 @@ def initialize_bus(channel='can0', interface='socketcan') -> None:
 
     # Initializing the global BUS
     # BUS = can.ThreadSafeBus(channel= channel, interface= interface, receive_own_messages= False)
-    print("initializing bus")
     BUS = can.Bus(channel=channel, interface=interface,
                   receive_own_messages=False)
     print('BUS initialzed')
@@ -254,10 +253,10 @@ def send_can_message(can_id: int, data=None, ext=True, err=False, rtr=False) -> 
     # Sending the created message
     try:
         BUS.send(msg)
-        # print(f"Message sent on {BUS.channel_info}")
+        #print(f"Message sent on {BUS.channel_info}")
 
-    except can.CanError:
-        # print("Message NOT sent")
+    except can.CanError as can_err:
+        #print("Message NOT sent")
         pass
     return
 
@@ -359,6 +358,25 @@ def calc_differential(roll: float, pitch: float) -> tuple:
     # print(roll_motor1, roll_motor2)
     return wrist_motor1, wrist_motor2  # gripper_correction
 
+def generate_odrive_data_packet(data_list: list) -> list:
+    """
+    list(float) -> list(list(int))
+
+    Takes in the goal position angles for each motor and converts them to bytearrays specific for
+    each motor
+
+    @parameters
+
+    data_list (list(float)): List containing the anglular positions (in degrees) for each motor in the order
+    """
+
+    # ODrive Data list
+    odrive_data = []
+
+    for i in range(len(data_list)):
+        odrive_data.append(pos_to_odrive_data(data_list[i]))
+
+    return odrive_data
 
 def generate_data_packet(data_list: list) -> list:
     """

@@ -74,6 +74,7 @@ class CAN_Send(Node):
         # # Add correction for gripper (due to mechanical design)
         # self.SAFE_GOAL_POS[6] -= (self.SAFE_GOAL_POS[4] - self.CURR_POS[4])
         # print(self.SAFE_GOAL_POS[6])
+        self.triggered = 1
 
     def send_msgs_callback(self):
         """
@@ -82,24 +83,26 @@ class CAN_Send(Node):
         if not self.triggered:
             return
         # Convert SparkMAX angles to SparkMAX data packets
-        spark_input = generate_data_packet(
+        spark_input = generate_odrive_data_packet(
             self.SAFE_GOAL_POS)  # assuming data is safe
         print(self.SAFE_GOAL_POS)
 
         set_pos_cmd_id = 0xc
         # Send data packets
-        for i in range(1, len(spark_input)+1):
+        for i in range(0, len(spark_input)):
 
             # Motor number corresponds with device ID of the ODrive
             motor_num = i
 
             # print(spark_input)
-            if motor_num > 0 and motor_num < 8:
+            if motor_num >= 0 and motor_num < 7:
                 # API WILL BE CHANGED WHEN USING THE POWER (DC) SETTING
                 id = generate_odrive_can_id(cmd_id=set_pos_cmd_id, motor_id=motor_num)
-                send_can_message(can_id=id, data=spark_input[i - 1])
+                print("sending", spark_input[i-1],"to",id)
+                send_can_message(can_id=id, data=spark_input[i - 1], ext=False)
             else:
                 break
+        self.triggered = 0
         
 
 def main():
