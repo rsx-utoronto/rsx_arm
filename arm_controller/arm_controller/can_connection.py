@@ -2,8 +2,8 @@ from arm_utilities.arm_can_utils import *
 from arm_utilities.arm_enum_utils import CANAPI
 
 class CAN_connection():
-    def __init__(self, channel = "cano0", interface='socketcan', num_joints = 7, send_rate = 1000, read_rate = 1000):
-        self.bus = initialize_bus(channel, interface)
+    def __init__(self, channel = "cano0", interface='socketcan', receive_own_messages = False, num_joints = 7, send_rate = 1000, read_rate = 1000):
+        self.bus = initialize_bus(channel, interface, receive_own_messages)
         hb = can.Message(
         arbitration_id=generate_can_id(
             dev_id=0x0,

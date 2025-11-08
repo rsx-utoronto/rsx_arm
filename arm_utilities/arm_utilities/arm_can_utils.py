@@ -101,7 +101,7 @@ def sparkfixed_to_float(fixed: int, frac: int = 5) -> float:
     return f
 
 
-def initialize_bus(channel='can0', interface='socketcan'):
+def initialize_bus(channel='can0', interface='socketcan', receive_own_messages = False):
     """
     (str, str) -> (None)
 
@@ -121,7 +121,7 @@ def initialize_bus(channel='can0', interface='socketcan'):
     # Initializing the global BUS
     # BUS = can.ThreadSafeBus(channel= channel, interface= interface, receive_own_messages= False)
     bus = can.Bus(channel=channel, interface=interface,
-                  receive_own_messages=False)
+                  receive_own_messages=receive_own_messages)
     print('BUS initialized')
     return bus
 

@@ -32,7 +32,7 @@ class Controller(Node):
         self.n_joints = n_joints
         
         if virtual:
-            self.can_con = CAN_connection(channel = "vcan0", interface = "virtual", num_joints = n_joints)
+            self.can_con = CAN_connection(channel = "vcan0", interface = "virtual", receive_own_messages = True, num_joints = n_joints)
         else:
             self.can_con = CAN_connection(num_joints = n_joints)
 
