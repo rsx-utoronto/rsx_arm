@@ -10,9 +10,8 @@ import os
 import math
 
 
-class Safety_Node(Node):
+class SafetyChecker():
     def __init__(self):
-        super().__init__("Safety")
 
         # TODO: max change in theta at a given step, need to test and put in a config file
         self.max_d_theta = [10, 10, 10, 10, 120, 120, 80000]
@@ -29,75 +28,10 @@ class Safety_Node(Node):
         # Arm position errors
         self.safe_goal_pos = Float32MultiArray()
         self.safe_goal_pos.data = [0., 0., 0., 0., 0., 0., 0.]
-        self.joint_error_flag_time = [0., 0., 0., 0., 0., 0., 0.]
-        self.joint_error_first_flag = [
-            True, True, True, True, True, True, True]
-
-        self.goal_sub = self.create_subscription(
-            Float32MultiArray, "arm_target_joints", self.callback_Goal, 10)
-        self.motor_curr_sub = self.create_subscription(
-            Float32MultiArray, "arm_motor_curr", self.callback_MotorCurr, 10)
-        self.curr_pos_sub = self.create_subscription(
-            Float32MultiArray, "arm_curr_pos", self.callback_CurrPos, 10)
-        self.limit_switch_sub = self.create_subscription(
-            UInt8MultiArray, "arm_limit_switch", self.callback_LimitSwitch, 10)
-        self.killswitch_sub = self.create_subscription(
-            UInt8, "arm_killswitch", self.callback_KillSwitch, 10)
-        self.state_sub = self.create_subscription(
-            String, "arm_state", self.CallbackState, 10)
-        self.safe_pos_pub = self.create_publisher(
-            Float32MultiArray, "arm_safe_goal_pos", 10)
-        self.joint_error_status_pub = self.create_publisher(
-            UInt8MultiArray, "arm_joint_safety_status", 10)
 
         self.joint_safety_status = [SafetyErrors.NONE]*len(self.goal_pos)
 
-    def callback_KillSwitch(self, data: UInt8):
-        # Storing the boolean value
-        killswitch = data.data
-
-        if killswitch:
-            self.safe_goal_pos.data = self.curr_pos
-            self.SafePos_pub.publish(self.safe_goal_pos)
-            rclpy.sleep(0.001)
-            os.system("rosnode kill " + "CAN_Send")
-
-        else:
-            os.system("rosrun rover " + "CAN_send.py")
-            self.safe_goal_pos.data = self.curr_pos
-
-    def CallbackState(self, status: String) -> None:
-        # Update the state (will access the enumeration as a dictionary using the string as a key)
-
-        self.STATE = ArmState[status.data]
-
-    def callback_LimitSwitch(self, limitSwitch_data: UInt8MultiArray) -> None:
-
-        # Store the received limit switch data
-        self.LIMIT_SWITCH = limitSwitch_data.data
-        # TODO: handle limit switch data and use it for
-
-    def callback_Goal(self, goal_data: Float32MultiArray) -> None:
-
-        # Store the received goal postion
-        self.goal_pos = list(goal_data.data)
-
-        # Update the SAFE_GOAL_POS and publish if the received position is safe
-        self.update_safe_goal_pos(self.goal_pos)
-
-    def callback_MotorCurr(self, MotorCurr_data: Float32MultiArray) -> None:
-        # Store the received motor current value
-        self.MOTOR_CURR = MotorCurr_data.data
-
-        # # Check if motor current is exceeding and publish the errors
-        self.current_check()
-        # self.Error_pub.publish(self.ERRORS)
-
-    def callback_CurrPos(self, curr_pos_data: Float32MultiArray) -> None:
-        # Store the received current position values
-        self.curr_pos = curr_pos_data.data
-
-    def update_safe_goal_pos(self, goal_pos: list) -> None:
+    def update_safe_goal_pos(self, goal_pos: list, curr_pos: list) -> None:
         if self.STATE == ArmState.MANUAL or self.STATE == ArmState.IK:
 
             # Check if the goal position is safe
@@ -106,18 +40,13 @@ class Safety_Node(Node):
             curr_safety_status = self.current_check(self.goal_pos)
 
         else:
-            return
+            return goal_pos, [0] * len(self.goal_pos)
         safety_status = [0] * len(self.goal_pos)
         for i in range(len(self.goal_pos)):
-            # TODO: this is hardcoded, it shouldn't be 
+            # TODO: the typing here is hardcoded, it shouldn't be 
             safety_status[i] = int(pos_safety_status[i]) + int(curr_safety_status[i])
-        error_msg = UInt8MultiArray()
-        error_msg.data = safety_status
-        self.joint_error_status_pub.publish(error_msg)
-
-        goal_pos = Float32MultiArray()
-        goal_pos.data = self.goal_pos
-        self.safe_pos_pub.publish(goal_pos)
+        print(goal_pos, safety_status)
+        return goal_pos, safety_status
 
     def constrain_safe_pos(self, pos: list = None) -> None:
 
@@ -171,28 +100,3 @@ class Safety_Node(Node):
             else:
                 current_error[i] = SafetyErrors.NONE.value
         return current_error
-
-def main() -> None:
-    '''
-    (None) -> (None)
-
-    Main function that initializes the safety node
-    '''
-
-    try:
-        # Initialize a ROS node
-        rclpy.init()
-
-        # Set all the publishers and subscribers of the node
-        Safety = Safety_Node()
-
-        # ROS spin to keep the node alive
-        rclpy.spin(Safety)
-
-    except KeyboardInterrupt:
-        pass
-
-
-if __name__ == "__main__":
-
-    main()

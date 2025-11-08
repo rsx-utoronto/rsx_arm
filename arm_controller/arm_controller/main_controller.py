@@ -12,7 +12,8 @@ from geometry_msgs.msg import Pose
 
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
-
+from arm_controller.can_connection import CAN_connection
+from arm_controller.safety import SafetyChecker
 
 from pynput import keyboard
 import time
@@ -25,9 +26,17 @@ class Controller(Node):
     its publishing and subscribing topics
     """
 
-    def __init__(self):
+    def __init__(self, can_update_rate = 1000, n_joints = 7, virtual = False):
         super().__init__("Arm_Controller")
 
+        self.n_joints = n_joints
+        
+        if virtual:
+            self.can_con = CAN_connection(channel = "vcan0", interface = "virtual", receive_own_messages = True, num_joints = n_joints)
+        else:
+            self.can_con = CAN_connection(num_joints = n_joints)
+
+        self.safety_checker = SafetyChecker()
         # Attributes to hold data for publishing to topics
         # Attribute to publish state
         self.state = ArmState.IDLE
@@ -45,23 +54,26 @@ class Controller(Node):
         self.speed_limits = [0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 5]
 
         self.current_pose = Pose()
-        self.current_joints = [0.0]*7
+        self.current_joints = [0.0]*self.n_joints
         self.target_joints = self.current_joints
+        self.safe_target_joints = self.target_joints
+        self.lim_switches = [0] * self.n_joints
+        self.motor_curr = [0.0] * self.n_joints
+        self.safety_flags = [0] * self.n_joints
 
         self.gripper_on = False
 
         # Publishers
         self.state_pub = self.create_publisher(String, "arm_state", 10)
-        self.target_joint_pub = self.create_publisher(
-            Float32MultiArray, "arm_target_joints", 10)
+        self.safe_target_joints_pub = self.create_publisher(
+            Float32MultiArray, "safe_arm_target_joints", 10)
         self.target_pose_pub = self.create_publisher(
             Pose, "arm_target_pose", 10)
         self.killswitch_pub = self.create_publisher(
             UInt8, "arm_killswitch", 10)
 
         # Joynode subscriber
-        self.joy_sub = self.create_subscription(
-            Joy, "/joy", self.handle_joy, 10)
+        self.joy_sub = self.create_subscription(Joy, "/joy", self.handle_joy, 10)
 
         # CAN feedback subscriber
         self.feedback_sub = self.create_subscription(
@@ -81,6 +93,12 @@ class Controller(Node):
         self.homing_thread = threading.Thread(target=self.home_arm)
         self.homing = HomingStatus.IDLE
 
+        self.can_send_timer = self.create_timer(1.0/self.can_con.send_rate, self.send_can_callback)
+        self.can_read_timer = self.create_timer(1.0/self.can_con.read_rate, self.read_can_callback)
+    def read_can_callback(self):
+        self.current_joints, self.lim_switches, self.motor_curr = self.can_con.read_message()
+    def send_can_callback(self):
+        self.can_con.send_message(self.safe_target_joints)
     def update_arm(self, update):
 
         match self.control_mode:
@@ -117,10 +135,12 @@ class Controller(Node):
                 # self.logger().info("Currently in IDLE: No control change")
                 pass
             case ArmState.MANUAL:
-                target_joints = map_inputs_to_manual(
-                    inputs, self.speed_limits, self.target_joints)
+                target_joints = map_inputs_to_manual(inputs, self.speed_limits, self.target_joints)
                 self.target_joints = target_joints.data
-                self.target_joint_pub.publish(target_joints)
+                self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(self.target_joints, self.current_joints)
+                msg = Float32MultiArray()
+                msg.data = self.safe_target_joints
+                self.safe_target_joints_pub.publish(msg)
             case ArmState.IK:
                 if self.homed:
                     # Join homing thread if just finished homing
@@ -139,7 +159,7 @@ class Controller(Node):
                             "Arm not homed, cannot move in IK mode, press X and O simultaneously to home")
                         target_pose = self.current_pose
                         self.target_pose_pub.publish(target_pose)
-        time.sleep(0.01)
+        # time.sleep(0.01)
     def handle_joy(self, msg):
         self.update_arm(msg)
 
@@ -181,10 +201,20 @@ class Controller(Node):
         pass
 
 
-def main(args=None):
+def real_controller(args=None):
     rclpy.init(args=args)
 
     arm_controller = Controller()
+
+    rclpy.spin(arm_controller)
+
+    arm_controller.destroy_node()
+    rclpy.shutdown()
+
+def virtual_controller(args=None):
+    rclpy.init(args=args)
+
+    arm_controller = Controller(virtual = True)
 
     rclpy.spin(arm_controller)
 
