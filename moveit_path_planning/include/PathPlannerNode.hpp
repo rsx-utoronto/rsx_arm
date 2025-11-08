@@ -5,10 +5,12 @@
 #include "std_msgs/msg/string.hpp"
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <moveit_msgs/msg/orientation_constraint.hpp>
+#include "arm_msgs/srv/plan_motion.hpp"
+#include "arm_msgs/action/plan_and_execute.hpp"
 
 #define NUM_JOINTS 6
 
-enum ArmState {
+enum class ArmState {
     IDLE = 0,
     MANUAL = 1,
     IK = 2,
@@ -37,6 +39,7 @@ private:
     
     // move group 
     moveit::planning_interface::MoveGroupInterface* _move_group;
+    rclcpp::Client<arm_msgs::srv::PlanMotion>::SharedPtr _client;
 public:
     PathPlannerNode(moveit::planning_interface::MoveGroupInterface* move_group, const std::string& target_pose_topic, const std::string& target_joints_topic);
 };

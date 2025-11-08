@@ -27,6 +27,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ArmInputs.msg"
- )
+  "srv/PlanMotion.srv"
+  "action/PlanAndExecute.action"
+)
 
 ament_package()
