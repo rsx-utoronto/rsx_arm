@@ -50,3 +50,7 @@ arm_env/
 # === Ignore requirements lock files if generated ===
 poetry.lock
 Pipfile.lock
+
+# === Test/validation scripts (kept locally, not for release) ===
+moveit_path_planning/scripts/test_planning_scenarios.py
+moveit_path_planning/TESTING.md
