@@ -12,7 +12,6 @@ import math
 
 class SafetyChecker():
     def __init__(self):
-        super().__init__("Safety")
 
         # TODO: max change in theta at a given step, need to test and put in a config file
         self.max_d_theta = [10, 10, 10, 10, 120, 120, 80000]
@@ -41,12 +40,12 @@ class SafetyChecker():
             curr_safety_status = self.current_check(self.goal_pos)
 
         else:
-            return
+            return goal_pos, [0] * len(self.goal_pos)
         safety_status = [0] * len(self.goal_pos)
         for i in range(len(self.goal_pos)):
             # TODO: the typing here is hardcoded, it shouldn't be 
             safety_status[i] = int(pos_safety_status[i]) + int(curr_safety_status[i])
-
+        print(goal_pos, safety_status)
         return goal_pos, safety_status
 
     def constrain_safe_pos(self, pos: list = None) -> None:

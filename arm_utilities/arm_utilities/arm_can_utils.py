@@ -2,7 +2,7 @@
 
 import can
 import struct
-from arm_enum_utils import CANAPI
+from arm_utilities.arm_enum_utils import CANAPI
 
 ########## GLOBAL VARIABLES ##########
 
@@ -42,7 +42,7 @@ def generate_can_id(dev_id: int, api: int,
     return can_id
 
 
-def pos_to_sparkdata(bus, f: float) -> list:
+def pos_to_sparkdata(f: float) -> list:
     """
     float -> list(int)
 
@@ -101,7 +101,7 @@ def sparkfixed_to_float(fixed: int, frac: int = 5) -> float:
     return f
 
 
-def initialize_bus(bus, channel='can0', interface='socketcan'):
+def initialize_bus(channel='can0', interface='socketcan'):
     """
     (str, str) -> (None)
 
@@ -122,7 +122,7 @@ def initialize_bus(bus, channel='can0', interface='socketcan'):
     # BUS = can.ThreadSafeBus(channel= channel, interface= interface, receive_own_messages= False)
     bus = can.Bus(channel=channel, interface=interface,
                   receive_own_messages=False)
-    print('BUS initialzed')
+    print('BUS initialized')
     return bus
 
 
