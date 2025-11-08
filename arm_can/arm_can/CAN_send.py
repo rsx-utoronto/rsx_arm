@@ -74,7 +74,7 @@ class CAN_Send(Node):
         # # Add correction for gripper (due to mechanical design)
         # self.SAFE_GOAL_POS[6] -= (self.SAFE_GOAL_POS[4] - self.CURR_POS[4])
         # print(self.SAFE_GOAL_POS[6])
-        self.triggered = 1
+        #self.triggered = 1
 
     def send_msgs_callback(self):
         """
@@ -102,7 +102,7 @@ class CAN_Send(Node):
                 send_can_message(can_id=id, data=spark_input[i - 1], ext=False)
             else:
                 break
-        self.triggered = 0
+        #self.triggered = 0
         
 
 def main():
