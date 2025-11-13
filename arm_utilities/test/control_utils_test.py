@@ -61,15 +61,15 @@ def test_map_inputs_to_manual():
     arm_inputs.r_trigger = 1.0
     arm_inputs.l_trigger = 0.0
 
-    speed_limits = [1, 1, 1, 1, 1, 1]
-    current_joints = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    speed_limits = [1, 1, 1, 1, 1, 1, 1]
+    current_joints = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     manual_cmds = map_inputs_to_manual(
         arm_inputs, speed_limits, current_joints)
     manual_cmds = manual_cmds.data  # convert dict_values to list
     assert manual_cmds[0] == 1.0    # base_rotation
     assert manual_cmds[1] == 0.5    # shoulder
-    assert manual_cmds[4] == 1      # wrist_roll (R1 pressed)
+    assert manual_cmds[4] == 1      # elbow_roll (R1 pressed)
 
 
 # === Tests for map_inputs_to_ik ===
