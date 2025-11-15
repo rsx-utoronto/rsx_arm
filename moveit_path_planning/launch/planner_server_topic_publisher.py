@@ -5,6 +5,8 @@
     which can then be read by safety before being published to the arm.
 """
 
+import os
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -12,7 +14,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from moveit_configs_utils import MoveItConfigsBuilder
-
+from ament_index_python.packages import get_package_share_directory
 
 def launch_setup(context, *args, **kwargs):
     # Build MoveIt configuration
@@ -54,6 +56,23 @@ def launch_setup(context, *args, **kwargs):
         ],
     )
 
+    # node that initializes controllers
+    ros2_controllers_path = os.path.join(
+        get_package_share_directory("arm_moveit_config"),
+        "config",
+        "ros2_controllers.yaml",
+    )
+
+    ros2_control_node = Node(
+        package="controller_manager",
+        executable="ros2_control_node",
+        parameters=[ros2_controllers_path],
+        remappings=[
+            ("/controller_manager/robot_description", "/robot_description"),
+        ],
+        output="both",
+    )
+
     # Node that makes requests to server to send back to topics
     path_planner_publisher_node = Node(
         package="moveit_path_planning",
@@ -79,12 +98,42 @@ def launch_setup(context, *args, **kwargs):
         parameters=[moveit_config.robot_description],
     )
 
+    # more stuff from arm_moveit_launch.py (reference this!)
+    joint_state_broadcaster_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "joint_state_broadcaster",
+            "--controller-manager",
+            "/controller_manager",
+        ],
+    )
+
+    arm_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["rover_arm_controller", "-c", "/controller_manager"],
+    )
+
+    ee_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["end_effector_controller", "-c", "/controller_manager"],
+    )
+    """
+        We may need to call "execute" on planning to get the joint states to update!!!    
+    """
 
     return [planner_server_node, 
             move_group_launch, 
             path_planner_publisher_node, 
             static_tf_node,
-            robot_state_publisher]
+            robot_state_publisher,
+            ros2_control_node,
+            joint_state_broadcaster_spawner,
+            arm_controller_spawner,
+            ee_controller_spawner,
+            ]
 
 def generate_launch_description():
     declared_arguments = []

@@ -8,7 +8,7 @@ import numpy as np
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
 from arm_msgs.msg import ArmInputs
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Point, Quaternion
 
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
@@ -52,6 +52,9 @@ class Controller(Node):
         self.speed_limits = [0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 5]
 
         self.current_pose = Pose()
+        self.current_pose.position = Point(x=0.0, y=0.5, z=0.7)
+        self.current_pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+        
         self.current_joints = [0.0] * self.n_joints
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
@@ -181,6 +184,7 @@ class Controller(Node):
                             self.homing_thread.join()
 
                         target_pose = map_inputs_to_ik(inputs, self.current_pose)
+                        #self.current_pose = target_pose
                         self.target_pose_pub.publish(target_pose)
                     else:
                         if inputs.x and inputs.o: 
@@ -299,6 +303,8 @@ class Controller(Node):
         - Might have to ping MoveIt node with joints
         and handle on C++ before publishing pose back.
         """
+
+
         pass
 
     def shutdown_node(self):
