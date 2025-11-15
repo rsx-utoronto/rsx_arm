@@ -1,4 +1,5 @@
 from rclpy.node import Node
+import rclpy
 
 MESSAGE_WAIT = 0.2
 
@@ -21,3 +22,9 @@ class test_node(Node):
 
     def listener_callback(self, msg, topic):
         self.subscriber_data[topic] = msg.data
+
+
+def spin_n(n, node):
+    for i in range(n):
+        rclpy.spin_once(node, timeout_sec = 1)
+    
