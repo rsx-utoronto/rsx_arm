@@ -75,14 +75,6 @@ class Controller(Node):
         # Joynode subscriber
         self.joy_sub = self.create_subscription(Joy, "/joy", self.handle_joy, 10)
 
-        # CAN feedback subscriber
-        self.feedback_sub = self.create_subscription(
-            Float32MultiArray, "arm_curr_pos", self.update_internal_joint_state, 10)
-
-        # Safety subscribers
-        self.joint_safety_sub = self.create_subscription(
-            UInt8MultiArray, "joint_safety_state", self.process_safety, 10)
-
         # Nonblocking keyboard listener
         self.keyboard_listener = keyboard.Listener(
             on_press=self.on_press,
@@ -90,21 +82,21 @@ class Controller(Node):
         )
         self.keyboard_listener.start()
 
-        self.at_limit = [False] * 6
+        self.at_limit = [False] * self.n_joints
       
         # Homing state/params
         """joint index is numbered 0 to 5 in order of base rotation, shoulder, elbow, wrist_pitch, wrist_roll, gripper"""
-        self.homed = [False] * 6
+        self.homed = [False] * self.n_joints
         self.homing = HomingStatus.IDLE
         self.homing_pid = {"P": 0.2, "I": 0.1, "D": 0}
         self.homing_threshold = 1e-3
 
-        self.has_reached_endpoint = [False] * 6
-        self.relative_endpoint_pos = [0.0] * 6
+        self.has_reached_endpoint = [False] * self.n_joints
+        self.relative_endpoint_pos = [0.0] * self.n_joints
 
         # Tunables for base homing motion
-        self.rotation_step = [1.0] * 6
-        self.rotation_span = [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+        # TODO: need real values for these
+        self.rotation_step = [0.2] * self.n_joints
 
         # Threading controls
         self.homing_thread = threading.Thread(target=self.home_arm, daemon=True)
@@ -137,7 +129,7 @@ class Controller(Node):
             threading.Event().wait(1/self.can_rate)
     def send_can_callback(self):
         while self.shutdown == False:
-            self.can_con.send_message(self.safe_target_joints)
+            self.can_con.send_target_message(self.safe_target_joints)
             threading.Event().wait(1/self.can_rate)
 
     def update_arm(self, update):
@@ -177,8 +169,7 @@ class Controller(Node):
                     # self.logger().info("Currently in IDLE: No control change")
                     pass
                 case ArmState.MANUAL:
-                    target_joints = map_inputs_to_manual(inputs, self.speed_limits, self.target_joints)
-                    self.target_joints = target_joints.data
+                    self.target_joints = map_inputs_to_manual(inputs, self.speed_limits, self.target_joints)
                     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(self.target_joints, self.current_joints)
                     msg = Float32MultiArray()
                     msg.data = self.safe_target_joints
@@ -192,7 +183,7 @@ class Controller(Node):
                         target_pose = map_inputs_to_ik(inputs, self.current_pose)
                         self.target_pose_pub.publish(target_pose)
                     else:
-                        if inputs.x and inputs.o:
+                        if inputs.x and inputs.o: 
                             self.get_logger().info("Homing arm, press X to cancel")
                             self.homing = True
                             self.homing_thread.start()
@@ -213,39 +204,56 @@ class Controller(Node):
         zero_inputs = ArmInputs()
         self.update_arm(zero_inputs)
 
-    def switch_homing_stage(self, joint_index, msg):
-        if msg.data == 1:
-            self.has_reached_endpoint[joint_index] = True
-    
-
     def home_arm(self, joint_indices = [0, 1, 2, 3, 4, 5, 6],  hz: float = 50.0):
         #endpoint refers to positive-direction endpoint
         """joint index is numbered 0 to 6 in order of base rotation, shoulder, elbow, elbow roll, wrist_pitch, wrist_roll, gripper"""
         period = 1.0 / hz
         target_joints = copy.deepcopy(self.current_joints)
         joint_offsets = [0.0] * self.n_joints
+        base_joint_status = 0
+        wrist_roll_status = 0
         while self.homing == HomingStatus.ACTIVE and self.shutdown == False:
-            for joint in joint_indices():
+            for joint_index in joint_indices():
                 # make sure current_joints isn't modified by CAN thread while updating step
                 with self.homing_lock():
-                    if self.homed[joint] == False:
+                    if self.homed[joint_index] == False:
                         if self.at_limit:
-                            self.has_reached_endpoint = True
+                            
 
                             # relative endpoint posiiton measures the distance between the initial joint position and the relative position of the limit switch
                             self.relative_endpoint_pos[joint_index] = self.current_joints[joint_index]
 
                             # set temporary joint offset (relative endpoint position is where the arm thinks it is and half the rotation span is where it actually is)
                             # wait until homing for this joint is done to assign the actual joint offset
-                            joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - self.rotation_span[joint_index]/2
-
-                        if not self.has_reached_endpoint[joint]:
+                            if joint == 0 or joint == 6:
+                                if joint == 0:
+                                    base_joint_status += 1
+                                elif joint == 6:
+                                    wrist_roll_status += 1
+                                pass
+                            else:
+                                joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2
+                                self.has_reached_endpoint = True
+                        if not self.has_reached_endpoint[joint_index]:
                             # move towards forward limit switch
-                            target_joints[joint] += self.rotation_step[joint]
+                            if joint == 0 and base_joint_status == 1 or joint == 6 and wrist_roll_status == 1:
+                                # TODO: draw a diagram for this calculation and include it in documentation
+                                predicted_second_limit = self.relative_endpoint_pos + (self.safety_checker.joint_limits[joint_index][1]+(360+self.safety_checker.joint_limits[joint_index][0])) + 10
+                                target_joints[joint_index] = predicted_second_limit
+                                if abs(self.current_joints[joint_index] - target_joints[joint_index]) < 1e-3:
+                                    self.homed[joint_index] = True
+                                    joint_offsets[joint_index] = self.current_joints[joint_index] - (self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2
+                                    
+                            elif joint == 0 and base_joint_status == 2 or joint == 6 and wrist_roll_status == 2:
+                                target_joints[joint_index] = current_joints[joint_index]
+                                self.relative_endpoint_pos[joint_index] = self.current_joints[joint_index]
+                                self.has_reached_endpoint[joint_index] = True
+                            else:
+                                target_joints[joint_index] += self.rotation_step[joint_index]
 
                         else:
                             # calculate error between target zero position and current absolute position
-                            error = (self.relative_endpoint_pos[joint_index] - self.current_joints[joint_index]) - self.rotation_span[joint_index]/2
+                            error = (self.relative_endpoint_pos[joint_index] - self.current_joints[joint_index]) - (self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2
                             if abs(error) < self.homing_threshold:
                                 self.homed[joint_index] = True
                             else:
@@ -256,20 +264,19 @@ class Controller(Node):
                     msg.data = self.safe_target_joints
                     self.safe_target_joints_pub.publish(msg)
 
-                if self.homed[index] == True for index in joint_indices():
+                if all(homed == True for homed in self.homed):
                     self.homing = HomingStatus.COMPLETE
 
                 threading.Event().wait(period)
-    
+        self.joint_offsets = joint_offsets
     def start_homing(self):
-        """Start the homing loop in a background thread (idempotent)."""
-        with self.homing_lock:
-            if self.homing_thread and self.homing_thread.is_alive():
-                return  # already running
-            self.get_logger().info("Homing arm... press X to cancel.")
-            self.homing = HomingStatus.ACTIVE
-            self.homing_stop.clear()
-            self.homing_thread.start()
+
+        if self.homing_thread and self.homing_thread.is_alive():
+            return  # already running
+        self.get_logger().info("Homing arm... press X to cancel.")
+        self.homing = HomingStatus.ACTIVE
+        self.homing_stop.clear()
+        self.homing_thread.start()
 
     def cancel_homing(self):
         """Request to cancel homing loop."""
@@ -298,8 +305,9 @@ class Controller(Node):
         self.get_logger().info("Shutting down node")
         self.shutdown = True
         for thread in self.threads:
-            thread.join()
-        
+            if thread.is_alive():
+                thread.join()
+            
 
   
 def real_controller(args=None):

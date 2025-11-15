@@ -66,7 +66,6 @@ def test_map_inputs_to_manual():
 
     manual_cmds = map_inputs_to_manual(
         arm_inputs, speed_limits, current_joints)
-    manual_cmds = manual_cmds.data  # convert dict_values to list
     assert manual_cmds[0] == 1.0    # base_rotation
     assert manual_cmds[1] == 0.5    # shoulder
     assert manual_cmds[4] == 1      # elbow_roll (R1 pressed)

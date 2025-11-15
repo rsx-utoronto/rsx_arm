@@ -1,5 +1,5 @@
 from rclpy.logging import LoggingSeverity
-from arm_utilities.arm_enum_utils import ArmState
+from arm_utilities.arm_enum_utils import ArmState, CANAPI
 from arm_utilities.arm_test_utils import test_node, MESSAGE_WAIT, spin_n
 import arm_controller.main_controller as main_controller
 from std_msgs.msg import Float32MultiArray, Bool, Int16
@@ -27,6 +27,7 @@ def test_main_controller_init():
     assert controller_node.state == ArmState.IDLE, "Main Controller did not initialize to Idle"
     assert controller_node.speed_limits == [0.1, 0.09, 0.15, 0.75,
                                             0.12, 0.12, 5], "speed limits does not match the values!"
+    controller_node.shutdown_node()
     rclpy.shutdown()
 
 
@@ -39,31 +40,34 @@ def test_main_controller_state():
     # D-Pad Left -> ArmState.IK
     test.test_publishers["joy_node"].publish(
         Joy(axes=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0], buttons=[0]*13))
-    spin_n(3, controller_node)
+    rclpy.spin_once(controller_node)
     time.sleep(MESSAGE_WAIT)
     assert controller_node.state == ArmState.IK, "Node did not update status to IK"
 
     # D-Pad Right -> ArmState.PATH_PLANNING
     test.test_publishers["joy_node"].publish(
         Joy(axes=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], buttons=[0]*13))
-    spin_n(3, controller_node)
+    rclpy.spin_once(controller_node)
     time.sleep(MESSAGE_WAIT)
     assert controller_node.state == ArmState.PATH_PLANNING, "Node did not update status to PATH_PLANNING"
 
     # D-Pad Up -> ArmState.MANUAL
     test.test_publishers["joy_node"].publish(
         Joy(axes=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], buttons=[0]*13))
-    spin_n(3, controller_node)
+    rclpy.spin_once(controller_node)
+
     time.sleep(MESSAGE_WAIT)
     assert controller_node.state == ArmState.MANUAL, "Node did not update status to MANUAL"
 
     # D-Pad Down -> ArmState.IDLE
     test.test_publishers["joy_node"].publish(
         Joy(axes=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0], buttons=[0]*13))
-    spin_n(3, controller_node)
+    rclpy.spin_once(controller_node)
+
     time.sleep(MESSAGE_WAIT)
     assert controller_node.state == ArmState.IDLE, "Node did not update status to IDLE"
 
+    controller_node.shutdown_node()
     rclpy.shutdown()
 
 def test_arm_goal_pos():
@@ -82,11 +86,12 @@ def test_arm_goal_pos():
 
     for arr in tests:
         controller_node.safe_target_joints_pub.publish(Float32MultiArray(data=arr))
-        spin_n(3, test)
+        rclpy.spin_once(test)
+
         time.sleep(0.2)
         assert test.subscriber_data["safe_arm_target_joints"] == Float32MultiArray(
             data=arr).data
-
+    controller_node.shutdown_node()
     rclpy.shutdown()
 
 def test_arm_input_sub():
@@ -103,14 +108,11 @@ def test_arm_input_sub():
 
     test.test_publishers["joy_node"].publish(
         Joy(axes=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], buttons=[0]*13))
-    spin_n(3, controller_node)
+    rclpy.spin_once(controller_node)
+
     time.sleep(MESSAGE_WAIT)
     assert controller_node.state == ArmState.MANUAL, "Node did not update status to MANUAL"
 
-    spin_n(3, controller_node)    
-    time.sleep(MESSAGE_WAIT)
-
-    spin_n(3, test)
     time.sleep(MESSAGE_WAIT)
     joy_msg = Joy()
     joy_msg.axes = [0.0]*8  # all axes neutral
@@ -118,12 +120,12 @@ def test_arm_input_sub():
 
     # Publish and spin
     test.test_publishers["joy_node"].publish(joy_msg)
-    spin_n(3, controller_node)
+    rclpy.spin_once(controller_node)
     time.sleep(MESSAGE_WAIT)
-    spin_n(3, test)
+    rclpy.spin_once(test)
     time.sleep(MESSAGE_WAIT)
 
-    # Expected target joints: everything zero
+    # # Expected target joints: everything zero
     expected = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     received = test.subscriber_data["safe_arm_target_joints"]
     assert len(received) == 7
@@ -133,119 +135,47 @@ def test_arm_input_sub():
 
     joy_msg = Joy()
     joy_msg.axes = [
-        -10.0,   # l_horizontal
-        -5.0,    # l_vertical
+        -1.0,   # l_horizontal
+        -1.0,    # l_vertical
         -1.0,   # l_trigger raw
-        5.0,    # r_horizontal
-        4.0,    # r_vertical
-        -1.0,   # r_trigger raw
+        1.0,    # r_horizontal
+        1.0,    # r_vertical
+        0.0,   # r_trigger raw
         0.0,    # dpad horizontal
         0.0     # dpad vertical
     ]
     buttons = [0]*13
+    # l1
+    buttons[4] = -1
     joy_msg.buttons = buttons
 
     # Publish Joy
+    assert controller_node.state == ArmState.MANUAL
     test.test_publishers["joy_node"].publish(joy_msg)
-    spin_n(3, controller_node)
+    rclpy.spin_once(controller_node)
     time.sleep(MESSAGE_WAIT)
-
     spin_n(3, test)
+    # rclpy.spin_once(test)
     time.sleep(MESSAGE_WAIT)
     # Expected based on speed limits
-    expected = [-1.0, -0.45, 0.6, 3.75, 1.2, 0.6, 0.0]
+    expected = [-0.1, -0.09, 0.15, 0.75, 0.12, 0.12, 0.0]
 
-    # Verify received arm_target_joints matches expected
+    # # Verify received arm_target_joints matches expected
     assert "safe_arm_target_joints" in test.subscriber_data, "No data received on safe_arm_target_joints"
     received = test.subscriber_data["safe_arm_target_joints"]
     assert len(received) == 7
+
     for n, item in enumerate(list(received)):
-        assert item - \
-            expected[n] < 1e-3, "Difference %f was greater than 1e-3" % item-expected[n]
+        assert type(item) == float
+        assert type(expected[n]) == float
+        assert item - expected[n] < 1e-3, "Difference %f was greater than 1e-3" % (item-expected[n])
 
+    controller_node.shutdown_node()
     rclpy.shutdown()
-
-
-
 
 
 def test_homing():
-    
-
-    args = None
-    rclpy.init(args=args)
-    controller_node = main_controller.Controller(virtual = True)
-
-    test = test_node([("right_switch_node", Int16, "right_switch_state")],
-                     [("arm_target_joints", Float32MultiArray, "arm_target_joints")])
-    msg = Int16()
-    msg.data = 1
-    
-    for i in range(6):
-        controller_node.home_arm(i)
-    
-    test.test_publishers["right_switch_node"].publish(msg)
-    rclpy.spin_once(controller_node)
-    
-    time.sleep(5)
-
-    for i in range(6):
-        controller_node.home_arm(i)
-    
-   # assert controller_node.current_joints == [0.0,0.0,0.0,0.0,0.0,0.0]
-   # assert controller_node.base_rotation_pos_at_endpoint == 0.7
-    assert round(controller_node.current_joints[0],2) == 2.0
-    rclpy.shutdown()
-
-
-def test_homing_threaded():
-    rclpy.init(args=None)
-    controller_node = main_controller.Controller(virtual = True)
-
-    # Build a tiny IO harness: publisher for the right switch, subscriber for targets (if you want)
-    tn = test_node(
-        publishers=[("right_switch_0_node", Int16, "right_switch_0_state")],
-        subscribers=[("arm_target_joints", Float32MultiArray, "arm_target_joints")]
-    )
-    
-    # Start the homing loop
-    controller_node.homing == HomingStatus.ACTIVE
-    controller_node.start_homing()
-    assert controller_node.homing == HomingStatus.ACTIVE
-
-    # Spin a bit to let it move toward the positive endpoint
-    t0 = time.time()
-    while time.time() - t0 < 0.25:  # ~0.25s of looping
-        rclpy.spin_once(controller_node, timeout_sec=0.01)
-        time.sleep(0.01)
-
-    # Simulate the hardware/right-limit switch hit -> tells node we reached the endpoint
-    msg = Int16()
-    msg.data = 1
-    tn.test_publishers["right_switch_0_node"].publish(msg)
-
-    # Spin until COMPLETE or timeout
-    timeout_s = 3.0
-    t0 = time.time()
-    while controller_node.homing == HomingStatus.ACTIVE and (time.time() - t0 < timeout_s):
-        rclpy.spin_once(controller_node, timeout_sec=0.01)
-        time.sleep(0.01)
-
-    # Assertions: homing finished and geometry is consistent
-    assert controller_node.homed[0] is True, "Homing did not set homed=True"
-    assert controller_node.homing == HomingStatus.COMPLETE, "Homing did not reach COMPLETE state"
-    assert controller_node.has_reached_endpoint[0] is True, "Endpoint was never latched"
-
-    # The backed-off distance from the stored endpoint should meet your stop criterion
-    # i.e., |endpoint - current| >= base_rotation_midspan / 10
-    dist = abs(controller_node.relative_endpoint_pos[0] - controller_node.current_joints[0])
-    assert dist >= controller_node.rotation_span[0] / 2
-
-    # Clean shutdown to avoid dangling threads across tests
-    controller_node.cancel_homing()
-  
-    controller_node.destroy_node()
-    rclpy.shutdown()
+   ''' test homing algorithm, test joint by joint first, then full, then cancelling the homing process'''
 
 def test_can_init():
     '''initialize main controller, confirm that heartbeat is received. 

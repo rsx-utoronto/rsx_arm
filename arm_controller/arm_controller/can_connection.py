@@ -91,7 +91,7 @@ class CAN_connection():
                     
         return curr_angle, lim_switch, motor_curr
 
-    def send_message(self, goal_position):
+    def send_target_message(self, goal_position):
         """
         Timer callback function for sending CAN messages at regular intervals
         """
@@ -113,3 +113,9 @@ class CAN_connection():
 
             else:
                 break
+    def send_message(self, message):
+        try:
+            self.bus.send(message)
+        except:
+            print("Error encountered while sending CAN message!")
+            pass

@@ -91,9 +91,8 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
     for n, key in enumerate(manual_commands.keys()):
         target_joints[n] = manual_commands[key] * \
             speed_limits[n] + current_joints[n]
-    target_joints_msg = Float32MultiArray()
-    target_joints_msg.data = target_joints
-    return target_joints_msg
+
+    return target_joints
 
 
 def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
