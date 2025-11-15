@@ -57,8 +57,8 @@ def launch_setup(context, *args, **kwargs):
     # Node that makes requests to server to send back to topics
     path_planner_publisher_node = Node(
         package="moveit_path_planning",
-        executable="path_planner_node",
-        name="path_planner_node",
+        executable="path_planning",
+        name="path_planning",
         output="screen",
     )
 
@@ -71,7 +71,7 @@ def launch_setup(context, *args, **kwargs):
         arguments=["0.0", "0.0", "0.0", "0.0", "0.0", "0.0", "world", "base_link"],
     )
 
-    return [planner_server_node]
+    return [planner_server_node, move_group_launch, path_planner_publisher_node, static_tf_node]
 
 def generate_launch_description():
     declared_arguments = []
