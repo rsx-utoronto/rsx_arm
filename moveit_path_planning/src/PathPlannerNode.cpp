@@ -16,39 +16,39 @@ _move_group(move_group)
   
     _joint_pose_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_target_joints", 1);
 
-    // std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("moveit_service_client");
     _client = this->create_client<arm_msgs::srv::PlanMotion>("/planner_server/plan_motion");
-
-
 }
 
 void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const{
     // get trajectory plan based on target pos and publish joint targets 
-    // _curr_state =ArmState::PATH_PLANNING;   
-    // switch(_curr_state){
-    //     case ArmState::IK: {
-    //         // incremental update
-    //         auto final_pose_target = std::make_shared<geometry_msgs::msg::Pose>();
-    //         final_pose_target->orientation.x = _curr_pose->orientation.x + target_pose_msg->orientation.x;
-    //         final_pose_target->orientation.y = _curr_pose->orientation.y + target_pose_msg->orientation.y;
-    //         final_pose_target->orientation.z = _curr_pose->orientation.z + target_pose_msg->orientation.z;
-    //         final_pose_target->orientation.w = _curr_pose->orientation.w + target_pose_msg->orientation.w;
-
-    //         final_pose_target->position.x = _curr_pose->position.x + target_pose_msg->position.x;
-    //         final_pose_target->position.y = _curr_pose->position.y + target_pose_msg->position.y;
-    //         final_pose_target->position.z = _curr_pose->position.z + target_pose_msg->position.z;
-
-    //         calculatePath(final_pose_target);
-    //     }
-    //     break;
-    //     case ArmState::PATH_PLANNING: {
-    //         calculatePath(target_pose_msg);
-    //     }
-    //     break;
-    // }
-    calculatePath(target_pose_msg);
-
     
+    switch(_curr_state){
+        case ArmState::IK: {
+            // incremental update
+            auto final_pose_target = std::make_shared<geometry_msgs::msg::Pose>();
+            final_pose_target->orientation.x = _curr_pose->orientation.x + target_pose_msg->orientation.x;
+            final_pose_target->orientation.y = _curr_pose->orientation.y + target_pose_msg->orientation.y;
+            final_pose_target->orientation.z = _curr_pose->orientation.z + target_pose_msg->orientation.z;
+            final_pose_target->orientation.w = _curr_pose->orientation.w + target_pose_msg->orientation.w;
+
+            final_pose_target->position.x = _curr_pose->position.x + target_pose_msg->position.x;
+            final_pose_target->position.y = _curr_pose->position.y + target_pose_msg->position.y;
+            final_pose_target->position.z = _curr_pose->position.z + target_pose_msg->position.z;
+
+            // check if still required, utils map_input_to_ik seems to handle it
+            calculatePath(final_pose_target);
+        }
+        break;
+        case ArmState::PATH_PLANNING: {
+            calculatePath(target_pose_msg);
+        }
+        break;
+        default:
+            RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Planning not configured for state");
+        break;
+    }
+
+    calculatePath(target_pose_msg);
 }
 
 void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const {
@@ -62,23 +62,33 @@ void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr ta
     // }();
 
     auto request = std::make_shared<arm_msgs::srv::PlanMotion::Request>();
-    request->target_pose.pose.orientation.x  = 0.4;
+    request->target_pose.pose = *target_pose_msg;
+    request->target_pose.header.frame_id = "base_link";
+    request->target_type = 1;
+    request->planner_id = "RRTConnectkConfigDefault";
 
-    while (!_client->wait_for_service(5s)) {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "can't connect");
+    RCLCPP_INFO(this->get_logger(),
+            "pos = (%.3f, %.3f, %.3f)",
+            request->target_pose.pose.position.x,
+            request->target_pose.pose.position.y,
+            request->target_pose.pose.position.z);
 
-    if (!rclcpp::ok()) {
-      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
-    //   return 0;
-    }
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
-  }
+    using ServiceResponseFuture =
+        rclcpp::Client<arm_msgs::srv::PlanMotion>::SharedFuture;
 
-    auto result = _client->async_send_request(request);
-    auto trajectory = result.get()->trajectory;
-    std::cout << result.get()->message << std::endl;
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), result.get()->message.c_str());
-    publishPath(trajectory);
+    auto callback = [this](ServiceResponseFuture future) {
+        auto response = future.get();
+        RCLCPP_INFO(this->get_logger(), "Service response: %s", response->message.c_str());
+
+        if(response->success){
+            publishPath(response->trajectory);
+            RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Plan published");
+        } else {
+            RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Planning failed");
+        }
+    };
+
+    _client->async_send_request(request, callback);    
 }
 
 void PathPlannerNode::updateCurrPoseCallback(geometry_msgs::msg::Pose::SharedPtr curr_pose_msg) {

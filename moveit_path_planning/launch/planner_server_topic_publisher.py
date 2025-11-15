@@ -70,8 +70,21 @@ def launch_setup(context, *args, **kwargs):
         output="log",
         arguments=["0.0", "0.0", "0.0", "0.0", "0.0", "0.0", "world", "base_link"],
     )
+    
+    robot_state_publisher = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="robot_state_publisher",
+        output="both",
+        parameters=[moveit_config.robot_description],
+    )
 
-    return [planner_server_node, move_group_launch, path_planner_publisher_node, static_tf_node]
+
+    return [planner_server_node, 
+            move_group_launch, 
+            path_planner_publisher_node, 
+            static_tf_node,
+            robot_state_publisher]
 
 def generate_launch_description():
     declared_arguments = []

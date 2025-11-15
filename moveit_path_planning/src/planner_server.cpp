@@ -140,6 +140,7 @@ void PlannerServer::loadParameters()
   default_allow_replanning_ = this->get_parameter("default_allow_replanning").as_bool();
   use_time_optimal_parameterization_ = 
     this->get_parameter("use_time_optimal_parameterization").as_bool();
+
 }
 
 void PlannerServer::handlePlanMotion(
