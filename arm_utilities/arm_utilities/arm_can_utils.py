@@ -158,13 +158,13 @@ def send_can_message(bus, can_id: int, data=None, ext=True, err=False, rtr=False
     )
 
     # Sending the created message
-    try:
-        bus.send(msg)
-        # print(f"Message sent on {BUS.channel_info}")
+    # try:
+    bus.send(msg)
+    # print(f"Message sent on {bus.channel_info}")
 
-    except can.CanError:
-        # print("Message NOT sent")
-        pass
+    # except can.CanError:
+    #     print("Message NOT sent", can.CanError)
+    #     pass
     return
 
 
@@ -184,8 +184,7 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
 
     if api:
         # API: Status Message 1 - Gives us information on limit switches
-        # TODO: needs to handle both forward and backward limit switching
-        if api == CMD_API_STAT0:
+        if api == CANAPI.CMD_API_STAT0:
             # 132 for forward and 68 for reverse
             limitswitch_pressed = data[3] & 0xC0
 
@@ -199,7 +198,7 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
 
         # API: Status Message 1 - Gives us motor velocity, motor voltage and
         # motor current every 20ms. We only need current
-        elif api == CMD_API_STAT1:
+        elif api == CANAPI.CMD_API_STAT1:
 
             # Getting the motor current value stored as hexadecimals
             currVal_fixed = (data[-1] << 4) | ((data[-2] & 0xF0) >> 4)
@@ -211,7 +210,7 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
             return currVal_float
 
         # API: Status Message 2 - Gives us current position and comes every 20ms
-        elif api == CMD_API_STAT2:
+        elif api == CANAPI.CMD_API_STAT2:
 
             # Checking if all the bits are 0 or not, if yes return 0
             if not (data[3] or data[2] or data[1] or data[0]):
