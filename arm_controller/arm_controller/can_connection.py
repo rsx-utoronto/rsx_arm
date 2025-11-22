@@ -2,7 +2,7 @@ from arm_utilities.arm_can_utils import *
 from arm_utilities.arm_enum_utils import CANAPI
 
 class CAN_connection():
-    def __init__(self, channel = "cano0", interface='socketcan', receive_own_messages = False, num_joints = 7, send_rate = 1000, read_rate = 1000):
+    def __init__(self, channel = "can0", interface='socketcan', receive_own_messages = False, num_joints = 7, send_rate = 1000, read_rate = 1000):
         self.bus = initialize_bus(channel, interface, receive_own_messages)
         hb = can.Message(
         arbitration_id=generate_can_id(
@@ -62,14 +62,14 @@ class CAN_connection():
             if api == CANAPI.CMD_API_STAT0.value:
 
                 # Update the LIMIT_SWITCH data
-                self.LIMIT_SWITCH[index] = read_can_message(
+                lim_switch[index] = read_can_message(
                     msg.data, CANAPI.CMD_API_STAT0)
 
             # API for reading motor current
             elif api == CANAPI.CMD_API_STAT1.value:
 
                 # Update the MOTOR_CURR data
-                self.MOTOR_CURR[index] = read_can_message(
+                motor_curr[index] = read_can_message(
                     msg.data, CANAPI.CMD_API_STAT1.value)
 
             # API for reading current position of motor
@@ -81,8 +81,8 @@ class CAN_connection():
 
                 # Check if we updated wrist motors and apply the conversions
                 if index == 4 or index == 5:
-                    wrist1_angle = self.CURR_POS[4]
-                    wrist2_angle = self.CURR_POS[5]
+                    wrist1_angle = curr_angle[4]
+                    wrist2_angle = curr_angle[5]
                     curr_angle[4] = float(
                         (wrist1_angle + wrist2_angle) / (2 * WRIST_RATIO))
                     curr_angle[5] = float(

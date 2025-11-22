@@ -104,7 +104,7 @@ class Controller(Node):
         self.homing_lock = threading.Lock()
         self.shutdown = False # set true before shutdown to stop loops
 
-        self.can_rate = 1000
+        self.can_rate = 20
         self.can_send_thread = threading.Thread(target = self.send_can_callback, daemon=True)
         self.can_read_thread = threading.Thread(target = self.read_can_callback, daemon=True)
         self.can_send_thread.start()
