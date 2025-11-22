@@ -80,6 +80,7 @@ class Controller(Node):
             Joy, "/joy", self.handle_joy, 10)
         self.fk_sub = self.create_subscription(
             Pose, "arm_fk_pose", self.update_fk_pose, 10)
+        self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target, 10)
 
         # Nonblocking keyboard listener
         self.keyboard_listener = keyboard.Listener(
@@ -135,7 +136,7 @@ class Controller(Node):
                     self.at_limit[n] = False
 
             # add joint offsets for absolute joint values
-            self.current_joints = self.current_joints + self.joint_offsets
+            self.current_joints = (np.array(self.current_joints) + np.array(self.joint_offsets)).tolist()
             threading.Event().wait(1/self.can_rate)
 
     def send_can_callback(self):
@@ -209,6 +210,8 @@ class Controller(Node):
                                 "Arm not homed, cannot move in IK mode, press X and O simultaneously to home")
                             target_pose = self.current_pose
                             self.target_pose_pub.publish(target_pose)
+        self.update_internal_joint_state(self.current_joints)
+        print(self.current_joints)
         time.sleep(0.01)
 
     def handle_joy(self, msg):
@@ -311,17 +314,16 @@ class Controller(Node):
             self.homing_stop.set()
 
     def update_internal_joint_state(self, joints):
-        self.current_joints = joints.data
-        self.update_internal_pose_state(joints.data)
+        self.current_joints = joints
+        self.update_internal_pose_state(joints)
         # Function to update internal joint state from feedback
-        pass
+
 
     def update_internal_pose_state(self, joints):
-        angles = Float32MultiArray(data=joints)
+        angles = Float32MultiArray(data=joints[0:6])
         self.arm_curr_joints_pub.publish(angles)
         # Pose will be returned in a subscription, should update elsewhere
 
-        pass
 
     def shutdown_node(self):
         self.get_logger().info("Shutting down node")
@@ -332,6 +334,14 @@ class Controller(Node):
 
     def update_fk_pose(self, msg):
         self.current_pose = msg
+
+    def update_ik_target(self, msg):
+        self.target_joints = msg.data
+        self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
+                        self.target_joints, self.current_joints)
+        msg = Float32MultiArray()
+        msg.data = self.safe_target_joints[0:6]
+        self.safe_target_joints_pub.publish(msg)
 
 
 def real_controller(args=None):

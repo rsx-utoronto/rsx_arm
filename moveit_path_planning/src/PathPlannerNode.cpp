@@ -9,15 +9,13 @@ _move_group(move_group)
 {
     _target_pose_sub = this->create_subscription<geometry_msgs::msg::Pose>("arm_target_pose", 1,
                             std::bind(&PathPlannerNode::receiveTargetPoseCallback, this, std::placeholders::_1));
-    _curr_pose_sub = this->create_subscription<geometry_msgs::msg::Pose>("arm_curr_pose", 1,
-                            std::bind(&PathPlannerNode::updateCurrPoseCallback, this, std::placeholders::_1));
     _arm_state_sub = this->create_subscription<std_msgs::msg::String>("arm_state", 1,
                             std::bind(&PathPlannerNode::updateStateCallback, this, std::placeholders::_1));
     _joint_sub = this->create_subscription<std_msgs::msg::Float32MultiArray>("arm_curr_angles", 1,
                             std::bind(&PathPlannerNode::joint_callback, this, std::placeholders::_1));
 
 
-    _joint_pose_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_target_joints", 1);
+    _joint_pose_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_ik_target_joints", 1);
     _pose_pub = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 1);
 
     moveit::core::RobotModelConstPtr robot_model_;
@@ -59,9 +57,28 @@ void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::
     calculatePath(target_pose_msg);
 }
 
+#include <vector>
+#include <string>
+#include <sstream> // Required for std::stringstream
+
+
+
 void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
 {
- if (msg->data.size() != jmg->getVariableCount())
+    std::stringstream ss;
+    for (size_t i = 0; i < msg->data.size(); ++i) {
+        ss << msg->data[i];
+        if (i < msg->data.size() - 1) {
+            ss << ", "; // Add a comma and space as a delimiter
+        }
+    }
+
+    std::string result_string = ss.str();
+
+    // You can then use result_string, for example, for logging in rclcpp:
+    RCLCPP_INFO(this->get_logger(), "Vector as string: %s", result_string.c_str());
+    
+    if (msg->data.size() != jmg->getVariableCount())
     {
         RCLCPP_ERROR(this->get_logger(),
           "Received %zu joint values but model expects %zu",
@@ -91,12 +108,13 @@ void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::Sha
     pose_msg.orientation.w = q.w();
 
     _pose_pub->publish(pose_msg);
-
+    _curr_pose = std::make_shared<geometry_msgs::msg::Pose>(pose_msg);
     RCLCPP_INFO(this->get_logger(),
       "FK Published: [x=%.3f  y=%.3f  z=%.3f]",
       pose_msg.position.x,
       pose_msg.position.y,
       pose_msg.position.z);
+
 }
 
 
@@ -150,9 +168,9 @@ void PathPlannerNode::updateStateCallback(std_msgs::msg::String::SharedPtr curr_
     } else if(curr_state_msg->data == "MANUAL"){
         _curr_state = ArmState::MANUAL;
     } else if(curr_state_msg->data == "IK"){
-        _curr_state = ArmState::IK;
-    } else if(curr_state_msg->data== "PATH_PLANNING"){
         _curr_state = ArmState::PATH_PLANNING;
+    } else if(curr_state_msg->data== "PATH_PLANNING"){
+        _curr_state = ArmState::IK;
     } else if(curr_state_msg->data == "SCIENCE"){
         _curr_state = ArmState::SCIENCE;
     } 

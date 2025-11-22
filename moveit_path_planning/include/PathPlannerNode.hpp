@@ -21,7 +21,7 @@ enum class ArmState {
 class PathPlannerNode: public rclcpp::Node {
 private:
     ArmState _curr_state = ArmState::IDLE;
-    geometry_msgs::msg::Pose::SharedPtr _curr_pose;
+    std::shared_ptr<geometry_msgs::msg::Pose> _curr_pose;
 
     rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr _target_pose_sub;
     rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr _curr_pose_sub;
