@@ -20,11 +20,13 @@ class CameraNode(Node):
         self.camera_sub = self.create_subscription(Image, '/camera/camera/color/image_rect_raw', self.callback, 10)
         self.last_frame = np.ndarray
     def callback(self, data):
+        print("subscribing!")
         try:
             # convert Image to numpy array
             # "mono8": 8-bit grayscale image.
             # "bgr8": 8-bit color image with Blue-Green-Red channel order (common in OpenCV).
             # "rgb8": 8-bit color image with Red-Green-Blue channel order. 
+            print("received frame")
             cv_image = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
             self.last_frame = cv_image
 
