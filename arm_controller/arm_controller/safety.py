@@ -16,7 +16,8 @@ class SafetyChecker():
         # TODO: max change in theta at a given step, need to test and put in a config file
         self.max_d_theta = [10, 10, 10, 10, 120, 120, 80000]
         # TODO: currently set arbitrarily, needs to correspond correctly with the actual arm
-        self.joint_limits = [(-180, 180), (-180, 180), (-180, 180), (-180, 180), (-180, 180), (-180, 180), (-math.inf, math.inf)]
+        self.joint_limits = [(-180, 180), (-180, 180), (-180, 180),
+                             (-180, 180), (-180, 180), (-180, 180), (-math.inf, math.inf)]
 
         self.goal_pos = [0., 0., 0., 0., 0., 0., 0.]
         self.curr_pos = [0., 0., 0., 0., 0., 0., 0.]
@@ -43,13 +44,13 @@ class SafetyChecker():
             return goal_pos, [0] * len(self.goal_pos)
         safety_status = [0] * len(self.goal_pos)
         for i in range(len(self.goal_pos)):
-            # TODO: the typing here is hardcoded, it shouldn't be 
-            safety_status[i] = int(pos_safety_status[i]) + int(curr_safety_status[i])
+            # TODO: the typing here is hardcoded, it shouldn't be
+            safety_status[i] = int(pos_safety_status[i]) + \
+                int(curr_safety_status[i])
         print(goal_pos, safety_status)
         return goal_pos, safety_status
 
     def constrain_safe_pos(self, pos: list = None) -> None:
-
 
         joint_pos_safety_status = [SafetyErrors.NONE.value]*len(self.goal_pos)
         if not pos:
@@ -64,10 +65,11 @@ class SafetyChecker():
 
                 self.logger().info("Constrained joint %d due to excessive change in angle" % i)
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
-                
+
             pos[i] = safe_goal_pos[i]
 
-            safe_goal_pos[i] = clamp(pos[i], self.joint_limits[i][0], self.joint_limits[i][1])
+            safe_goal_pos[i] = clamp(
+                pos[i], self.joint_limits[i][0], self.joint_limits[i][1])
             if safe_goal_pos[i] != pos[i]:
 
                 self.logger().info("Constrained joint %d due to movement outside joint limits" % i)

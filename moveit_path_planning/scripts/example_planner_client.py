@@ -13,7 +13,8 @@ from arm_msgs.srv import PlanMotion
 class PlannerClient(Node):
     def __init__(self):
         super().__init__('planner_client_example')
-        self.client = self.create_client(PlanMotion, '/planner_server/plan_motion')
+        self.client = self.create_client(
+            PlanMotion, '/planner_server/plan_motion')
 
         while not self.client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for planner service...')
@@ -104,7 +105,8 @@ class PlannerClient(Node):
         request.velocity_scaling_factor = 0.1
         request.acceleration_scaling_factor = 0.1
 
-        self.get_logger().info(f'Planning Cartesian path with {len(waypoints)} waypoints')
+        self.get_logger().info(
+            f'Planning Cartesian path with {len(waypoints)} waypoints')
         future = self.client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
@@ -156,7 +158,8 @@ def main(args=None):
 
     # Example 1: Plan to joint target
     print("Example 1: Planning to joint configuration")
-    joint_names = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
+    joint_names = ["joint_1", "joint_2",
+                   "joint_3", "joint_4", "joint_5", "joint_6"]
     joint_values = [0.0, -0.5, 0.5, 0.0, 0.5, 0.0]
     client.plan_to_joint_target(joint_names, joint_values)
 

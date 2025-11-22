@@ -13,10 +13,18 @@ _move_group(move_group)
                             std::bind(&PathPlannerNode::updateCurrPoseCallback, this, std::placeholders::_1));
     _arm_state_sub = this->create_subscription<std_msgs::msg::String>("arm_state", 1,
                             std::bind(&PathPlannerNode::updateStateCallback, this, std::placeholders::_1));
-  
-    _joint_pose_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_target_joints", 1);
+    _joint_sub = this->create_subscription<std_msgs::msg::Float32MultiArray>("arm_curr_angles", 1,
+                            std::bind(&PathPlannerNode::joint_callback, this, std::placeholders::_1));
 
-    _client = this->create_client<arm_msgs::srv::PlanMotion>("/planner_server/plan_motion");
+
+    _joint_pose_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_target_joints", 1);
+    _pose_pub = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 1);
+
+    moveit::core::RobotModelConstPtr robot_model_;
+    robot_model_ = _move_group->getRobotModel();
+    jmg = robot_model_->getJointModelGroup(_move_group->getName());
+    robot_state = std::make_shared<moveit::core::RobotState>(robot_model_);
+    robot_state->setToDefaultValues();
 }
 
 void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const{
@@ -50,6 +58,47 @@ void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::
 
     calculatePath(target_pose_msg);
 }
+
+void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
+{
+ if (msg->data.size() != jmg->getVariableCount())
+    {
+        RCLCPP_ERROR(this->get_logger(),
+          "Received %zu joint values but model expects %zu",
+          msg->data.size(), jmg->getVariableCount());
+        return;
+    }
+
+    // Convert float -> double
+    std::vector<double> joint_positions(msg->data.begin(), msg->data.end());
+
+    // Set joint positions
+    robot_state->setJointGroupPositions(jmg, joint_positions);
+    robot_state->update();
+
+    // Compute FK
+    Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("tool0");
+
+    geometry_msgs::msg::Pose pose_msg;
+    pose_msg.position.x = tf.translation().x();
+    pose_msg.position.y = tf.translation().y();
+    pose_msg.position.z = tf.translation().z();
+
+    Eigen::Quaterniond q(tf.rotation());
+    pose_msg.orientation.x = q.x();
+    pose_msg.orientation.y = q.y();
+    pose_msg.orientation.z = q.z();
+    pose_msg.orientation.w = q.w();
+
+    _pose_pub->publish(pose_msg);
+
+    RCLCPP_INFO(this->get_logger(),
+      "FK Published: [x=%.3f  y=%.3f  z=%.3f]",
+      pose_msg.position.x,
+      pose_msg.position.y,
+      pose_msg.position.z);
+}
+
 
 void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "sub callback");

@@ -26,12 +26,14 @@ private:
     rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr _target_pose_sub;
     rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr _curr_pose_sub;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _arm_state_sub;
-
+    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_sub;
 
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_pose_pub;
+    rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr _pose_pub;
 
     void receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr msg) const;
     void updateCurrPoseCallback(geometry_msgs::msg::Pose::SharedPtr msg);
+    void joint_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg);
     void updateStateCallback(std_msgs::msg::String::SharedPtr msg);
 
     void publishPath(moveit_msgs::msg::RobotTrajectory& trajectory) const;
@@ -40,6 +42,10 @@ private:
     // move group 
     moveit::planning_interface::MoveGroupInterface* _move_group;
     rclcpp::Client<arm_msgs::srv::PlanMotion>::SharedPtr _client;
+    // robot model for move group
+    moveit::core::RobotModelPtr robot_model;
+    const moveit::core::JointModelGroup* jmg;
+    moveit::core::RobotStatePtr robot_state;
 public:
     PathPlannerNode(moveit::planning_interface::MoveGroupInterface* move_group, const std::string& target_pose_topic, const std::string& target_joints_topic);
 };

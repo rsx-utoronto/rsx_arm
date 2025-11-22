@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'example_action_client = moveit_path_planning.plan_execute_client_example:main',  # Replace with your Python node entry point
+            # Replace with your Python node entry point
+            'example_action_client = moveit_path_planning.plan_execute_client_example:main',
         ],
     },
 )

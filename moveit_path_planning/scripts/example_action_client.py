@@ -94,7 +94,8 @@ class PlanAndExecuteClient(Node):
                         f'Execution failed: {result.execution_message}'
                     )
         else:
-            self.get_logger().error(f'Action failed: {result.message if result else "No result"}')
+            self.get_logger().error(
+                f'Action failed: {result.message if result else "No result"}')
 
         return result
 
@@ -102,7 +103,8 @@ class PlanAndExecuteClient(Node):
         """Plan to joint configuration with optional execution."""
         goal = PlanAndExecute.Goal()
         goal.target_type = PlanAndExecute.Goal.TARGET_TYPE_JOINT
-        goal.joint_names = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
+        goal.joint_names = ["joint_1", "joint_2",
+                            "joint_3", "joint_4", "joint_5", "joint_6"]
         goal.joint_values = joint_values
         goal.planner_id = "RRTConnectkConfigDefault"
         goal.planning_time = 5.0

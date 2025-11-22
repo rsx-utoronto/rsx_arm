@@ -14,7 +14,6 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Opaq
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
-
 def launch_setup(context, *args, **kwargs):
     # Build MoveIt configuration
     moveit_config = MoveItConfigsBuilder(
@@ -59,7 +58,8 @@ def launch_setup(context, *args, **kwargs):
         executable="static_transform_publisher",
         name="static_transform_publisher",
         output="log",
-        arguments=["0.0", "0.0", "0.0", "0.0", "0.0", "0.0", "world", "base_link"],
+        arguments=["0.0", "0.0", "0.0", "0.0",
+                   "0.0", "0.0", "world", "base_link"],
     )
 
     return [move_group_launch, planner_server_node, static_tf_node]

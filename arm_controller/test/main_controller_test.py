@@ -21,7 +21,7 @@ sys.path.insert(0, "..")
 def test_main_controller_init():
     args = None
     rclpy.init(args=args)
-    controller_node = main_controller.Controller(virtual = True)
+    controller_node = main_controller.Controller(virtual=True)
 
     assert rclpy.ok(), "rclpy did not initialize correctly"
     assert controller_node.state == ArmState.IDLE, "Main Controller did not initialize to Idle"
@@ -34,7 +34,7 @@ def test_main_controller_init():
 def test_main_controller_state():
     args = None
     rclpy.init(args=args)
-    controller_node = main_controller.Controller(virtual = True)
+    controller_node = main_controller.Controller(virtual=True)
     test = test_node([("joy_node", Joy, "/joy")], [])
 
     # D-Pad Left -> ArmState.IK
@@ -70,10 +70,11 @@ def test_main_controller_state():
     controller_node.shutdown_node()
     rclpy.shutdown()
 
+
 def test_arm_goal_pos():
     args = None
     rclpy.init(args=args)
-    controller_node = main_controller.Controller(virtual = True)
+    controller_node = main_controller.Controller(virtual=True)
     test = test_node(
         [], [("safe_arm_target_joints", Float32MultiArray, "safe_arm_target_joints")])
 
@@ -85,7 +86,8 @@ def test_arm_goal_pos():
              ]
 
     for arr in tests:
-        controller_node.safe_target_joints_pub.publish(Float32MultiArray(data=arr))
+        controller_node.safe_target_joints_pub.publish(
+            Float32MultiArray(data=arr))
         rclpy.spin_once(test)
 
         time.sleep(0.2)
@@ -94,10 +96,11 @@ def test_arm_goal_pos():
     controller_node.shutdown_node()
     rclpy.shutdown()
 
+
 def test_arm_input_sub():
     args = None
     rclpy.init(args=args)
-    controller_node = main_controller.Controller(virtual = True)
+    controller_node = main_controller.Controller(virtual=True)
     # Prevent stderr from logging
     controller_node.get_logger().set_level(LoggingSeverity.FATAL)
     test = test_node([("joy_node", Joy, "/joy")],
@@ -168,14 +171,17 @@ def test_arm_input_sub():
     for n, item in enumerate(list(received)):
         assert type(item) == float
         assert type(expected[n]) == float
-        assert item - expected[n] < 1e-3, "Difference %f was greater than 1e-3" % (item-expected[n])
+        assert item - \
+            expected[n] < 1e-3, "Difference %f was greater than 1e-3" % (
+                item-expected[n])
 
     controller_node.shutdown_node()
     rclpy.shutdown()
 
 
 def test_homing():
-   ''' test homing algorithm, test joint by joint first, then full, then cancelling the homing process'''
+    ''' test homing algorithm, test joint by joint first, then full, then cancelling the homing process'''
+
 
 def test_can_init():
     '''initialize main controller, confirm that heartbeat is received. 
@@ -186,14 +192,17 @@ def test_can_init():
     Call read_message from the CAN Connection object inside main_controller directly
     multiple times and you should be able to detect the heartbeat message.'''
 
+
 def test_can_comm():
     '''Confirm that you can both send and receive CAN messages manually. This should be
     possible entirely isolated from ROS and just using the can_connection class'''
+
 
 def test_can_joints_comm():
     '''Confirm that the target joints are being sent and received correctly via
     vcan0 by introducing some non-zero target joint, which should update via CAN automatically 
     in main_controller code at a given interval.'''
+
 
 def test_safety():
     '''Confirm that safety constrains values as expected. Be careful with this.'''

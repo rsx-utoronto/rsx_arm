@@ -26,5 +26,4 @@ class test_node(Node):
 
 def spin_n(n, node):
     for i in range(n):
-        rclpy.spin_once(node, timeout_sec = 1)
-    
+        rclpy.spin_once(node, timeout_sec=1)

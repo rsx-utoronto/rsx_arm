@@ -101,7 +101,7 @@ def sparkfixed_to_float(fixed: int, frac: int = 5) -> float:
     return f
 
 
-def initialize_bus(channel='can0', interface='socketcan', receive_own_messages = False):
+def initialize_bus(channel='can0', interface='socketcan', receive_own_messages=False):
     """
     (str, str) -> (None)
 
@@ -312,4 +312,3 @@ def generate_data_packet(data_list: list) -> list:
         spark_data.append(pos_to_sparkdata(angle))
 
     return spark_data
-
