@@ -97,19 +97,19 @@ class CAN_connection():
         """
 
         # Convert SparkMAX angles to SparkMAX data packets
-        spark_input = generate_data_packet(goal_position)  # assuming data is safe
+        odrive_input = generate_odrive_data_packet(goal_position)  # assuming data is safe
 
         # Send data packets
         for i in range(1, len(spark_input)+1):
 
             # Motor number corresponds with device ID of the SparkMAX
-            motor_num = 10 + i
+            motor_num = i
 
             # print(spark_input)
-            if motor_num > 10 and motor_num < 18:
+            if motor_num >= 0 and motor_num < 8:
                 # API WILL BE CHANGED WHEN USING THE POWER (DC) SETTING
-                id = generate_can_id(dev_id=motor_num, api=CANAPI.CMD_API_POS_SET.value)
-                send_can_message(self.bus, can_id=id, data=spark_input[i - 1])
+                id = generate_odrive_can_id(motor_id=motor_num, cmd_id=ODRIVE_CANAPI.CMD_API_SET_INPUT_POS)
+                send_can_message(self.bus, can_id=id, data=odrive_input[i - 1])
 
             else:
                 break

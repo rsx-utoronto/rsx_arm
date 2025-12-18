@@ -313,3 +313,65 @@ def generate_data_packet(data_list: list) -> list:
 
     return spark_data
 
+# odrive variants
+
+def generate_odrive_can_id(cmd_id: int, motor_id: int):
+    """
+    (int, int) -> (int)
+
+    Generates a valid CAN ID for an ODrive CAN Command with a function with ID cmd_id executed on a motor with ID motor_id
+
+    @parameters
+
+    cmd_id (int) = The unique 5-bit number ID of the object in the CAN network (6 bits)
+    motor_id (int) = The unique 6-bit number ID of the motor the command will execute on (10 bits)
+
+    Note: The complete CAN ID should never be larger than 11 bits
+    """
+
+    cmd_id_reduced = cmd_id&0b11111 #reduce cmd_id to the first 5 bits
+    motor_id_reduced = motor_id&0b111111 #reduce node_id (called motor_id) to the first 6 bits
+    motor_id_shifted = motor_id<<5 #make the first 5 bits of node_id 0 by bit shifting it 5 bits to the left
+    cmdmotor_CAN_id = motor_id_shifted|cmd_id_reduced #combine them into 1 full CAN ID
+
+    return cmdmotor_CAN_id
+
+def pos_to_odrive_data(f: float) -> list:
+    """
+    float -> list(int)
+
+    Takes in a float position value (number of rotations) and returns the data packet in the form that
+    SparkMAX requires
+
+    @parameters:
+
+    f (float): Float value that needs to be converted
+    """
+    input_hex = hex(struct.unpack('<I', struct.pack('<f', f))[0])
+    if len(input_hex) != 10:
+        input_hex = input_hex[:2] + input_hex[2:] + (10-len(input_hex))*'0'
+
+    #check the last 2 int16 inputs as they might be too low
+    return [eval('0x'+input_hex[-2:]), eval('0x'+input_hex[-4:-2]),
+            eval('0x'+input_hex[-6:-4]), eval('0x'+input_hex[-8:-6]),
+            0x00, 0x00, 0x00, 0x00] 
+
+def generate_odrive_data_packet(data_list: list) -> list:
+    """
+    list(float) -> list(list(int))
+
+    Takes in the goal position angles for each motor and converts them to bytearrays specific for
+    each motor
+
+    @parameters
+
+    data_list (list(float)): List containing the anglular positions (in degrees) for each motor in the order
+    """
+
+    # ODrive Data list
+    odrive_data = []
+
+    for i in range(len(data_list)):
+        odrive_data.append(pos_to_odrive_data(data_list[i]))
+
+    return odrive_data
