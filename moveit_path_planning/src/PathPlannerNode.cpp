@@ -1,6 +1,16 @@
 #include "../include/PathPlannerNode.hpp"
 #include <chrono>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <vector>
+#include <string>
+#include <sstream> // Required for std::stringstream
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/robot_state/robot_state.h>
+#include <geometry_msgs/msg/pose.hpp>
+#include <moveit_msgs/msg/robot_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
+#include <Eigen/Geometry>
+
 
 using namespace std::chrono_literals;
 PathPlannerNode::PathPlannerNode(moveit::planning_interface::MoveGroupInterface* move_group, const std::string& target_pose_topic, const std::string& target_joints_topic):
@@ -33,16 +43,6 @@ void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::
     switch(_curr_state){
         case ArmState::IK: {
             // incremental update
-            // auto final_pose_target = std::make_shared<geometry_msgs::msg::Pose>();
-            // final_pose_target->orientation.x = _curr_pose->orientation.x + target_pose_msg->orientation.x;
-            // final_pose_target->orientation.y = _curr_pose->orientation.y + target_pose_msg->orientation.y;
-            // final_pose_target->orientation.z = _curr_pose->orientation.z + target_pose_msg->orientation.z;
-            // final_pose_target->orientation.w = _curr_pose->orientation.w + target_pose_msg->orientation.w;
-
-            // final_pose_target->position.x = _curr_pose->position.x + target_pose_msg->position.x;
-            // final_pose_target->position.y = _curr_pose->position.y + target_pose_msg->position.y;
-            // final_pose_target->position.z = _curr_pose->position.z + target_pose_msg->position.z;
-
             // check if still required, utils map_input_to_ik seems to handle it
             calculateIK(target_pose_msg);
             break;
@@ -56,12 +56,7 @@ void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::
         break;
     }
 }
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/robot_state/robot_state.h>
-#include <geometry_msgs/msg/pose.hpp>
-#include <moveit_msgs/msg/robot_trajectory.hpp>
-#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
-#include <Eigen/Geometry>
+
 
 // Helper: convert geometry_msgs::Pose -> Eigen::Isometry3d
 Eigen::Isometry3d poseMsgToEigen(const geometry_msgs::msg::Pose& pose)
@@ -130,12 +125,6 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     publishPath(traj);
     RCLCPP_INFO(get_logger(), "IK solution published!");
 }
-
-#include <vector>
-#include <string>
-#include <sstream> // Required for std::stringstream
-
-
 
 // In your joint_callback function - add this at the end:
 void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
