@@ -30,6 +30,7 @@ private:
 
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_pose_pub;
     rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr _pose_pub;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr _joint_state_pub;
 
     void receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr msg) const;
     void updateCurrPoseCallback(geometry_msgs::msg::Pose::SharedPtr msg);
@@ -38,6 +39,7 @@ private:
 
     void publishPath(moveit_msgs::msg::RobotTrajectory& trajectory) const;
     void calculatePath(const geometry_msgs::msg::Pose::SharedPtr msg) const;
+    void calculateIK(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const;
     
     // move group 
     moveit::planning_interface::MoveGroupInterface* _move_group;

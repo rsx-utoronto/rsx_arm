@@ -1,8 +1,8 @@
 #include "../include/PathPlannerNode.hpp"
 #include <chrono>
+#include <sensor_msgs/msg/joint_state.hpp>
 
 using namespace std::chrono_literals;
-
 PathPlannerNode::PathPlannerNode(moveit::planning_interface::MoveGroupInterface* move_group, const std::string& target_pose_topic, const std::string& target_joints_topic):
 Node("path_planner_node"),
 _move_group(move_group)
@@ -23,6 +23,8 @@ _move_group(move_group)
     jmg = robot_model_->getJointModelGroup(_move_group->getName());
     robot_state = std::make_shared<moveit::core::RobotState>(robot_model_);
     robot_state->setToDefaultValues();
+
+    _joint_state_pub = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
 }
 
 void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const{
@@ -31,30 +33,102 @@ void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::
     switch(_curr_state){
         case ArmState::IK: {
             // incremental update
-            auto final_pose_target = std::make_shared<geometry_msgs::msg::Pose>();
-            final_pose_target->orientation.x = _curr_pose->orientation.x + target_pose_msg->orientation.x;
-            final_pose_target->orientation.y = _curr_pose->orientation.y + target_pose_msg->orientation.y;
-            final_pose_target->orientation.z = _curr_pose->orientation.z + target_pose_msg->orientation.z;
-            final_pose_target->orientation.w = _curr_pose->orientation.w + target_pose_msg->orientation.w;
+            // auto final_pose_target = std::make_shared<geometry_msgs::msg::Pose>();
+            // final_pose_target->orientation.x = _curr_pose->orientation.x + target_pose_msg->orientation.x;
+            // final_pose_target->orientation.y = _curr_pose->orientation.y + target_pose_msg->orientation.y;
+            // final_pose_target->orientation.z = _curr_pose->orientation.z + target_pose_msg->orientation.z;
+            // final_pose_target->orientation.w = _curr_pose->orientation.w + target_pose_msg->orientation.w;
 
-            final_pose_target->position.x = _curr_pose->position.x + target_pose_msg->position.x;
-            final_pose_target->position.y = _curr_pose->position.y + target_pose_msg->position.y;
-            final_pose_target->position.z = _curr_pose->position.z + target_pose_msg->position.z;
+            // final_pose_target->position.x = _curr_pose->position.x + target_pose_msg->position.x;
+            // final_pose_target->position.y = _curr_pose->position.y + target_pose_msg->position.y;
+            // final_pose_target->position.z = _curr_pose->position.z + target_pose_msg->position.z;
 
             // check if still required, utils map_input_to_ik seems to handle it
-            calculatePath(final_pose_target);
+            calculateIK(target_pose_msg);
+            break;
         }
-        break;
         case ArmState::PATH_PLANNING: {
             calculatePath(target_pose_msg);
+            break;
         }
-        break;
         default:
             RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Planning not configured for state");
         break;
     }
+}
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/robot_state/robot_state.h>
+#include <geometry_msgs/msg/pose.hpp>
+#include <moveit_msgs/msg/robot_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
+#include <Eigen/Geometry>
 
-    calculatePath(target_pose_msg);
+// Helper: convert geometry_msgs::Pose -> Eigen::Isometry3d
+Eigen::Isometry3d poseMsgToEigen(const geometry_msgs::msg::Pose& pose)
+{
+    Eigen::Isometry3d eigen_pose = Eigen::Isometry3d::Identity();
+    eigen_pose.translation() = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
+    Eigen::Quaterniond q(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
+    eigen_pose.linear() = q.toRotationMatrix();
+    return eigen_pose;
+}
+void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const
+{
+    if (!_move_group) {
+        RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized");
+        return;
+    }
+    
+    // ✅ USE YOUR OWN robot_state that you're already updating in joint_callback!
+    moveit::core::RobotStatePtr current_state = robot_state;
+    
+    // Get joint model group
+    const moveit::core::JointModelGroup* joint_model_group =
+        current_state->getJointModelGroup(_move_group->getName());
+    if (!joint_model_group) {
+        RCLCPP_ERROR(get_logger(), "JointModelGroup not found!");
+        return;
+    }
+    
+    // Convert Pose -> Eigen::Isometry3d
+    Eigen::Isometry3d target_pose_eigen = poseMsgToEigen(*target_pose_msg);
+    
+    // Solve IK
+    bool found_ik = current_state->setFromIK(
+        joint_model_group,
+        target_pose_eigen,
+        _move_group->getEndEffectorLink(),
+        0.1,
+        moveit::core::GroupStateValidityCallbackFn(),
+        kinematics::KinematicsQueryOptions()
+    );
+    
+    if (!found_ik) {
+        RCLCPP_WARN(get_logger(), "IK solution not found for target pose");
+        return;
+    }
+    
+    // Extract joint positions
+    std::vector<double> joint_values;
+    current_state->copyJointGroupPositions(joint_model_group, joint_values);
+    
+    // Fill RobotTrajectory with a single waypoint
+    moveit_msgs::msg::RobotTrajectory traj;
+    traj.joint_trajectory.joint_names = joint_model_group->getVariableNames();
+    traj.joint_trajectory.header.stamp = this->now();
+    traj.joint_trajectory.header.frame_id = _move_group->getPlanningFrame();
+    
+    trajectory_msgs::msg::JointTrajectoryPoint point;
+    point.positions = joint_values;
+    point.velocities.resize(joint_values.size(), 0.0);
+    point.accelerations.resize(joint_values.size(), 0.0);
+    point.time_from_start = rclcpp::Duration::from_seconds(1.0);
+    
+    traj.joint_trajectory.points.push_back(point);
+    
+    // Publish
+    publishPath(traj);
+    RCLCPP_INFO(get_logger(), "IK solution published!");
 }
 
 #include <vector>
@@ -63,29 +137,17 @@ void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::
 
 
 
+// In your joint_callback function - add this at the end:
 void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
 {
     std::stringstream ss;
     for (size_t i = 0; i < msg->data.size(); ++i) {
         ss << msg->data[i];
         if (i < msg->data.size() - 1) {
-            ss << ", "; // Add a comma and space as a delimiter
+            ss << ", ";
         }
     }
-
-    std::string result_string = ss.str();
-
-    // You can then use result_string, for example, for logging in rclcpp:
-    RCLCPP_INFO(this->get_logger(), "Vector as string: %s", result_string.c_str());
     
-    if (msg->data.size() != jmg->getVariableCount())
-    {
-        RCLCPP_ERROR(this->get_logger(),
-          "Received %zu joint values but model expects %zu",
-          msg->data.size(), jmg->getVariableCount());
-        return;
-    }
-
     // Convert float -> double
     std::vector<double> joint_positions(msg->data.begin(), msg->data.end());
 
@@ -94,7 +156,7 @@ void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::Sha
     robot_state->update();
 
     // Compute FK
-    Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("tool0");
+    Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("finger_1");
 
     geometry_msgs::msg::Pose pose_msg;
     pose_msg.position.x = tf.translation().x();
@@ -109,53 +171,44 @@ void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::Sha
 
     _pose_pub->publish(pose_msg);
     _curr_pose = std::make_shared<geometry_msgs::msg::Pose>(pose_msg);
+
+    // ✅ ADD THIS: Republish as JointState for MoveIt
+    sensor_msgs::msg::JointState joint_state_msg;
+    joint_state_msg.header.stamp = this->now();
+    joint_state_msg.header.frame_id = "";
+    
+    // Get joint names from your joint model group
+    joint_state_msg.name = jmg->getVariableNames();
+    joint_state_msg.position = joint_positions;
+    
+    _joint_state_pub->publish(joint_state_msg);
+    
     RCLCPP_INFO(this->get_logger(),
       "FK Published: [x=%.3f  y=%.3f  z=%.3f]",
       pose_msg.position.x,
       pose_msg.position.y,
       pose_msg.position.z);
-
 }
-
 
 void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "sub callback");
 
-    // _move_group->setPoseTarget(*target_pose_msg);
-    // auto const [success, plan] = [this]{
-    //     moveit::planning_interface::MoveGroupInterface::Plan msg;
-    //     auto const ok = static_cast<bool>(_move_group->plan(msg));
-    //     return std::make_pair(ok, msg);
-    // }();
+// 1️⃣ Set the pose target from the incoming message
+    _move_group->setPoseTarget(*target_pose_msg);
 
-    auto request = std::make_shared<arm_msgs::srv::PlanMotion::Request>();
-    request->target_pose.pose = *target_pose_msg;
-    request->target_pose.header.frame_id = "base_link";
-    request->target_type = 1;
-    request->planner_id = "RRTConnectkConfigDefault";
+    // 2️⃣ Plan the motion
+    moveit::planning_interface::MoveGroupInterface::Plan plan_msg;
+    bool success = static_cast<bool>(_move_group->plan(plan_msg));
 
-    RCLCPP_INFO(this->get_logger(),
-            "pos = (%.3f, %.3f, %.3f)",
-            request->target_pose.pose.position.x,
-            request->target_pose.pose.position.y,
-            request->target_pose.pose.position.z);
+    if (!success) {
+        RCLCPP_WARN(get_logger(), "Planning failed for the given target pose");
+        return;
+    }
 
-    using ServiceResponseFuture =
-        rclcpp::Client<arm_msgs::srv::PlanMotion>::SharedFuture;
+    RCLCPP_INFO(get_logger(), "Planning succeeded! Publishing trajectory...");
 
-    auto callback = [this](ServiceResponseFuture future) {
-        auto response = future.get();
-        RCLCPP_INFO(this->get_logger(), "Service response: %s", response->message.c_str());
-
-        if(response->success){
-            publishPath(response->trajectory);
-            RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Plan published");
-        } else {
-            RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Planning failed");
-        }
-    };
-
-    _client->async_send_request(request, callback);    
+    // 3️⃣ Publish the resulting joint trajectory
+    publishPath(plan_msg.trajectory_);
 }
 
 void PathPlannerNode::updateCurrPoseCallback(geometry_msgs::msg::Pose::SharedPtr curr_pose_msg) {
@@ -168,9 +221,9 @@ void PathPlannerNode::updateStateCallback(std_msgs::msg::String::SharedPtr curr_
     } else if(curr_state_msg->data == "MANUAL"){
         _curr_state = ArmState::MANUAL;
     } else if(curr_state_msg->data == "IK"){
-        _curr_state = ArmState::PATH_PLANNING;
-    } else if(curr_state_msg->data== "PATH_PLANNING"){
         _curr_state = ArmState::IK;
+    } else if(curr_state_msg->data== "PATH_PLANNING"){
+        _curr_state = ArmState::PATH_PLANNING;
     } else if(curr_state_msg->data == "SCIENCE"){
         _curr_state = ArmState::SCIENCE;
     } 

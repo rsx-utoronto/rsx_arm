@@ -181,7 +181,6 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
     api (int) = The API you want the payload of
     motor_num (int) (optional) = The motor number that can be used for indexing lists
     """
-
     if api:
         # API: Status Message 1 - Gives us information on limit switches
         if api == CANAPI.CMD_API_STAT0:
@@ -211,7 +210,6 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
 
         # API: Status Message 2 - Gives us current position and comes every 20ms
         elif api == CANAPI.CMD_API_STAT2:
-
             # Checking if all the bits are 0 or not, if yes return 0
             if not (data[3] or data[2] or data[1] or data[0]):
                 return 0
@@ -228,10 +226,9 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
             # Check if we have 8 hex characters in pos_hex, if not then pad it with zeros
             if len(pos_hex) != 10:
                 pos_hex = format(pos_float, '#010x')
-
+            
             # Converting the hex representation to floating point decimal value
             pos_float = struct.unpack('!f', bytes.fromhex(pos_hex[2:]))[0]
-
             # Returning the shaft angle in degrees
             return pos_float * 360 / REDUCTION[motor_num]
 

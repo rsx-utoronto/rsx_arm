@@ -49,6 +49,7 @@ def launch_setup(context, *args, **kwargs):
         output="screen",
         parameters=[
             moveit_config.to_dict(),
+            moveit_config.robot_description_kinematics,
             planner_params,
             {
                 "use_sim_time": LaunchConfiguration("use_sim_time"),
@@ -79,6 +80,9 @@ def launch_setup(context, *args, **kwargs):
         executable="path_planning",
         name="path_planning",
         output="screen",
+        parameters=[
+            moveit_config.robot_description_kinematics,  # ADD THIS LINE
+        ],
     )
 
     # Static TF for virtual joint (if needed)
@@ -121,6 +125,7 @@ def launch_setup(context, *args, **kwargs):
         executable="spawner",
         arguments=["end_effector_controller", "-c", "/controller_manager"],
     )
+
     """
         We may need to call "execute" on planning to get the joint states to update!!!    
     """

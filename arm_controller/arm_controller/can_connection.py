@@ -32,11 +32,9 @@ class CAN_connection():
         # For each motor connected, the corresponding motor_list element should be set to 0
         # motor_read = [1, 1, 1, 1, 1, 0, 1]
         msg = self.bus.recv(timeout=0.0001)
-        curr_angle = [0.0]*self.num_joints
-        lim_switch = [0.0]*self.num_joints
-        motor_curr = [0.0]*self.num_joints
+        
         if msg == None:
-            return curr_angle, lim_switch, motor_curr
+            return None
         # Checking if SparkMAXes are powered on and sending status messages
         can_id = msg.arbitration_id
         dev_id = can_id & 0b00000000000000000000000111111
@@ -50,7 +48,6 @@ class CAN_connection():
 
         # Getting the list index value based on motor device id
         index = dev_id - 11
-
         # If this is for initialization, set the correseponding element in motor_list to be True
         # if init:
         # 	motor_read[index] = True
@@ -61,33 +58,27 @@ class CAN_connection():
             if api == CANAPI.CMD_API_STAT0.value:
 
                 # Update the LIMIT_SWITCH data
-                lim_switch[index] = read_can_message(
+                lim_value = read_can_message(
                     msg.data, CANAPI.CMD_API_STAT0)
+                return (index, api, lim_value)
 
             # API for reading motor current
             elif api == CANAPI.CMD_API_STAT1.value:
 
                 # Update the MOTOR_CURR data
-                motor_curr[index] = read_can_message(
-                    msg.data, CANAPI.CMD_API_STAT1.value)
+                curr_value = read_can_message(
+                    msg.data, CANAPI.CMD_API_STAT1)
+                return (index, api, curr_value)
 
             # API for reading current position of motor
             elif api == CANAPI.CMD_API_STAT2.value:
 
                 # Update the CURR_POS data
-                curr_angle[index] = read_can_message(
-                    msg.data, CANAPI.CMD_API_STAT2.value, index)
+                joint_val = read_can_message(
+                    msg.data, CANAPI.CMD_API_STAT2, index)
+                return (index, api, joint_val)
+                
 
-                # Check if we updated wrist motors and apply the conversions
-                if index == 4 or index == 5:
-                    wrist1_angle = curr_angle[4]
-                    wrist2_angle = curr_angle[5]
-                    curr_angle[4] = float(
-                        (wrist1_angle + wrist2_angle) / (2 * WRIST_RATIO))
-                    curr_angle[5] = float(
-                        (wrist1_angle - wrist2_angle) / 2)
-
-        return curr_angle, lim_switch, motor_curr
 
     def send_target_message(self, goal_position):
         """

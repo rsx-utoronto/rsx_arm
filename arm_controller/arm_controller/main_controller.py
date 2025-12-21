@@ -9,7 +9,7 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
 from arm_msgs.msg import ArmInputs
 from geometry_msgs.msg import Pose
-from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus
+from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
 from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
@@ -17,6 +17,8 @@ import copy
 import functools
 from pynput import keyboard
 import time
+# from arm_moveit_config.config import initial_positions.yaml
+# import yaml
 
 
 class Controller(Node):
@@ -31,7 +33,12 @@ class Controller(Node):
         super().__init__("Arm_Controller")
 
         self.n_joints = n_joints
-
+        # with open("initial_positions.yaml", "r") as f:
+        #     init_config = yaml.safe_load(f)
+        # self.init_joints = [init_config["joint_1"], init_config["joint_2"], init_config["joint_3"], init_config["joint_4"], init_config["joint_5"], init_config["joint_6", 0]]
+        self.initial_positions = [0] * n_joints
+        self.initial_positions[2] = 90
+        # TODO: LOAD THE YAML CORRECTLY
         if virtual:
             self.can_con = CAN_connection(
                 channel="vcan0", interface="virtual", receive_own_messages=True, num_joints=n_joints)
@@ -50,7 +57,7 @@ class Controller(Node):
         self.killswitch = 0
 
         # TODO load from config
-        self.speed_limits = [0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 5]
+        self.speed_limits = [1.5, 2, 1, 1, 0.3, 0.3, 5]
 
         self.current_pose = Pose()
         self.current_joints = [0.0] * self.n_joints
@@ -61,6 +68,7 @@ class Controller(Node):
         self.lim_switches = [0] * self.n_joints
         self.motor_curr = [0.0] * self.n_joints
         self.safety_flags = [0] * self.n_joints
+        self.arm_internal_current_joints = [0.0] * self.n_joints
 
         self.gripper_on = False
 
@@ -79,7 +87,7 @@ class Controller(Node):
         self.joy_sub = self.create_subscription(
             Joy, "/joy", self.handle_joy, 10)
         self.fk_sub = self.create_subscription(
-            Pose, "arm_fk_pose", self.update_fk_pose, 10)
+            Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target, 10)
 
         # Nonblocking keyboard listener
@@ -112,37 +120,60 @@ class Controller(Node):
         self.homing_lock = threading.Lock()
         self.shutdown = False  # set true before shutdown to stop loops
 
-        self.can_rate = 20
-        self.can_send_thread = threading.Thread(
-            target=self.send_can_callback, daemon=True)
+        self.can_rate = 2500
         self.can_read_thread = threading.Thread(
             target=self.read_can_callback, daemon=True)
-        self.can_send_thread.start()
         self.can_read_thread.start()
 
         self.arm_update_lock = threading.Lock()
 
-        self.threads = [self.homing_thread,
-                        self.can_send_thread, self.can_read_thread]
+        self.threads = [self.homing_thread, self.can_read_thread]
+        
+        self.init = [False]*7
 
     def read_can_callback(self):
         while self.shutdown == False:
-            self.current_joints, self.lim_switches, self.motor_curr = self.can_con.read_message()
-            for n, lim_switch in enumerate(self.lim_switches):
-                if lim_switch == 1:
+            read_msg = self.can_con.read_message()
+            if read_msg == None:
+                continue
+            index = read_msg[0]
+            api = read_msg[1]
+            value = read_msg[2]
+            if api == CANAPI.CMD_API_STAT0.value:
+                if read_msg[2] == 1:
                     self.get_logger().warn("Joint %d hit limit!" % n)
-                    self.at_limit[n] = True
+                    self.at_limit[index] = True
+                
+            elif api == CANAPI.CMD_API_STAT1.value:
+                self.motor_curr[index] = value
+            
+            elif api == CANAPI.CMD_API_STAT2.value:
+                # Check if we updated wrist motors and apply the conversions
+                if index == 4:
+                    wrist1_angle = value
+                    wrist2_angle = self.current_joints[5]
+                    self.current_joints[4] = float(
+                        (wrist1_angle + wrist2_angle) / 2)
+                    self.current_joints[5] = float(
+                        (wrist1_angle - wrist2_angle) / 2)
+                elif index == 5:
+                    wrist1_angle = self.current_joints[4]
+                    wrist2_angle = value
+                    self.current_joints[4] = float(
+                        (wrist1_angle + wrist2_angle) / 2)
+                    self.current_joints[5] = float(
+                        (wrist1_angle - wrist2_angle) / 2)
+
                 else:
-                    self.at_limit[n] = False
-
-            # add joint offsets for absolute joint values
-            self.current_joints = (np.array(self.current_joints) + np.array(self.joint_offsets)).tolist()
+                    self.current_joints[index] = value + self.joint_offsets[index]
+                
+                # Check if angle has ben clibrated to encoder measured initial angles
+                if self.init[index] == False:
+                    self.arm_internal_current_joints[index] = self.current_joints[index]
+                    self.init[index] = True
+                
             threading.Event().wait(1/self.can_rate)
 
-    def send_can_callback(self):
-        while self.shutdown == False:
-            self.can_con.send_target_message(self.safe_target_joints)
-            threading.Event().wait(1/self.can_rate)
 
     def update_arm(self, update):
         # lock to prevent local variables from being modified by CAN threads during execution
@@ -165,7 +196,7 @@ class Controller(Node):
                 self.get_logger().info("Switching to IDLE mode")
             elif inputs.dpad_left:
                 self.state = ArmState.IK
-                if not self.homed:
+                if False in self.homed:
                     self.get_logger().info("Arm not homed, home arm before moving in IK mode")
                 else:
                     self.get_logger().info("Switching to IK mode, homed and ready to move")
@@ -177,19 +208,23 @@ class Controller(Node):
 
             match self.state:
                 case ArmState.IDLE:
+                    self.safe_target_joints = self.current_joints
+                    self.can_con.send_target_message(self.safe_target_joints)
                     # In idle state, only allow killswitch and state changes
                     # self.logger().info("Currently in IDLE: No control change")
                     pass
                 case ArmState.MANUAL:
                     self.target_joints = map_inputs_to_manual(
-                        inputs, self.speed_limits, self.target_joints)
+                        inputs, self.speed_limits, self.current_joints)
                     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.current_joints)
                     msg = Float32MultiArray()
                     msg.data = self.safe_target_joints
                     self.safe_target_joints_pub.publish(msg)
+
+                    self.can_con.send_target_message(self.safe_target_joints)
                 case ArmState.IK:
-                    if self.homed:
+                    if not False in self.homed:
                         # Join homing thread if just finished homing
                         if self.homing_thread.is_alive():
                             self.homing_thread.join()
@@ -200,6 +235,8 @@ class Controller(Node):
                     else:
                         if inputs.x and inputs.circle and inputs.triangle and inputs.square:
                             self.get_logger().info("OVERRIDING HOMING")
+                            for i in range(self.n_joints - 1):
+                                self.joint_offsets[i] = self.initial_positions[i] - self.current_joints[i]
                             self.homed = [True]*self.n_joints
                         elif inputs.x and inputs.circle:
                             self.get_logger().info("Homing arm, press X to cancel")
@@ -210,9 +247,9 @@ class Controller(Node):
                                 "Arm not homed, cannot move in IK mode, press X and O simultaneously to home")
                             target_pose = self.current_pose
                             self.target_pose_pub.publish(target_pose)
-        self.update_internal_joint_state(self.current_joints)
-        print(self.current_joints)
-        time.sleep(0.01)
+                            time.sleep(0.2)
+        self.update_internal_pose_state(self.current_joints)
+        time.sleep(0.05)
 
     def handle_joy(self, msg):
         self.update_arm(msg)
@@ -253,7 +290,8 @@ class Controller(Node):
                                 pass
                             else:
                                 joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
-                                    self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2
+                                    self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                    self.initial_positions[joint_index]
                                 self.has_reached_endpoint = True
                         if not self.has_reached_endpoint[joint_index]:
                             # move towards forward limit switch
@@ -266,7 +304,8 @@ class Controller(Node):
                                 if abs(self.current_joints[joint_index] - target_joints[joint_index]) < 1e-3:
                                     self.homed[joint_index] = True
                                     joint_offsets[joint_index] = self.current_joints[joint_index] - (
-                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2
+                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                        self.initial_positions[joint_index]
 
                             elif joint == 0 and base_joint_status == 2 or joint == 6 and wrist_roll_status == 2:
                                 target_joints[joint_index] = current_joints[joint_index]
@@ -313,17 +352,13 @@ class Controller(Node):
             self.homing = HomingStatus.IDLE
             self.homing_stop.set()
 
-    def update_internal_joint_state(self, joints):
-        self.current_joints = joints
-        self.update_internal_pose_state(joints)
-        # Function to update internal joint state from feedback
-
-
     def update_internal_pose_state(self, joints):
         angles = Float32MultiArray(data=joints[0:6])
         self.arm_curr_joints_pub.publish(angles)
         # Pose will be returned in a subscription, should update elsewhere
 
+    def update_fk_pose_callback(self, msg):
+        self.current_pose = msg
 
     def shutdown_node(self):
         self.get_logger().info("Shutting down node")
@@ -332,16 +367,18 @@ class Controller(Node):
             if thread.is_alive():
                 thread.join()
 
-    def update_fk_pose(self, msg):
-        self.current_pose = msg
-
     def update_ik_target(self, msg):
-        self.target_joints = msg.data
+        self.target_joints = list(msg.data)
+        # append the end effector current rotation because IK solution does not have this
+        self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.current_joints)
         msg = Float32MultiArray()
-        msg.data = self.safe_target_joints[0:6]
+        msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
+
+        # TODO: temporarily disabled, safety issues
+        # self.can_con.send_target_message(self.safe_target_joints)
 
 
 def real_controller(args=None):
