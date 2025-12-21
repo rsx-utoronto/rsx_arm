@@ -81,7 +81,7 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
         'base_rotation': arm_inputs.l_horizontal,
         'shoulder': arm_inputs.l_vertical,
         'elbow': arm_inputs.r_vertical,
-        'elbow_roll' : arm_inputs.r_horizontal,
+        'elbow_roll': arm_inputs.r_horizontal,
         'wrist_pitch': arm_inputs.r1 - arm_inputs.l1,
         # R1 for clockwise, L1 for counterclockwise
         'wrist_roll': arm_inputs.r_trigger - arm_inputs.l_trigger,
