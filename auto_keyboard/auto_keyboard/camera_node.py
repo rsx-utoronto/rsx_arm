@@ -22,6 +22,7 @@ class CameraNode(Node):
         self.last_frame = np.ndarray
 
         # load a YOLO model
+        # TODO: change to pull from config file
         self.model = YOLO('src/rsx_arm/auto_keyboard/custom_yolo.pt')
 
         self.get_logger().info("Camera YOLO node started.")
