@@ -28,9 +28,6 @@ class CAN_connection():
         to store the values
         """
 
-        # Variable to hold the boolean whether each motor is read once or not
-        # For each motor connected, the corresponding motor_list element should be set to 0
-        # motor_read = [1, 1, 1, 1, 1, 0, 1]
         msg = self.bus.recv(timeout=0.0001)
         
         if msg == None:
@@ -39,19 +36,9 @@ class CAN_connection():
         can_id = msg.arbitration_id
         dev_id = can_id & 0b00000000000000000000000111111
         api = (can_id >> 6) & 0b00000000000001111111111
-        # man_id  = (can_id) & 0b00000111111110000000000000000
-
-        # If every element in motor_list is True, it means this was for initialization
-        # and we should break out of the loop
-        # if not False in motor_read:
-        # 	break
 
         # Getting the list index value based on motor device id
         index = dev_id - 11
-        # If this is for initialization, set the correseponding element in motor_list to be True
-        # if init:
-        # 	motor_read[index] = True
-        # print(dev_id)
 
         if dev_id > 10:
             # API for reading limit switch
