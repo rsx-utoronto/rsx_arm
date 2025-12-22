@@ -28,6 +28,7 @@ class SafetyErrors(Enum):
     EXCEEDING_POS_CURRENT = 3
     LIMIT_SWITCH = 4  # May switch out of an error as this is not only used as an error
 
+
 class CANAPI(Enum):
     # CANSpark APIs
     CMD_API_SETPNT_SET = 0x001
