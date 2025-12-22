@@ -55,8 +55,10 @@ class SafetyChecker():
         # Going through each element of GOAL_POS
         for i in range(len(self.goal_pos)):
             # Doing position comparisons for safety
+            # Clamp to max change in theta
             safe_goal_pos[i] = clamp(
                 pos[i], self.curr_pos[i]-self.max_d_theta[i], self.curr_pos[i]+self.max_d_theta[i])
+
             if safe_goal_pos[i] != pos[i]:
                 print("Constrained joint %d due to excessive change in angle" % i)
                 self.logger().info("Constrained joint %d due to excessive change in angle" % i)
@@ -75,15 +77,11 @@ class SafetyChecker():
 
     def current_check(self, pos: list = None) -> None:
         '''
-        (None) -> (None)
 
         Checks the maximum current being consumed by a motor. If the current is higher than
-        the expected max, sets the error for the particular motor as Errors.ERROR_EXCEEDING_CURRENT.
+        the expected max, sets the error for the particular motor as SafetyErrors.EXCEEDING_CURR.
         Helps us to know when too much torque is being applied
 
-        @parameters
-
-        pos (list(int)) (optional): POS values to be checked. Only fill it for IK mode, otherwise keep it None
         '''
         # TODO: move to config file
         # Max current values for each motor

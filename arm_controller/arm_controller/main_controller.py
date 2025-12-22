@@ -17,16 +17,14 @@ import copy
 import functools
 from pynput import keyboard
 import time
-# from arm_moveit_config.config import initial_positions.yaml
-# import yaml
 
 
 class Controller(Node):
     """
     (None)
 
-    This class represents an instance of controller node and connects the node to 
-    its publishing and subscribing topics
+    Controller class for the robotic arm. Handles input from joystick/keyboard/GUI,
+    manages arm state, safety checks, and communicates with the CAN bus to control the arm motors
     """
 
     def __init__(self, can_update_rate=1000, n_joints=7, virtual=False):
@@ -39,12 +37,14 @@ class Controller(Node):
         self.initial_positions = [0] * n_joints
         self.initial_positions[2] = 90
         # TODO: LOAD THE YAML CORRECTLY
+        # Initialize CAN connection
         if virtual:
             self.can_con = CAN_connection(
                 channel="vcan0", interface="virtual", receive_own_messages=True, num_joints=n_joints)
         else:
             self.can_con = CAN_connection(num_joints=n_joints)
 
+        # intialize safety checker
         self.safety_checker = SafetyChecker()
         # Attributes to hold data for publishing to topics
         # Attribute to publish state
@@ -63,21 +63,30 @@ class Controller(Node):
         self.current_joints = [0.0] * self.n_joints
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
+
         self.target_joints = self.current_joints
         self.safe_target_joints = self.target_joints
         self.lim_switches = [0] * self.n_joints
         self.motor_curr = [0.0] * self.n_joints
         self.safety_flags = [0] * self.n_joints
+
+        # track target internal joints to prevent slippage
         self.arm_internal_current_joints = [0.0] * self.n_joints
 
         self.gripper_on = False
 
         # Publishers
         self.state_pub = self.create_publisher(String, "arm_state", 10)
+
+        # Publisher for safe target joints after safety check, used for debugging and data logging
         self.safe_target_joints_pub = self.create_publisher(
             Float32MultiArray, "safe_arm_target_joints", 10)
+
+        # Used for publishing current joint angles, used in forward kinematics calculations
         self.arm_curr_joints_pub = self.create_publisher(
             Float32MultiArray, "arm_curr_angles", 10)
+        
+        # Publisher for target end effector pose in IK mode
         self.target_pose_pub = self.create_publisher(
             Pose, "arm_target_pose", 10)
         self.killswitch_pub = self.create_publisher(
@@ -86,6 +95,8 @@ class Controller(Node):
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
             Joy, "/joy", self.handle_joy, 10)
+        
+        # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
             Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target, 10)
@@ -97,6 +108,7 @@ class Controller(Node):
         )
         self.keyboard_listener.start()
 
+        # Joint limit tracking
         self.at_limit = [False] * self.n_joints
 
         # Homing state/params
@@ -121,6 +133,7 @@ class Controller(Node):
         self.shutdown = False  # set true before shutdown to stop loops
 
         self.can_rate = 2500
+        # Update thread for reading CAN messages
         self.can_read_thread = threading.Thread(
             target=self.read_can_callback, daemon=True)
         self.can_read_thread.start()
@@ -129,6 +142,7 @@ class Controller(Node):
 
         self.threads = [self.homing_thread, self.can_read_thread]
         
+        # Initialization flags for CAN readings (for setting initial joint values)
         self.init = [False]*7
 
     def read_can_callback(self):
@@ -139,14 +153,17 @@ class Controller(Node):
             index = read_msg[0]
             api = read_msg[1]
             value = read_msg[2]
+            # Limit switch
             if api == CANAPI.CMD_API_STAT0.value:
                 if read_msg[2] == 1:
                     self.get_logger().warn("Joint %d hit limit!" % n)
                     self.at_limit[index] = True
-                
+            
+            # Motor current value
             elif api == CANAPI.CMD_API_STAT1.value:
                 self.motor_curr[index] = value
             
+            # Joint angle value
             elif api == CANAPI.CMD_API_STAT2.value:
                 # Check if we updated wrist motors and apply the conversions
                 if index == 4:
@@ -191,17 +208,22 @@ class Controller(Node):
             if inputs.dpad_up:
                 self.state = ArmState.MANUAL
                 self.get_logger().info("Switching to MANUAL mode")
+
             elif inputs.dpad_down:
                 self.state = ArmState.IDLE
                 self.get_logger().info("Switching to IDLE mode")
+
             elif inputs.dpad_left:
                 self.state = ArmState.IK
                 if False in self.homed:
                     self.get_logger().info("Arm not homed, home arm before moving in IK mode")
                 else:
                     self.get_logger().info("Switching to IK mode, homed and ready to move")
+
             elif inputs.dpad_right:
                 self.state = ArmState.PATH_PLANNING
+                self.get_logger().info("Switching to PATH PLANNING mode")
+
             state_string = String()
             state_string.data = self.state.name
             self.state_pub.publish(state_string)
