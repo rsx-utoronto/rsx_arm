@@ -7,7 +7,7 @@ import numpy as np
 
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
-from arm_msgs.msg import ArmInputs
+from arm_msgs.msg import ArmInputs, KeyboardCoords
 from geometry_msgs.msg import Pose
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
@@ -101,6 +101,15 @@ class Controller(Node):
             Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target, 10)
 
+        self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
+        self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
+        self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 10)
+        self.path_executor_thread = threading.Thread(
+            target=self.path_executor_loop, daemon=True)
+        # will fill when a path is given
+        self.current_path = []
+        self.joint_target_threshold = 1 # maximum allowed error in degrees to consider joint target reached
+
         # Nonblocking keyboard listener
         self.keyboard_listener = keyboard.Listener(
             on_press=self.on_press,
@@ -140,10 +149,16 @@ class Controller(Node):
 
         self.arm_update_lock = threading.Lock()
 
-        self.threads = [self.homing_thread, self.can_read_thread]
+        self.threads = [self.homing_thread, self.can_read_thread, self.path_executor_thread]
         
         # Initialization flags for CAN readings (for setting initial joint values)
         self.init = [False]*7
+
+        # Keyboard targets to be hard coded at time of challenge
+        # TODO: parse from config file
+        self.keyboard_targets = []
+        # TODO: set up all keys
+        self.keyboard_positions = {}
 
     def read_can_callback(self):
         while self.shutdown == False:
@@ -204,6 +219,15 @@ class Controller(Node):
                 case ControlMode.GUI:
                     # Update arm state based on GUI input
                     pass
+
+            if inputs.dpad_up and inputs.dpad_down and inputs.dpad_left and inputs.dpad_right:
+                if self.state != ArmState.AUTO_KEYBOARD:
+                    self.state = ArmState.AUTO_KEYBOARD
+                    self.get_logger().info("ACTIVATING AUTO KEYBOARD MODE")
+                else:
+                    self.state = ArmState.IDLE
+                    self.get_logger().info("DEACTIVATING AUTO KEYBOARD MODE")
+                time.sleep(2)
 
             if inputs.dpad_up:
                 self.state = ArmState.MANUAL
@@ -270,6 +294,25 @@ class Controller(Node):
                             target_pose = self.current_pose
                             self.target_pose_pub.publish(target_pose)
                             time.sleep(0.2)
+                case ArmState.PATH_PLANNING:
+                    # TODO: implement path planning logic
+                    pass
+                case ArmState.AUTO_KEYBOARD:
+                
+                    for target in self.keyboard_targets:
+                        if self.executing_path:
+                            pass
+                        else:
+                            if self.path_executor_thread.is_alive():
+                                self.path_executor_thread.join()
+                                
+                            target_pose = self.keyboard_positions[target]
+                            self.get_logger().info("Moving to key: %s" % target)
+                            # TODO: path plan should publish to an intermediate pose offset from the keyboard prior to publishing the actual key press
+                            self.target_pose_pub.publish(target_pose)
+                            self.executing_path = True
+                            self.path_executor_thread.start()
+                    pass
         self.update_internal_pose_state(self.current_joints)
         time.sleep(0.05)
 
@@ -402,7 +445,39 @@ class Controller(Node):
         # TODO: temporarily disabled, safety issues
         # self.can_con.send_target_message(self.safe_target_joints)
 
+    def handle_keyboard_coords(self, msg):
+        self.get_logger().info("Received keyboard coordinates from camera node")
+        corners = msg.corners  # assuming corners is a list of 4 (x, y) tuples
+        # Process corners to determine key positions
+        self.interpolate_key_positions(corners)
 
+    def interpolate_key_positions(self, corners):
+        # TODO: implement interpolation of key positions based on keyboard corners
+        pass
+
+    def update_path_planner_joints(self, msg):
+        self.current_path.append(list(msg.data))
+
+    def path_executor_loop(self):
+        while len(self.current_path) > 0 and self.shutdown == False:
+            for step in self.current_path:
+                error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints)]
+                if all(e < self.joint_target_threshold for e in error):
+                    self.current_path.pop(0)
+                    continue
+                    
+                self.target_joints[0:6] = step
+                self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
+                    self.target_joints, self.current_joints)
+                msg = Float32MultiArray()
+                msg.data = self.safe_target_joints
+                self.safe_target_joints_pub.publish(msg)
+
+
+                # DISABLED TEMPORARILY FOR SAFETY
+                # self.can_con.send_target_message(self.safe_target_joints)
+                time.sleep(0.1)  # wait for some time before next step
+            self.executing_path = False
 def real_controller(args=None):
     rclpy.init(args=args)
 

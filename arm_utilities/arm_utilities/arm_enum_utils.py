@@ -7,6 +7,7 @@ class ArmState(Enum):
     IK = 2
     PATH_PLANNING = 3
     SCIENCE = 4
+    AUTO_KEYBOARD = 5
 
 
 class ControlMode(Enum):
