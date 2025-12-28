@@ -28,6 +28,8 @@ _move_group(move_group)
     _joint_pose_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_ik_target_joints", 1);
     _pose_pub = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 1);
 
+    _joint_path_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_path_joints", 1);
+
     moveit::core::RobotModelConstPtr robot_model_;
     robot_model_ = _move_group->getRobotModel();
     jmg = robot_model_->getJointModelGroup(_move_group->getName());
@@ -74,7 +76,6 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
         return;
     }
     
-    // ✅ USE YOUR OWN robot_state that you're already updating in joint_callback!
     moveit::core::RobotStatePtr current_state = robot_state;
     
     // Get joint model group
@@ -182,10 +183,8 @@ void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::Sha
 void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "sub callback");
 
-// 1️⃣ Set the pose target from the incoming message
     _move_group->setPoseTarget(*target_pose_msg);
 
-    // 2️⃣ Plan the motion
     moveit::planning_interface::MoveGroupInterface::Plan plan_msg;
     bool success = static_cast<bool>(_move_group->plan(plan_msg));
 
@@ -196,7 +195,6 @@ void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr ta
 
     RCLCPP_INFO(get_logger(), "Planning succeeded! Publishing trajectory...");
 
-    // 3️⃣ Publish the resulting joint trajectory
     publishPath(plan_msg.trajectory_);
 }
 
@@ -231,6 +229,6 @@ void PathPlannerNode::publishPath(moveit_msgs::msg::RobotTrajectory& trajectory)
         
         std_msgs::msg::Float32MultiArray msg;
         msg.data.assign(joint_positions.begin(), joint_positions.end());
-       	_joint_pose_pub->publish(msg);
+       	_joint_path_pub->publish(msg);
     }
 }
