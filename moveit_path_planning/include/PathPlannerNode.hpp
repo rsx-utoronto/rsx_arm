@@ -31,6 +31,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_pose_pub;
     rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr _pose_pub;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr _joint_state_pub;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_path_pub;
 
     void receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr msg) const;
     void updateCurrPoseCallback(geometry_msgs::msg::Pose::SharedPtr msg);
