@@ -169,6 +169,8 @@ class Controller(Node):
                         self.last_quadrant[0] = int(line[-2:])
                     else:
                         self.last_quadrant[1] = int(line[-2:])
+        except:
+            self.get_logger().warn("error logging limits!")
 
 
     def read_can_callback(self):
@@ -417,7 +419,7 @@ class Controller(Node):
                             else:
                                 # TODO: factor of 1/30 is arbitrary, can be changed later
                                 target_joints[joint_index] = min(error*self.rotation_step/30, math.copysign(error)*self.rotation_step[joint_index])
-                                
+
                         # if we are not actively homing for this joint anymore, maintain the current joint position
                         else:
                             target_joints[joint_index] = self.internal_current_joints[joint_index]
