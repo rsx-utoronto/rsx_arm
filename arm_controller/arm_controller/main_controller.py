@@ -17,6 +17,7 @@ import copy
 import functools
 from pynput import keyboard
 import time
+import math
 
 
 class Controller(Node):
@@ -159,6 +160,18 @@ class Controller(Node):
         self.keyboard_targets = []
         # TODO: set up all keys
         self.keyboard_positions = {}
+        self.last_quadrant = [0, 0] # for tracking which side of the joint base and wrist are in
+        try:
+            with open("limit_log.txt") as f:
+                data = f.read().split('\n')
+                for line in data:
+                    if line.startswith("Joint 0"):
+                        self.last_quadrant[0] = int(line[-2:])
+                    else:
+                        self.last_quadrant[1] = int(line[-2:])
+        except:
+            self.get_logger().warn("error logging limits!")
+
 
     def read_can_callback(self):
         while self.shutdown == False:
@@ -173,6 +186,16 @@ class Controller(Node):
                 if read_msg[2] == 1:
                     self.get_logger().warn("Joint %d hit limit!" % n)
                     self.at_limit[index] = True
+                    if index == 0 or index == 6:
+                        # TODO: this should be cleaner, log if joint is on positive or negative side of limit
+                        with open("limit_log.txt", "w") as f:
+                            f.write("Joint %d hit limit going: %f\n" % (index, math.copysign(self.current_joints[index])))
+                            if index == 0:
+                                f.write("Joint 6 hit limit going %d\n" % self.current_joints[1])
+                            else:
+                                f.write("Joint 0 hit limit going %d\n" % self.current_joints[0])
+                    else:
+                        pass
             
             # Motor current value
             elif api == CANAPI.CMD_API_STAT1.value:
@@ -260,10 +283,16 @@ class Controller(Node):
                     # self.logger().info("Currently in IDLE: No control change")
                     pass
                 case ArmState.MANUAL:
+                    # use internal current joints to prevent joint slippage when no input is given
                     self.target_joints = map_inputs_to_manual(
-                        inputs, self.speed_limits, self.current_joints)
+                        inputs, self.speed_limits, self.arm_internal_current_joints)
                     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-                        self.target_joints, self.current_joints)
+                        self.target_joints, self.arm_internal_current_joints)
+
+                    # update internal state to reflect target, when input is zero, internal and real current joints should be equivalent given the assumption
+                    # that the target is reachable
+                    self.arm_internal_current_joints = self.safe_target_joints
+
                     msg = Float32MultiArray()
                     msg.data = self.safe_target_joints
                     self.safe_target_joints_pub.publish(msg)
@@ -295,8 +324,14 @@ class Controller(Node):
                             self.target_pose_pub.publish(target_pose)
                             time.sleep(0.2)
                 case ArmState.PATH_PLANNING:
-                    # TODO: implement path planning logic
-                    pass
+                    if self.path_executor_thread.is_alive:
+                        if not self.executing_path:
+                            self.path_executor_thread.join()
+                        else:
+                            pass
+                    else:
+                        self.path_executor_thread.start()
+                        self.executing_path = True
                 case ArmState.AUTO_KEYBOARD:
                 
                     for target in self.keyboard_targets:
@@ -340,64 +375,69 @@ class Controller(Node):
                 # make sure current_joints isn't modified by CAN thread while updating step
                 with self.homing_lock():
                     if self.homed[joint_index] == False:
+
+                        # Logic for handling when a limit is hit on joint index
                         if self.at_limit:
 
-                            # relative endpoint posiiton measures the distance between the initial joint position and the relative position of the limit switch
+                            # relative endpoint position measures the distance between the initial joint position and the relative position of the limit switch
                             self.relative_endpoint_pos[joint_index] = self.current_joints[joint_index]
 
-                            # set temporary joint offset (relative endpoint position is where the arm thinks it is and half the rotation span is where it actually is)
-                            # wait until homing for this joint is done to assign the actual joint offset
-                            if joint == 0 or joint == 6:
-                                if joint == 0:
-                                    base_joint_status += 1
-                                elif joint == 6:
-                                    wrist_roll_status += 1
-                                pass
+                            #TODO: make this cleaner
+                            if joint_index == 0 or joint_index == 6:
+                                if joint_index == 0:
+                                    joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
+                                    self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                    self.initial_positions[joint_index]
+                                    if self.last_quadrant[0] == 1:
+                                        joint_offsets[joint_index] += 360
+
+                                elif joint_index == 6:
+                                    joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
+                                    self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                    self.initial_positions[joint_index]
+                                    if self.last_quadrant[0] == 1:
+                                        joint_offsets[joint_index] += 360
                             else:
                                 joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
                                     self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
                                     self.initial_positions[joint_index]
-                                self.has_reached_endpoint = True
-                        if not self.has_reached_endpoint[joint_index]:
+                            self.has_reached_endpoint[joint_index] = True
+                        
+                        # if a limit has not been hit and the we have not reached the limit prior to this, go towards the endpoint (positive direction)
+                        elif not self.has_reached_endpoint[joint_index]:
                             # move towards forward limit switch
-                            if joint == 0 and base_joint_status == 1 or joint == 6 and wrist_roll_status == 1:
-                                # TODO: draw a diagram for this calculation and include it in documentation
-                                predicted_second_limit = self.relative_endpoint_pos + \
-                                    (self.safety_checker.joint_limits[joint_index][1]+(
-                                        360+self.safety_checker.joint_limits[joint_index][0])) + 10
-                                target_joints[joint_index] = predicted_second_limit
-                                if abs(self.current_joints[joint_index] - target_joints[joint_index]) < 1e-3:
-                                    self.homed[joint_index] = True
-                                    joint_offsets[joint_index] = self.current_joints[joint_index] - (
-                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
-                                        self.initial_positions[joint_index]
+                            target_joints[joint_index] += self.rotation_step[joint_index]
 
-                            elif joint == 0 and base_joint_status == 2 or joint == 6 and wrist_roll_status == 2:
-                                target_joints[joint_index] = current_joints[joint_index]
-                                self.relative_endpoint_pos[joint_index] = self.current_joints[joint_index]
-                                self.has_reached_endpoint[joint_index] = True
-                            else:
-                                target_joints[joint_index] += self.rotation_step[joint_index]
-
-                        else:
+                        # if a limit has not been hit, but we previously reached the limit, and we have not reached the absolute zero,
+                        # move back towards the absolute zero position
+                        elif not self.homed[joint_index]:
                             # calculate error between target zero position and current absolute position
                             error = (self.relative_endpoint_pos[joint_index] - self.current_joints[joint_index]) - (
                                 self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2
                             if abs(error) < self.homing_threshold:
                                 self.homed[joint_index] = True
                             else:
-                                target_joints[joint_index] -= self.rotation_step[joint_index]
+                                # TODO: factor of 1/30 is arbitrary, can be changed later
+                                target_joints[joint_index] = min(error*self.rotation_step/30, math.copysign(error)*self.rotation_step[joint_index])
 
-                    self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-                        target_joints, self.current_joints)
-                    msg = Float32MultiArray()
-                    msg.data = self.safe_target_joints
-                    self.safe_target_joints_pub.publish(msg)
+                        # if we are not actively homing for this joint anymore, maintain the current joint position
+                        else:
+                            target_joints[joint_index] = self.internal_current_joints[joint_index]
+            # double check that we are not finished yet
+            if all(homed == True for homed in self.homed):
+                self.homing = HomingStatus.COMPLETE
+            
+            # once a step has been calculated for each joint, publish the targets and then wait
+            self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
+                target_joints, self.current_joints)
+            msg = Float32MultiArray()
+            msg.data = self.safe_target_joints
+            self.safe_target_joints_pub.publish(msg)
+            
+            # update internal state
+            self.internal_current_joints = self.safe_target_joints
 
-                if all(homed == True for homed in self.homed):
-                    self.homing = HomingStatus.COMPLETE
-
-                threading.Event().wait(period)
+            threading.Event().wait(period)
         self.joint_offsets = joint_offsets
 
     def start_homing(self):
@@ -441,7 +481,7 @@ class Controller(Node):
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
-
+        self.arm_internal_current_joints = self.safe_target_joints
         # TODO: temporarily disabled, safety issues
         # self.can_con.send_target_message(self.safe_target_joints)
 
@@ -473,6 +513,7 @@ class Controller(Node):
                 msg.data = self.safe_target_joints
                 self.safe_target_joints_pub.publish(msg)
 
+                self.internal_current_joints = self.safe_target_joints
 
                 # DISABLED TEMPORARILY FOR SAFETY
                 # self.can_con.send_target_message(self.safe_target_joints)
