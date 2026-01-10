@@ -37,18 +37,8 @@ class CAN_connection():
         cmd = get_odrive_cmd_id(can_id)
         # man_id  = (can_id) & 0b00000111111110000000000000000
 
-        # If every element in motor_list is True, it means this was for initialization
-        # and we should break out of the loop
-        # if not False in motor_read:
-        # 	break
-
         # Getting the list index value based on motor device id
         index = dev_id
-
-        # If this is for initialization, set the correseponding element in motor_list to be True
-        # if init:
-        # 	motor_read[index] = True
-        # print(dev_id)
         
         if dev_id >= 0 and dev_id < self.num_joints:
             # # API for reading limit switch
@@ -62,27 +52,18 @@ class CAN_connection():
             if cmd == ODRIVE_CANAPI.CMD_API_GET_BUS_VOLTAGE_CURRENT.value:
 
                 # Update the MOTOR_CURR data
-                motor_curr[index] = read_can_message(
+                curr_val = read_can_message(
                     msg.data, ODRIVE_CANAPI.CMD_API_GET_BUS_VOLTAGE_CURRENT.value)
+                return (index, cmd, curr_val)
 
             # API for reading current position of motor
             elif cmd == ODRIVE_CANAPI.CMD_GET_ENCODER_ESTIMATES.value:
 
                 # Update the CURR_POS data
-                curr_angle[index] = read_can_message(
+                joint_val = read_can_message(
                     msg.data, ODRIVE_CANAPI.CMD_GET_ENCODER_ESTIMATES.value, index)
-
-                # Check if we updated wrist motors and apply the conversions
-                if index == 4 or index == 5:
-                    wrist1_angle = curr_angle[4]
-                    wrist2_angle = curr_angle[5]
-                    curr_angle[4] = float(
-                        (wrist1_angle + wrist2_angle) / (2 * WRIST_RATIO))
-                    curr_angle[5] = float(
-                        (wrist1_angle - wrist2_angle) / 2)
-
-                    
-        return curr_angle, lim_switch, motor_curr
+                return (index, cmd, joint_val)
+        return None
 
     def send_target_message(self, goal_position):
         """
