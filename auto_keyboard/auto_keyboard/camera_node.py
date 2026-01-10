@@ -23,18 +23,80 @@ class CameraNode(Node):
         self.camera_sub = self.create_subscription(Image, '/camera/camera/color/image_rect_raw', self.callback, 10)
         self.depth_sub = self.create_subscription(Image, '/camera/camera/aligned_depth_to_color/image_raw', self.update_depth_map, 10)
         self.last_frame = np.ndarray
-        self.last_depth_frame = np.ndarray
 
-        self.camera_info_sub = self.create_subscription(CameraInfo, '/camera/camera/aligned_depth_to_color/camera_info', self.camera_info_callback, 10)
-        self.camera_info = rs.extstruct.rs_intrinsics()
-        # load a YOLO model
-        # TODO: change to pull from config file
-        self.keyboard_model = YOLO('src/rsx_arm/auto_keyboard/custom_yolo.pt')
-        self.aruco_model = YOLO('src/rsx_arm/auto_keyboard/aruco_yolo.pt')
+        self.model = YOLO("yolo11n.pt")
 
-        self.keyboard_corner_pub = self.create_publisher(KeyboardCorners, 'keyboard_corners', 10)
+        # Initialize ArUco detector
+        self.aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_5X5_100) # add params
+        self.aruco_params = aruco.DetectorParameters()
+        self.aruco_detector = aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
 
-        self.get_logger().info("Camera YOLO node started.")
+        # Initialize keyboard calibration
+        self.keyboard_calibration = KeyboardCalibration()
+
+        # Load camera intrinsics for depth calculation (change placeholders)
+        self.camera_fx = 0.0
+        self.camera_fy = 0.0
+        self.camera_cx = 0.0
+        self.camera_cy = 0.0
+
+    def detect_aruco_markers(self, cv_image, depth_image):
+        """
+        Detect Aruco markers and compute their 3D positions.
+
+        Args:
+            cv_image: BGR image
+            depth_image
+        """
+        # Detect ArUco markers
+        corners, ids, rejected = self.aruco_detector.detectMarkers(cv_image)
+
+        if ids is not None:
+            # Draw detected markers
+            aruco.drawDetectedMarkers(cv_image, corners, ids)
+
+            for i, marker_id in enumerate(ids.flatten()):
+                # Get marker corners (4 corners per marker)
+                marker_corners = corners[i][0]
+
+                # Compute marker center in image coordinates
+                center_x = int(np.mean(marker_corners[:, 0]))
+                center_y = int(np.mean(marker_corners[:, 1]))
+
+                # TODO: Get depth value at marker center
+                # depth = depth_image[center_y, center_x]  # in meters or mm
+                depth = 1.0  # Placeholder depth value (testing with static image)
+
+                # Convert 2D image coordinates + depth to 3D camera frame
+                position_3d = self.compute_3d_position(center_x, center_y, depth)
+
+                # Update keyboard calibration with corner detection
+                self.keyboard_calibration.update_corner_detection(marker_id, position_3d)
+
+                self.get_logger().info(
+                    f"Aruco marker {marker_id} detected at 3D position: {position_3d}"
+                )
+
+        return cv_image
+
+    def compute_3d_position(self, pixel_x, pixel_y, depth):
+        """
+        Convert 2D pixel coordinates + depth to 3D camera frame coordinates.
+
+        Args:
+            pixel_x: X coordinate in image (pixels)
+            pixel_y: Y coordinate in image (pixels)
+            depth: Depth value (meters)
+
+        Returns:
+            np.array: (x, y, z) position in camera frame
+        """
+        # Convert from pixel coordinates to camera frame, change placeholders
+        x = 0
+        y = 0
+        z = depth
+
+        return np.array([x, y, z])
 
     def callback(self, data):
         try:

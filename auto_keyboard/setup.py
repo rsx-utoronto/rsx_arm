@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'camera_node=auto_keyboard.camera_node:main'
+            'camera_node=auto_keyboard.camera_node:main',
+            'testing=auto_keyboard.testing:main'
         ],
     },
 )
