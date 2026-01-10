@@ -2,7 +2,7 @@
 
 import can
 import struct
-from arm_utilities.arm_enum_utils import CANAPI
+from arm_utilities.arm_enum_utils import CANAPI, ODRIVE_CANAPI
 
 ########## GLOBAL VARIABLES ##########
 
@@ -14,6 +14,37 @@ WRIST_RATIO = 5/4
 
 ########## SHARED FUNCTIONS ##########
 
+# Refer to this page for full ODrive CAN protocol documentation:
+# https://docs.odriverobotics.com/v/0.5.6/can-protocol.html
+def get_odrive_dev_id(can_id: int) -> int:
+    """
+    (int) -> (int)
+
+    Extracts the device ID from the given ODrive CAN ID
+
+    @parameters
+
+    can_id (int) = The complete CAN ID from which the device ID needs to be extracted
+    """
+
+    dev_id = (can_id >> 5) & 0b111111  # Upper 6 bits represent device ID
+
+    return dev_id
+
+def get_odrive_cmd_id(can_id: int) -> int:
+    """
+    (int) -> (int)
+
+    Extracts the command ID from the given ODrive CAN ID
+
+    @parameters
+
+    can_id (int) = The complete CAN ID from which the command ID needs to be extracted
+    """
+
+    cmd_id = can_id & 0b11111  # Lower 5 bits represent command ID
+
+    return cmd_id
 
 def generate_can_id(dev_id: int, api: int,
                     man_id=0x05, dev_type=0x2) -> int:
@@ -168,7 +199,7 @@ def send_can_message(bus, can_id: int, data=None, ext=True, err=False, rtr=False
     return
 
 
-def read_can_message(data, api, motor_num: int = 0) -> float:
+def read_can_message(data, cmd, motor_num: int = 0) -> float:
     """
     (bytearray, int, int) -> (float)
 
@@ -181,35 +212,33 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
     api (int) = The API you want the payload of
     motor_num (int) (optional) = The motor number that can be used for indexing lists
     """
-    if api:
-        # API: Status Message 1 - Gives us information on limit switches
-        if api == CANAPI.CMD_API_STAT0:
-            # 132 for forward and 68 for reverse
-            limitswitch_pressed = data[3] & 0xC0
 
-            # Return 1 if limit switches are pressed
-            if limitswitch_pressed > 0:
-                return 1
+    if cmd:
+        # # API: Status Message 1 - Gives us information on limit switches
+        # if api == CANAPI.CMD_API_STAT0:
+        #     # 132 for forward and 68 for reverse
+        #     limitswitch_pressed = data[3] & 0xC0
 
-            # Return 0 if no limit switches are pressed
-            else:
-                return 0
+        #     # Return 1 if limit switches are pressed
+        #     if limitswitch_pressed > 0:
+        #         return 1
+
+        #     # Return 0 if no limit switches are pressed
+        #     else:
+        #         return 0
 
         # API: Status Message 1 - Gives us motor velocity, motor voltage and
         # motor current every 20ms. We only need current
-        elif api == CANAPI.CMD_API_STAT1:
+        if cmd == ODRIVE_CANAPI.CMD_API_GET_BUS_VOLTAGE_CURRENT.value:
 
             # Getting the motor current value stored as hexadecimals
-            currVal_fixed = (data[-1] << 4) | ((data[-2] & 0xF0) >> 4)
+            current = struct.unpack('<f', data[4:8])
 
-            # SparkMAX stores motor current value in fixed point format,
-            # need to convert it to float for reading
-            currVal_float = sparkfixed_to_float(currVal_fixed)
-
-            return currVal_float
+            return current
 
         # API: Status Message 2 - Gives us current position and comes every 20ms
-        elif api == CANAPI.CMD_API_STAT2:
+        elif cmd == ODRIVE_CANAPI.CMD_GET_ENCODER_ESTIMATES.value:
+
             # Checking if all the bits are 0 or not, if yes return 0
             if not (data[3] or data[2] or data[1] or data[0]):
                 return 0

@@ -1,6 +1,5 @@
 from arm_utilities.arm_can_utils import *
-from arm_utilities.arm_enum_utils import CANAPI
-
+from arm_utilities.arm_enum_utils import CANAPI, ODRIVE_CANAPI
 
 class CAN_connection():
     def __init__(self, channel="can0", interface='socketcan', receive_own_messages=False, num_joints=7, send_rate=1000, read_rate=1000):
@@ -34,38 +33,56 @@ class CAN_connection():
             return None
         # Checking if SparkMAXes are powered on and sending status messages
         can_id = msg.arbitration_id
-        dev_id = can_id & 0b00000000000000000000000111111
-        api = (can_id >> 6) & 0b00000000000001111111111
+        dev_id = get_odrive_dev_id(can_id)
+        cmd = get_odrive_cmd_id(can_id)
+        # man_id  = (can_id) & 0b00000111111110000000000000000
+
+        # If every element in motor_list is True, it means this was for initialization
+        # and we should break out of the loop
+        # if not False in motor_read:
+        # 	break
 
         # Getting the list index value based on motor device id
-        index = dev_id - 11
+        index = dev_id
 
-        if dev_id > 10:
-            # API for reading limit switch
-            if api == CANAPI.CMD_API_STAT0.value:
+        # If this is for initialization, set the correseponding element in motor_list to be True
+        # if init:
+        # 	motor_read[index] = True
+        # print(dev_id)
+        
+        if dev_id >= 0 and dev_id < self.num_joints:
+            # # API for reading limit switch
+            # if cmd == CANAPI.CMD_API_STAT0.value:
 
-                # Update the LIMIT_SWITCH data
-                lim_value = read_can_message(
-                    msg.data, CANAPI.CMD_API_STAT0)
-                return (index, api, lim_value)
+            #     # Update the LIMIT_SWITCH data
+            #     lim_switch[index] = read_can_message(
+            #         msg.data, CANAPI.CMD_API_STAT0) # Should we append a ".value"?
 
-            # API for reading motor current
-            elif api == CANAPI.CMD_API_STAT1.value:
+            # cmd for reading motor current
+            if cmd == ODRIVE_CANAPI.CMD_API_GET_BUS_VOLTAGE_CURRENT.value:
 
                 # Update the MOTOR_CURR data
-                curr_value = read_can_message(
-                    msg.data, CANAPI.CMD_API_STAT1)
-                return (index, api, curr_value)
+                motor_curr[index] = read_can_message(
+                    msg.data, ODRIVE_CANAPI.CMD_API_GET_BUS_VOLTAGE_CURRENT.value)
 
             # API for reading current position of motor
-            elif api == CANAPI.CMD_API_STAT2.value:
+            elif cmd == ODRIVE_CANAPI.CMD_GET_ENCODER_ESTIMATES.value:
 
                 # Update the CURR_POS data
-                joint_val = read_can_message(
-                    msg.data, CANAPI.CMD_API_STAT2, index)
-                return (index, api, joint_val)
-                
+                curr_angle[index] = read_can_message(
+                    msg.data, ODRIVE_CANAPI.CMD_GET_ENCODER_ESTIMATES.value, index)
 
+                # Check if we updated wrist motors and apply the conversions
+                if index == 4 or index == 5:
+                    wrist1_angle = curr_angle[4]
+                    wrist2_angle = curr_angle[5]
+                    curr_angle[4] = float(
+                        (wrist1_angle + wrist2_angle) / (2 * WRIST_RATIO))
+                    curr_angle[5] = float(
+                        (wrist1_angle - wrist2_angle) / 2)
+
+                    
+        return curr_angle, lim_switch, motor_curr
 
     def send_target_message(self, goal_position):
         """
