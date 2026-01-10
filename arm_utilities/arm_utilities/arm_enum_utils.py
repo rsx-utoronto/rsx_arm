@@ -7,6 +7,7 @@ class ArmState(Enum):
     IK = 2
     PATH_PLANNING = 3
     SCIENCE = 4
+    AUTO_KEYBOARD = 5
 
 
 class ControlMode(Enum):
@@ -27,6 +28,7 @@ class SafetyErrors(Enum):
     EXCEEDING_CURRENT = 2
     EXCEEDING_POS_CURRENT = 3
     LIMIT_SWITCH = 4  # May switch out of an error as this is not only used as an error
+
 
 class CANAPI(Enum):
     # CANSpark APIs

@@ -1,0 +1,23 @@
+# PlannerServer configuration parameters
+
+planner_server:
+  ros__parameters:
+    # Planning group and reference frames
+    planning_group: "rover_arm"
+    base_frame: "base_link"
+    ee_frame: "end_effector_link"
+    
+    # Default planner settings
+    default_planner_id: "RRTConnectkConfigDefault"  # OMPL planner to use by default
+    default_planning_time: 5.0  # seconds
+    default_num_attempts: 1  # number of planning attempts
+    default_velocity_scaling: 0.1  # velocity scaling factor (0.0-1.0)
+    default_acceleration_scaling: 0.1  # acceleration scaling factor (0.0-1.0)
+    
+    # Cartesian path planning settings
+    default_cartesian_step: 0.01  # maximum step size in meters
+    default_cartesian_jump_threshold: 0.0  # jump threshold (0.0 = disabled)
+    
+    # Advanced options
+    default_allow_replanning: false  # allow replanning if initial plan fails
+    use_time_optimal_parameterization: false  # use TOTG instead of IPTP

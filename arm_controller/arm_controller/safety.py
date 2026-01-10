@@ -16,14 +16,14 @@ class SafetyChecker():
         # TODO: max change in theta at a given step, need to test and put in a config file
         self.max_d_theta = [10, 10, 10, 10, 120, 120, 80000]
         # TODO: currently set arbitrarily, needs to correspond correctly with the actual arm
-        self.joint_limits = [(-180, 180), (-180, 180), (-180, 180), (-180, 180), (-180, 180), (-180, 180), (-math.inf, math.inf)]
+        self.joint_limits = [(-180, 180), (-180, 180), (-180, 180),
+                             (-180, 180), (-180, 180), (-180, 180), (-math.inf, math.inf)]
 
         self.goal_pos = [0., 0., 0., 0., 0., 0., 0.]
         self.curr_pos = [0., 0., 0., 0., 0., 0., 0.]
         self.motor_curr = [0., 0., 0., 0., 0., 0., 0.]
         # TODO may need to make this with direction
         self.limit_switch = [False, False, False, False, False, False]
-        self.STATE = ArmState.IDLE
 
         # Arm position errors
         self.safe_goal_pos = Float32MultiArray()
@@ -32,24 +32,21 @@ class SafetyChecker():
         self.joint_safety_status = [SafetyErrors.NONE]*len(self.goal_pos)
 
     def update_safe_goal_pos(self, goal_pos: list, curr_pos: list) -> None:
-        if self.STATE == ArmState.MANUAL or self.STATE == ArmState.IK:
 
-            # Check if the goal position is safe
-            self.goal_pos, pos_safety_status = self.constrain_safe_pos(
-                goal_pos)
-            curr_safety_status = self.current_check(self.goal_pos)
+        # Check if the goal position is safe
+        self.curr_pos = curr_pos
+        self.goal_pos, pos_safety_status = self.constrain_safe_pos(
+            goal_pos)
+        curr_safety_status = self.current_check(self.goal_pos)
 
-        else:
-            return goal_pos, [0] * len(self.goal_pos)
         safety_status = [0] * len(self.goal_pos)
         for i in range(len(self.goal_pos)):
-            # TODO: the typing here is hardcoded, it shouldn't be 
-            safety_status[i] = int(pos_safety_status[i]) + int(curr_safety_status[i])
-        print(goal_pos, safety_status)
+            # TODO: the typing here is hardcoded, it shouldn't be
+            safety_status[i] = int(pos_safety_status[i]) + \
+                int(curr_safety_status[i])
         return goal_pos, safety_status
 
     def constrain_safe_pos(self, pos: list = None) -> None:
-
 
         joint_pos_safety_status = [SafetyErrors.NONE.value]*len(self.goal_pos)
         if not pos:
@@ -58,18 +55,21 @@ class SafetyChecker():
         # Going through each element of GOAL_POS
         for i in range(len(self.goal_pos)):
             # Doing position comparisons for safety
+            # Clamp to max change in theta
             safe_goal_pos[i] = clamp(
                 pos[i], self.curr_pos[i]-self.max_d_theta[i], self.curr_pos[i]+self.max_d_theta[i])
-            if safe_goal_pos[i] != pos[i]:
 
+            if safe_goal_pos[i] != pos[i]:
+                print("Constrained joint %d due to excessive change in angle" % i)
                 self.logger().info("Constrained joint %d due to excessive change in angle" % i)
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
-                
+
             pos[i] = safe_goal_pos[i]
 
-            safe_goal_pos[i] = clamp(pos[i], self.joint_limits[i][0], self.joint_limits[i][1])
+            safe_goal_pos[i] = clamp(
+                pos[i], self.joint_limits[i][0], self.joint_limits[i][1])
             if safe_goal_pos[i] != pos[i]:
-
+                print("Constrained joint %d due to movement outside joint limits" % i)
                 self.logger().info("Constrained joint %d due to movement outside joint limits" % i)
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
                 continue
@@ -77,15 +77,11 @@ class SafetyChecker():
 
     def current_check(self, pos: list = None) -> None:
         '''
-        (None) -> (None)
 
         Checks the maximum current being consumed by a motor. If the current is higher than
-        the expected max, sets the error for the particular motor as Errors.ERROR_EXCEEDING_CURRENT.
+        the expected max, sets the error for the particular motor as SafetyErrors.EXCEEDING_CURR.
         Helps us to know when too much torque is being applied
 
-        @parameters
-
-        pos (list(int)) (optional): POS values to be checked. Only fill it for IK mode, otherwise keep it None
         '''
         # TODO: move to config file
         # Max current values for each motor

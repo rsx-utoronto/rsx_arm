@@ -4,12 +4,13 @@ jinja2
 typeguard
 empy<4
 lark
-numpy
+numpy<2
 python-xlib
 evdev
 pynput
 scipy
-geometry_msgs
 rclpy
 python-can==4.6.0
 autopep8
+ultralytics
+pyrealsense2
