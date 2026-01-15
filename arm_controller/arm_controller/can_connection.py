@@ -74,13 +74,13 @@ class CAN_connection():
         odrive_input = generate_odrive_data_packet(goal_position)  # assuming data is safe
 
         # Send data packets
-        for i in range(1, len(spark_input)+1):
+        for i in range(1, len(odrive_input)+1):
 
-            # Motor number corresponds with device ID of the SparkMAX
+            # Motor number corresponds with device ID of the odrive
             motor_num = i
 
             # print(spark_input)
-            if motor_num >= 0 and motor_num < 8:
+            if motor_num > 0 and motor_num < 8:
                 # API WILL BE CHANGED WHEN USING THE POWER (DC) SETTING
                 id = generate_odrive_can_id(motor_id=motor_num, cmd_id=ODRIVE_CANAPI.CMD_API_SET_INPUT_POS)
                 send_can_message(self.bus, can_id=id, data=odrive_input[i - 1])
