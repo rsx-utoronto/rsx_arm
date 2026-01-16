@@ -1,4 +1,4 @@
-Vector3 TL
-Vector3 TR
-Vector3 BL
-Vector3 BR
+geometry_msgs/Vector3 tl
+geometry_msgs/Vector3 tr
+geometry_msgs/Vector3 bl
+geometry_msgs/Vector3 br
