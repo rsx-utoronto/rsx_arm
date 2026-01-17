@@ -17,6 +17,7 @@ class CameraNode(Node):
     def __init__(self):
         # create camera node
         super().__init__('camera')
+        self.annotated_pub = self.create_publisher(Image, 'camera/annotated_frame', 10)
         self.camera_pub = self.create_publisher(Float32MultiArray, 'camera_numpy_array_topic', 10)
 
         self.bridge = CvBridge()
@@ -60,11 +61,16 @@ class CameraNode(Node):
                 return
 
             # get bounding boxes
-            annotated_frame = results[0].plot()
+            annotated_frame = aruco_results[0].plot()
             # print("heyo")
+
             # Display live stream
             cv2.imshow("YOLO Inference", annotated_frame)
             cv2.waitKey(1)
+            # which can be replaced by:
+            img_msg = self.bridge.cv2_to_imgmsg(annotated_frame, encoding="bgr8")
+            self.annotated_pub.publish(img_msg)
+
 
         except CvBridgeError as e: 
             # HI DUDE

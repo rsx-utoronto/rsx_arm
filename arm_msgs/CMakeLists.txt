@@ -32,6 +32,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ArmInputs.msg"
   "srv/PlanMotion.srv"
   "action/PlanAndExecute.action"
+  "msg/KeyboardCorners.msg"
+
   DEPENDENCIES geometry_msgs moveit_msgs
 )
 
