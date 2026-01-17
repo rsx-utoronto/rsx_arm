@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import yaml
+from rclpy.node import Node
 
 from .schema import ArmControllerConfig
 
@@ -29,8 +30,21 @@ def merge_dicts(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return merged
 
 
+def normalize_override_paths(
+    override_paths: Iterable[str | Path] | str | Path | None,
+) -> list[str | Path]:
+    if override_paths is None:
+        return []
+    if isinstance(override_paths, Path):
+        return [override_paths]
+    if isinstance(override_paths, str):
+        parts = [part.strip() for part in override_paths.split(",")]
+        return [part for part in parts if part]
+    return list(override_paths)
+
+
 def load_arm_controller_config(
-    override_paths: Iterable[str | Path] | None = None,
+    override_paths: Iterable[str | Path] | str | Path | None = None,
     default_path: str | Path | None = None,
 ) -> ArmControllerConfig:
     if default_path is None:
@@ -38,8 +52,24 @@ def load_arm_controller_config(
 
     merged = read_yaml(Path(default_path))
 
-    if override_paths:
-        for path in override_paths:
-            merged = merge_dicts(merged, read_yaml(Path(path)))
+    for path in normalize_override_paths(override_paths):
+        merged = merge_dicts(merged, read_yaml(Path(path)))
 
     return ArmControllerConfig(**merged)
+
+
+def load_arm_controller_config_from_node(
+    node: Node,
+    *,
+    default_path: str | Path | None = None,
+) -> ArmControllerConfig:
+    node.declare_parameter("config_file", "")
+    node.declare_parameter("config_overrides", "")
+
+    config_file = node.get_parameter("config_file").value or None
+    override_paths = node.get_parameter("config_overrides").value
+
+    return load_arm_controller_config(
+        override_paths=override_paths,
+        default_path=config_file or default_path,
+    )
