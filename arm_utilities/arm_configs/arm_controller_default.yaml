@@ -1,0 +1,22 @@
+node_name: "Arm_Controller"
+speed_limits:
+  - 0.1
+  - 0.09
+  - 0.15
+  - 0.75
+  - 0.12
+  - 0.12
+  - 20
+publisher_depth_queue: 10
+subscriber_depth_queue: 10
+arm_state_topic: "arm_state"
+target_joint_topic: "arm_target_joints"
+target_pose_topic: "arm_target_pose"
+killswitch_topic: "arm_killswitch"
+joy_topic: "/joy"
+arm_curr_pos_topic: "arm_curr_pos"
+joint_safety_state_topic: "joint_safety_state"
+homing_combo_buttons:
+  - "x"
+  - "o"
+allow_ik_without_homing: false
