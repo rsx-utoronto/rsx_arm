@@ -88,7 +88,6 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     
     // Convert Pose -> Eigen::Isometry3d
     Eigen::Isometry3d target_pose_eigen = poseMsgToEigen(*target_pose_msg);
-    
     // Solve IK
     bool found_ik = current_state->setFromIK(
         joint_model_group,
@@ -107,24 +106,15 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     // Extract joint positions
     std::vector<double> joint_values;
     current_state->copyJointGroupPositions(joint_model_group, joint_values);
-    
-    // Fill RobotTrajectory with a single waypoint
-    moveit_msgs::msg::RobotTrajectory traj;
-    traj.joint_trajectory.joint_names = joint_model_group->getVariableNames();
-    traj.joint_trajectory.header.stamp = this->now();
-    traj.joint_trajectory.header.frame_id = _move_group->getPlanningFrame();
-    
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = joint_values;
-    point.velocities.resize(joint_values.size(), 0.0);
-    point.accelerations.resize(joint_values.size(), 0.0);
-    point.time_from_start = rclcpp::Duration::from_seconds(1.0);
-    
-    traj.joint_trajectory.points.push_back(point);
-    
-    // Publish
-    publishPath(traj);
-    RCLCPP_INFO(get_logger(), "IK solution published!");
+    RCLCPP_INFO(get_logger(), "IK solution found:");
+    for (size_t i = 0; i < joint_values.size(); ++i) {
+        RCLCPP_INFO(get_logger(), "  Joint %zu: %.4f", i, joint_values[i]);
+    }
+
+    // Publish joint positions
+    std_msgs::msg::Float32MultiArray msg;
+    msg.data.assign(joint_values.begin(), joint_values.end());
+    _joint_pose_pub->publish(msg);
 }
 
 // In your joint_callback function - add this at the end:
@@ -146,7 +136,7 @@ void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::Sha
     robot_state->update();
 
     // Compute FK
-    Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("finger_1");
+    Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("link_6");
 
     geometry_msgs::msg::Pose pose_msg;
     pose_msg.position.x = tf.translation().x();
@@ -172,12 +162,6 @@ void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::Sha
     joint_state_msg.position = joint_positions;
     
     _joint_state_pub->publish(joint_state_msg);
-    
-    RCLCPP_INFO(this->get_logger(),
-      "FK Published: [x=%.3f  y=%.3f  z=%.3f]",
-      pose_msg.position.x,
-      pose_msg.position.y,
-      pose_msg.position.z);
 }
 
 void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const {

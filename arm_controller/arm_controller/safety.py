@@ -17,7 +17,7 @@ class SafetyChecker():
         self.max_d_theta = [10, 10, 10, 10, 120, 120, 80000]
         # TODO: currently set arbitrarily, needs to correspond correctly with the actual arm
         self.joint_limits = [(-180, 180), (-180, 180), (-180, 180),
-                             (-180, 180), (-180, 180), (-180, 180), (-math.inf, math.inf)]
+                             (-180, 180), (-math.inf, math.inf), (-math.inf, math.inf), (-math.inf, math.inf)]
 
         self.goal_pos = [0., 0., 0., 0., 0., 0., 0.]
         self.curr_pos = [0., 0., 0., 0., 0., 0., 0.]
