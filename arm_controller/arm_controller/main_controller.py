@@ -41,7 +41,8 @@ class Controller(Node):
         # Initialize CAN connection
         if virtual:
             self.can_con = CAN_connection(
-                channel="vcan0", interface="virtual", receive_own_messages=True, num_joints=n_joints)
+                # channel="vcan0", interface="virtual", receive_own_messages=True, num_joints=n_joints)
+                channel="vcan0", receive_own_messages=True, num_joints=n_joints)
         else:
             self.can_con = CAN_connection(num_joints=n_joints)
 
@@ -112,11 +113,12 @@ class Controller(Node):
         self.joint_target_threshold = 1 # maximum allowed error in degrees to consider joint target reached
 
         # Nonblocking keyboard listener
-        self.keyboard_listener = keyboard.Listener(
-            on_press=self.on_press,
-            on_release=self.on_release
-        )
-        self.keyboard_listener.start()
+        if self.control_mode == ControlMode.KEYBOARD:
+            self.keyboard_listener = keyboard.Listener(
+                on_press=self.on_press,
+                on_release=self.on_release
+            )
+            self.keyboard_listener.start()
 
         # Joint limit tracking
         self.at_limit = [False] * self.n_joints

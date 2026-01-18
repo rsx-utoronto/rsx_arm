@@ -3,6 +3,7 @@ from arm_utilities.arm_enum_utils import CANAPI, ODRIVE_CANAPI
 
 class CAN_connection():
     def __init__(self, channel="can0", interface='socketcan', receive_own_messages=False, num_joints=7, send_rate=1000, read_rate=1000):
+        print(channel, interface, receive_own_messages)
         self.bus = initialize_bus(channel, interface, receive_own_messages)
         hb = can.Message(
             arbitration_id=generate_can_id(
@@ -13,7 +14,7 @@ class CAN_connection():
             is_remote_frame=False,
             is_error_frame=False
         )
-        task = self.bus.send_periodic(hb, 0.01, store_task=False)
+        # task = self.bus.send_periodic(hb, 0.01, store_task=False)
         self.send_rate = send_rate
         self.read_rate = read_rate
         self.num_joints = num_joints
@@ -57,11 +58,11 @@ class CAN_connection():
                 return (index, cmd, curr_val)
 
             # API for reading current position of motor
-            elif cmd == ODRIVE_CANAPI.CMD_GET_ENCODER_ESTIMATES.value:
+            elif cmd == ODRIVE_CANAPI.CMD_API_GET_ENCODER_ESTIMATES.value:
 
                 # Update the CURR_POS data
                 joint_val = read_can_message(
-                    msg.data, ODRIVE_CANAPI.CMD_GET_ENCODER_ESTIMATES.value, index)
+                    msg.data, ODRIVE_CANAPI.CMD_API_GET_ENCODER_ESTIMATES.value, index)
                 return (index, cmd, joint_val)
         return None
 
@@ -82,7 +83,7 @@ class CAN_connection():
             # print(spark_input)
             if motor_num > 0 and motor_num < 8:
                 # API WILL BE CHANGED WHEN USING THE POWER (DC) SETTING
-                id = generate_odrive_can_id(motor_id=motor_num, cmd_id=ODRIVE_CANAPI.CMD_API_SET_INPUT_POS)
+                id = generate_odrive_can_id(motor_id=motor_num, cmd_id=ODRIVE_CANAPI.CMD_API_SET_INPUT_POS.value)
                 send_can_message(self.bus, can_id=id, data=odrive_input[i - 1])
 
             else:
