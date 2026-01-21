@@ -1,4 +1,4 @@
-geometry_msgs/Vector3 tl
-geometry_msgs/Vector3 tr
-geometry_msgs/Vector3 bl
-geometry_msgs/Vector3 br
+geometry_msgs/Point tl
+geometry_msgs/Point tr
+geometry_msgs/Point bl
+geometry_msgs/Point br

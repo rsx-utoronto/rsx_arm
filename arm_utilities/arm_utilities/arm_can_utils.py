@@ -327,7 +327,6 @@ def generate_data_packet(data_list: list) -> list:
         elif i + 1 == 7:
             # gripper_correction needs to be added according to previous
             angle = data_list[i]
-            # the gripper correction is in gripper ccchannelcchannelcchannelcchannelcchannelchannel = 'vcan0', interface = 'virtual'channel = 'vcan0', interface = 'virtual'channel = 'vcan0', interface = 'virtual'ontroller - check this out further
 
         # For any other motor
         else:
@@ -336,7 +335,6 @@ def generate_data_packet(data_list: list) -> list:
         # Converting the angle to spark data
         angle = angle/360 * REDUCTION[i]
         spark_data.append(pos_to_sparkdata(angle))
-
     return spark_data
 
 # odrive variants
