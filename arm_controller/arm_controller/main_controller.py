@@ -9,7 +9,7 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
 from arm_msgs.msg import ArmInputs, KeyboardCoords
 from geometry_msgs.msg import Pose, Point, Quaternion
-from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
+from arm_utilities.arm_enum_utils import ODRIVE_CANAPI, ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
 from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
@@ -184,27 +184,27 @@ class Controller(Node):
             api = read_msg[1]
             value = read_msg[2]
             # Limit switch
-            if api == CANAPI.CMD_API_STAT0.value:
-                if read_msg[2] == 1:
-                    # self.get_logger().warn("Joint %d hit limit!" % n)
-                    self.at_limit[index] = True
-                    if index == 0 or index == 6:
-                        # TODO: this should be cleaner, log if joint is on positive or negative side of limit
-                        with open("limit_log.txt", "w") as f:
-                            f.write("Joint %d hit limit going: %f\n" % (index, math.copysign(self.current_joints[index])))
-                            if index == 0:
-                                f.write("Joint 6 hit limit going %d\n" % self.current_joints[1])
-                            else:
-                                f.write("Joint 0 hit limit going %d\n" % self.current_joints[0])
-                    else:
-                        pass
+            # if api == CANAPI.CMD_API_STAT0.value:
+            #     if read_msg[2] == 1:
+            #         # self.get_logger().warn("Joint %d hit limit!" % n)
+            #         self.at_limit[index] = True
+            #         if index == 0 or index == 6:
+            #             # TODO: this should be cleaner, log if joint is on positive or negative side of limit
+            #             with open("limit_log.txt", "w") as f:
+            #                 f.write("Joint %d hit limit going: %f\n" % (index, math.copysign(self.current_joints[index])))
+            #                 if index == 0:
+            #                     f.write("Joint 6 hit limit going %d\n" % self.current_joints[1])
+            #                 else:
+            #                     f.write("Joint 0 hit limit going %d\n" % self.current_joints[0])
+            #         else:
+            #             pass
             
             # Motor current value
-            elif api == CANAPI.CMD_API_STAT1.value:
+            if api == ODRIVE_CANAPI.CMD_API_GET_BUS_VOLTAGE_CURRENT.value:
                 self.motor_curr[index] = value
             
             # Joint angle value
-            elif api == CANAPI.CMD_API_STAT2.value:
+            elif api == ODRIVE_CANAPI.CMD_API_GET_ENCODER_ESTIMATES.value:
                 # Check if we updated wrist motors and apply the conversions
                 if index == 4:
                     wrist1_angle = value
