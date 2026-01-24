@@ -129,28 +129,6 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     msg.data.assign(joint_values.begin(), joint_values.end());
     _joint_pose_pub->publish(msg);
 
-    // publish to rviz
-    sensor_msgs::msg::JointState rviz_msg;
-
-        // Timestamp (important for RViz)
-        // msg.header.stamp = this->get_clock()->now();
-        rviz_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-
-
-        // Joint names must match the URDF exactly
-        rviz_msg.name = {
-            "joint_1",
-            "joint_2",
-            "joint_3",
-            "joint_4",
-            "joint_5",
-            "joint_6"
-        };
-
-        // Copy joint angles
-        rviz_msg.position.assign(joint_values.begin(), joint_values.end());
-
-        this->_rviz_joint_pose_pub->publish(rviz_msg);
 }
 
 // In your joint_callback function - add this at the end:
@@ -213,12 +191,6 @@ void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr ta
         return;
     }
 
-//     auto const [success, plan] = [&_move_group]{
-//     moveit::planning_interface::MoveGroupInterface::Plan msg;
-//     auto const ok = static_cast<bool>(_move_group->plan(msg));
-//     return std::make_pair(ok, msg);
-//   }();
-
     _move_group->execute(plan_msg);
     RCLCPP_INFO(get_logger(), "Planning succeeded! Publishing trajectory...");
 
@@ -258,37 +230,5 @@ void PathPlannerNode::publishPath(moveit_msgs::msg::RobotTrajectory& trajectory)
         msg.data.assign(joint_positions.begin(), joint_positions.end());
        	_joint_path_pub->publish(msg);
     }
-
-    // publish rviz
-    for (const auto& point : trajectory.joint_trajectory.points) {
-
-        std::array<double, NUM_JOINTS> joint_positions{};
-
-        for (size_t i = 0; i < NUM_JOINTS && i < point.positions.size(); ++i) {
-            joint_positions[i] = point.positions[i];
-        }
-
-            // publish_joint_states(joint_positions);
-        sensor_msgs::msg::JointState rviz_msg;
-
-        // Timestamp (important for RViz)
-        // msg.header.stamp = this->get_clock()->now();
-        rviz_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-
-
-        // Joint names must match the URDF exactly
-        rviz_msg.name = {
-            "joint_1",
-            "joint_2",
-            "joint_3",
-            "joint_4",
-            "joint_5",
-            "joint_6"
-        };
-
-        // Copy joint angles
-        rviz_msg.position.assign(joint_positions.begin(), joint_positions.end());
-
-        this->_rviz_joint_pose_pub->publish(rviz_msg);
-    }
+    
 }
