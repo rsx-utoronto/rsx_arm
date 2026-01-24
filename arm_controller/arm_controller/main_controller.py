@@ -60,7 +60,7 @@ class Controller(Node):
         self.speed_limits = [1.5, 2, 1, 1, 1.5, 1.5, 50]
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
-        # self.current_pose = Pose()
+        self.current_pose = Pose()
         self.current_joints = [0.0] * self.n_joints
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
@@ -465,7 +465,8 @@ class Controller(Node):
         # Pose will be returned in a subscription, should update elsewhere
 
     def update_fk_pose_callback(self, msg):
-        self.current_pose = msg
+        pass
+        #self.current_pose = msg
 
     def shutdown_node(self):
         self.get_logger().info("Shutting down node")
