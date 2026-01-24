@@ -1,4 +1,4 @@
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import Float32MultiArray
 from arm_msgs.msg import KeyboardCorners
 from cv_bridge import CvBridge, CvBridgeError
@@ -27,11 +27,13 @@ class CameraNode(Node):
         self.last_depth_frame = np.ndarray
 
         self.camera_info_sub = self.create_subscription(CameraInfo, '/camera/camera/aligned_depth_to_color/camera_info', self.camera_info_callback, 10)
-        self.camera_info = rs.extstruct.rs_intrinsics()
+        # self.camera_info = rs.extstruct.rs_intrinsics()
+        self.camera_info = rs.intrinsics()
         # load a YOLO model
         # TODO: change to pull from config file
         self.keyboard_model = YOLO('src/rsx_arm/auto_keyboard/custom_yolo.pt')
-        self.aruco_model = YOLO('src/rsx_arm/auto_keyboard/aruco_yolo.pt')
+        # uncomment when we have the aruco YOLO modele
+        # self.aruco_model = YOLO('src/rsx_arm/auto_keyboard/aruco_yolo.pt')
 
         self.keyboard_corner_pub = self.create_publisher(KeyboardCorners, 'keyboard_corners', 10)
 
@@ -49,19 +51,20 @@ class CameraNode(Node):
             # Run YOLO inference
             # TODO: might just not use the keybaord detection i don't have time to do this lol
             keyboard_results  = self.keyboard_model(cv_image)
-            aruco_results = self.aruco_model(cv_image)
-            if len(aruco_results.boxes) == 4:
-                self.get_logger().info("All ArUco markers detected, approximating keyboard corners")
-                aruco_corners = []
-                for box in aruco_results.boxes:
-                    aruco_corners.append(box.xyxy)
+            # aruco_results = self.aruco_model(cv_image)
+            # if len(aruco_results.boxes) == 4:
+            #     self.get_logger().info("All ArUco markers detected, approximating keyboard corners")
+            #     aruco_corners = []
+            #     for box in aruco_results.boxes:
+            #         aruco_corners.append(box.xyxy)
                 
-                msg = self.get_keyboard_corners(aruco_corners, self.last_frame)
-                self.keyboard_corner_pub.publish(msg)
-                return
+            #     msg = self.get_keyboard_corners(aruco_corners, self.last_frame)
+            #     self.keyboard_corner_pub.publish(msg)
+            #     return
 
             # get bounding boxes
-            annotated_frame = aruco_results[0].plot()
+            annotated_frame = keyboard_results[0].plot()
+            # annotated_frame = aruco_results[0].plot()
             # print("heyo")
 
             # Display live stream

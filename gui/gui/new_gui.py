@@ -18,7 +18,7 @@ from cv_bridge import CvBridge
 
 class CameraSubscriberNode(Node):
     def __init__(self, signal):
-        super().__init('cv_subscriber_node')
+        super().__init__('cv_subscriber_node')
         self.bridge = CvBridge()
         self.signal = signal
         self.subscription = self.create_subscription(Image, 'camera/annotated_frame', self.image_callback, 10)
@@ -33,7 +33,7 @@ class SimpleWindow(QWidget):
     # to receive cv images from CameraNode
     cv_signal = pyqtSignal(np.ndarray)
 
-    def __init__(self, signal):
+    def __init__(self):
         super().__init__()
         self.setWindowTitle("Simple PyQt Window")
         self.setGeometry(200, 200, 800, 500)  # x, y, width, height
@@ -45,10 +45,18 @@ class SimpleWindow(QWidget):
         # Camera Feed
         # ================
 
+        # Camera Feed Header
+        self.header_label = QLabel("Camera Feed")
+        self.header_label.setAlignment(Qt.AlignCenter)
+        # make it bold and slightly larger
+        self.header_label.setStyleSheet("font-size: 16px; font-weight: bold; margin-bottom: 5px;")
+        self.layout.addWidget(self.header_label)
+
+        # Camera feed itself:
         self.cv_label = QLabel("Waiting for camera feed...")
         self.cv_label.setAlignment(Qt.AlignCenter)
         
-        # to mae video boundaries visible:
+        # to make video boundaries visible:
         self.cv_label.setStyleSheet("background-color: black; color: white")
         # add label to vertical stack
         self.layout.addWidget(self.cv_label)
@@ -81,6 +89,11 @@ class SimpleWindow(QWidget):
 
 
 
+# RUNNING NOTE - you have to run:
+# pip uninstall -y opencv-python  
+# after pip install -r requirements.txt in order to remove conflicting versions of
+# Qt libraries from opencv_python which is installed as a dependency of ultralytics
+
 def main():
     rclpy.init()
     
@@ -95,14 +108,15 @@ def main():
     window.show()
 
     try:
-        exit_code = app.exec()
+        sys.exit(app.exec_())
     except KeyboardInterrupt:
         pass
     finally:
+        window.close()
         camera_node.destroy_node()
-        rclpy.shutdown()
-
-    sys.exit(app.exec())
+        if rclpy.ok():
+            rclpy.shutdown()
+        ros_thread.join()
 
 if __name__ == "__main__":
     main()
