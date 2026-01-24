@@ -131,10 +131,10 @@ def launch_setup(context, *args, **kwargs):
     """
 
     return [
-        planner_server_node,
+            # planner_server_node,
             move_group_launch,
             path_planner_publisher_node,
-            static_tf_node,
+            # static_tf_node,
             robot_state_publisher,
             ros2_control_node,
             # joint_state_broadcaster_spawner,

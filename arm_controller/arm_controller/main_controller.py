@@ -308,6 +308,7 @@ class Controller(Node):
                             inputs, self.current_pose)
                         # print(target_pose)
                         self.target_pose_pub.publish(target_pose)
+                        self.current_pose = target_pose
                     else:
                         if inputs.x and inputs.circle and inputs.triangle and inputs.square:
                             self.get_logger().info("OVERRIDING HOMING")
@@ -474,7 +475,7 @@ class Controller(Node):
                 thread.join()
 
     def update_ik_target(self, msg):
-        self.target_joints = list(np.array(msg.data)*180/math.pi)
+        self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(

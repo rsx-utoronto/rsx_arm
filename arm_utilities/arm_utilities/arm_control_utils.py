@@ -96,7 +96,7 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
 
 
 def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
-    delta = 0.01  # Incremental change for position
+    delta = 0.2  # Incremental change for position
     delta_rot = 0.1  # Incremental change for orientation (radians)
 
     new_pose = Pose()
