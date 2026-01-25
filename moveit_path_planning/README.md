@@ -27,6 +27,7 @@ What it can't do properly:
 * Be homed (this is currently hard-coded in main_controller)
 
 ## Demo
+See video in this folder!
 <video src="./ik_demo.mp4" controls width="600"></video>
 
 ## Using RViz to test IK:
