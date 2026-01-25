@@ -34,8 +34,8 @@ def handle_joy_input(msg: Joy):
     arm_inputs.square = msg.buttons[3]  # Square button
     arm_inputs.share = msg.buttons[8]  # Share button
     arm_inputs.options = msg.buttons[9]  # Options button
-    #arm_inputs.l3 = msg.buttons[11]  # Left joystick button
-    #arm_inputs.r3 = msg.buttons[12]  # Right joystick button
+    arm_inputs.l3 = msg.buttons[11]  # Left joystick button
+    arm_inputs.r3 = msg.buttons[12]  # Right joystick button
 
     return arm_inputs
 
