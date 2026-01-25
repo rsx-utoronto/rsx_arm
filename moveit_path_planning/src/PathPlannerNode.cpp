@@ -101,7 +101,7 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     
     // Convert Pose -> Eigen::Isometry3d
     Eigen::Isometry3d target_pose_eigen = poseMsgToEigen(*target_pose_msg);
-    RCLCPP_ERROR(get_logger(), "before ptr!");
+
     // 1. Get the current planning scene
     planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(robot_model_));
     // 2. Define a validity callback
@@ -112,12 +112,10 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     {
         robot_state->setJointGroupPositions(joint_group, joint_group_variable_values);
         robot_state->update();
-        // Safety check: is the pointer still valid?
-        if (!planning_scene) return false;
 
         return !planning_scene->isStateColliding(*robot_state, joint_group->getName());
     };
-RCLCPP_ERROR(get_logger(), "after ptr!");
+
     // Solve IK
     bool found_ik = current_state->setFromIK(
         joint_model_group,
@@ -127,7 +125,6 @@ RCLCPP_ERROR(get_logger(), "after ptr!");
         constraint_fn
         //kinematics::KinematicsQueryOptions()
     );
-    RCLCPP_INFO(get_logger(), "Code gets here");
 
     if (!found_ik) {
         RCLCPP_WARN(get_logger(), "IK solution not found for target pose");

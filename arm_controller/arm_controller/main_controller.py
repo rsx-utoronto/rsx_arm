@@ -61,6 +61,18 @@ class Controller(Node):
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
+        # Set the default pose (only for sim)
+        # TODO: home in MoveIt is currently set to the origin (bad)
+        # Position: x: 0.054901; y: 0.36896; z: 0.58728
+        # Orientation: x: 0; y: 0; z: 0.706825; w: 0.707388
+        self.current_pose.position.x = 0.054901
+        self.current_pose.position.y = 0.36896
+        self.current_pose.position.z = 0.58728
+        self.current_pose.orientation.x = 0.0
+        self.current_pose.orientation.y = 0.0
+        self.current_pose.orientation.z = 0.706825
+        self.current_pose.orientation.w = 0.707388
+
         self.current_joints = [0.0] * self.n_joints
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
@@ -171,7 +183,6 @@ class Controller(Node):
                         self.last_quadrant[1] = int(line[-2:])
         except:
             self.get_logger().warn ("error logging limits!")
-
 
     def read_can_callback(self):
         while self.shutdown == False:
