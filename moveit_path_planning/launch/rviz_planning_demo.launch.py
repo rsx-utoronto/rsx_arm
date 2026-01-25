@@ -77,11 +77,22 @@ def launch_setup(context, *args, **kwargs):
                    "0.0", "0.0", "world", "base_link"],
     )
 
+    joint_converter_node = Node(
+        package="moveit_path_planning",
+        executable="rviz_sim",
+        name="rviz_sim",
+        output="screen",
+        parameters=[
+            #moveit_config.robot_description_kinematics,  # ADD THIS LINE
+        ],
+    )
+
     return [
         move_group_launch,
         planner_server_launch,
         static_tf_node,
         rviz_node,
+        joint_converter_node
     ]
 
 

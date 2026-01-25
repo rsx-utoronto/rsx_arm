@@ -10,6 +10,7 @@
 #include <moveit_msgs/msg/robot_trajectory.hpp>
 #include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 #include <Eigen/Geometry>
+#include <moveit/planning_scene/planning_scene.h>
 
 
 using namespace std::chrono_literals;
@@ -32,7 +33,6 @@ _move_group(move_group)
 
     _joint_path_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_path_joints", 1);
 
-    moveit::core::RobotModelConstPtr robot_model_;
     robot_model_ = _move_group->getRobotModel();
     jmg = robot_model_->getJointModelGroup(_move_group->getName());
     robot_state = std::make_shared<moveit::core::RobotState>(robot_model_);
@@ -101,16 +101,34 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     
     // Convert Pose -> Eigen::Isometry3d
     Eigen::Isometry3d target_pose_eigen = poseMsgToEigen(*target_pose_msg);
+    RCLCPP_ERROR(get_logger(), "before ptr!");
+    // 1. Get the current planning scene
+    planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(robot_model_));
+    // 2. Define a validity callback
+    moveit::core::GroupStateValidityCallbackFn constraint_fn = 
+        [planning_scene](moveit::core::RobotState* robot_state, 
+                     const moveit::core::JointModelGroup* joint_group, 
+                     const double* joint_group_variable_values) 
+    {
+        robot_state->setJointGroupPositions(joint_group, joint_group_variable_values);
+        robot_state->update();
+        // Safety check: is the pointer still valid?
+        if (!planning_scene) return false;
+
+        return !planning_scene->isStateColliding(*robot_state, joint_group->getName());
+    };
+RCLCPP_ERROR(get_logger(), "after ptr!");
     // Solve IK
     bool found_ik = current_state->setFromIK(
         joint_model_group,
         target_pose_eigen,
-        _move_group->getEndEffectorLink(),
+        //_move_group->getEndEffectorLink(),
         0.1,
-        moveit::core::GroupStateValidityCallbackFn(),
-        kinematics::KinematicsQueryOptions()
+        constraint_fn
+        //kinematics::KinematicsQueryOptions()
     );
-    
+    RCLCPP_INFO(get_logger(), "Code gets here");
+
     if (!found_ik) {
         RCLCPP_WARN(get_logger(), "IK solution not found for target pose");
         return;
