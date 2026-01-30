@@ -44,6 +44,7 @@ class Controller(Node):
         else:
             self.can_con = CAN_connection(num_joints=n_joints)
 
+        self.virtual = virtual
         # intialize safety checker
         self.safety_checker = SafetyChecker()
         # Attributes to hold data for publishing to topics
@@ -313,8 +314,9 @@ class Controller(Node):
                         self.target_pose_pub.publish(target_pose)
                         self.current_pose = target_pose
                     else:
-                        if inputs.x and inputs.circle and inputs.triangle and inputs.square:
+                        if inputs.x and inputs.circle and inputs.triangle and inputs.square or self.virtual:
                             self.get_logger().info("OVERRIDING HOMING")
+                            # TODO: include offsets in override
                             # for i in range(self.n_joints - 1):
                             #     self.joint_offsets[i] = self.initial_positions[i] - self.current_joints[i]
                             self.homed = [True]*self.n_joints
