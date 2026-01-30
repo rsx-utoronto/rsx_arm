@@ -50,7 +50,7 @@ private:
     moveit::planning_interface::MoveGroupInterface* _move_group;
     rclcpp::Client<arm_msgs::srv::PlanMotion>::SharedPtr _client;
     // robot model for move group
-    moveit::core::RobotModelPtr robot_model;
+    moveit::core::RobotModelPtr robot_model_;
     const moveit::core::JointModelGroup* jmg;
     moveit::core::RobotStatePtr robot_state;
 public:

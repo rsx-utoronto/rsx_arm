@@ -10,7 +10,7 @@
 #include <moveit_msgs/msg/robot_trajectory.hpp>
 #include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 #include <Eigen/Geometry>
-
+#include <moveit/planning_scene/planning_scene.h>
 
 using namespace std::chrono_literals;
 PathPlannerNode::PathPlannerNode(moveit::planning_interface::MoveGroupInterface* move_group, const std::string& target_pose_topic, const std::string& target_joints_topic):
@@ -101,14 +101,30 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     
     // Convert Pose -> Eigen::Isometry3d
     Eigen::Isometry3d target_pose_eigen = poseMsgToEigen(*target_pose_msg);
-    // Solve IK
+    
+    // Get current planning scene for our arm (necessary to properly calculate collisions)
+    planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(robot_model_));
+
+    // Create the actual callback to check the collisions
+    moveit::core::GroupStateValidityCallbackFn constraint_fn = 
+        [planning_scene](moveit::core::RobotState* robot_state, 
+                     const moveit::core::JointModelGroup* joint_group, 
+                     const double* joint_group_variable_values) 
+    {
+        robot_state->setJointGroupPositions(joint_group, joint_group_variable_values);
+        robot_state->update();
+
+        return !planning_scene->isStateColliding(*robot_state, joint_group->getName());
+    };
+
+    // Solve IK using the new callback
     bool found_ik = current_state->setFromIK(
         joint_model_group,
         target_pose_eigen,
-        _move_group->getEndEffectorLink(),
+        //_move_group->getEndEffectorLink(),
         0.1,
-        moveit::core::GroupStateValidityCallbackFn(),
-        kinematics::KinematicsQueryOptions()
+        constraint_fn
+        //kinematics::KinematicsQueryOptions()
     );
     
     if (!found_ik) {
