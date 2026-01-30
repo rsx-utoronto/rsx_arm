@@ -56,23 +56,16 @@ class SafetyChecker():
         for i in range(len(self.goal_pos)):
             # Doing position comparisons for safety
             # Clamp to max change in theta
-            safe_goal_pos[i] = clamp(
-                pos[i], self.curr_pos[i]-self.max_d_theta[i], self.curr_pos[i]+self.max_d_theta[i])
-
-            if safe_goal_pos[i] != pos[i]:
-                print("Constrained joint %d due to excessive change in angle" % i)
+            if abs(pos[i] - self.curr_pos[i]) > self.max_d_theta[i]:
+                safe_goal_pos = self.curr_pos.copy()
+                joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
+                break
                 self.logger().info("Constrained joint %d due to excessive change in angle" % i)
-                joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
+            elif self.curr_pos[i] - self.max_d_theta[i] <= pos[i] <= self.curr_pos[i] + self.max_d_theta[i]:
+                safe_goal_pos[i] = pos[i]
+                joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_LIMS.value
+                self.logger.info("Constrained joint %d due to exceeding joint limits" % i)
 
-            pos[i] = safe_goal_pos[i]
-
-            safe_goal_pos[i] = clamp(
-                pos[i], self.joint_limits[i][0], self.joint_limits[i][1])
-            if safe_goal_pos[i] != pos[i]:
-                print("Constrained joint %d due to movement outside joint limits" % i)
-                self.logger().info("Constrained joint %d due to movement outside joint limits" % i)
-                joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
-                continue
         return safe_goal_pos, joint_pos_safety_status
 
     def current_check(self, pos: list = None) -> None:

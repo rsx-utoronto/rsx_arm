@@ -3,6 +3,7 @@ from arm_msgs.msg import ArmInputs
 from geometry_msgs.msg import Pose
 from std_msgs.msg import Float32MultiArray
 from pynput import keyboard
+from scipy.spatial.transform import Rotation as R
 
 
 def handle_joy_input(msg: Joy):
@@ -96,21 +97,28 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
 
 
 def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
-    delta = 0.2  # Incremental change for position
+    delta = 0.05  # Incremental change for position
     delta_rot = 0.1  # Incremental change for orientation (radians)
 
     new_pose = Pose()
-    new_pose.position.x = curr_pose.position.x + arm_inputs.l_horizontal * delta
+    new_pose.position.x = curr_pose.position.x
     new_pose.position.y = curr_pose.position.y + arm_inputs.l_vertical * delta
     new_pose.position.z = curr_pose.position.z + \
         (arm_inputs.r_trigger - arm_inputs.l_trigger) * delta
 
-    # For simplicity, only adjusting yaw (z-axis rotation) here
-    new_pose.orientation.x = curr_pose.orientation.x
-    new_pose.orientation.y = curr_pose.orientation.y
-    new_pose.orientation.z = curr_pose.orientation.z + \
-        arm_inputs.r_horizontal * delta_rot
-    new_pose.orientation.w = curr_pose.orientation.w
+
+    x_rot = R.from_euler('xyz', [arm_inputs.r_vertical*delta_rot, 0, 0], degrees=False)
+    y_rot = R.from_euler('xyz', [0, (arm_inputs.r1-arm_inputs.l1)*delta_rot, 0], degrees=False)
+    z_rot = R.from_euler('xyz', [0, 0, arm_inputs.r_horizontal*delta_rot], degrees=False)
+    r = R.from_quat([curr_pose.orientation.x, curr_pose.orientation.y,
+                    curr_pose.orientation.z, curr_pose.orientation.w])
+    
+    new_r = r
+    new_quat = new_r.as_quat()
+    new_pose.orientation.x = new_quat[0]
+    new_pose.orientation.y = new_quat[1]
+    new_pose.orientation.z = new_quat[2]
+    new_pose.orientation.w = new_quat[3]
 
     return new_pose
 
