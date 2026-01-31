@@ -12,6 +12,7 @@ scipy
 rclpy
 python-can==4.6.0
 autopep8
-ultralytics
 pyrealsense2
 PyQt6
+opencv-python-headless
+ultralytics
