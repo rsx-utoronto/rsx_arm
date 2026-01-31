@@ -31,7 +31,7 @@ class CameraNode(Node):
         self.camera_info = rs.intrinsics()
         # load a YOLO model
         # TODO: change to pull from config file
-        self.keyboard_model = YOLO('src/rsx_arm/auto_keyboard/custom_yolo.pt')
+        self.keyboard_model = YOLO('/home/rsx/arm_ros2_ws/src/rsx_arm/auto_keyboard/custom_yolo.pt')
         # uncomment when we have the aruco YOLO modele
         # self.aruco_model = YOLO('src/rsx_arm/auto_keyboard/aruco_yolo.pt')
 
@@ -68,8 +68,9 @@ class CameraNode(Node):
             # print("heyo")
 
             # Display live stream
-            cv2.imshow("YOLO Inference", annotated_frame)
-            cv2.waitKey(1)
+            # need to only install opencv-pyhthon-headless but the we can't use these -- ok since it's going to the gui now
+            # cv2.imshow("YOLO Inference", annotated_frame)
+            # cv2.waitKey(1)
             # which can be replaced by:
             img_msg = self.bridge.cv2_to_imgmsg(annotated_frame, encoding="bgr8")
             self.annotated_pub.publish(img_msg)

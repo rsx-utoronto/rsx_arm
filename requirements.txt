@@ -13,6 +13,6 @@ rclpy
 python-can==4.6.0
 autopep8
 pyrealsense2
-PyQt5
+PyQt6
 opencv-python-headless
 ultralytics
