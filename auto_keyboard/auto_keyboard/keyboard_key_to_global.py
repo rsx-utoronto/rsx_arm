@@ -288,7 +288,7 @@ def main():
     for key, values in keyboard_keys_dict.items():
         key_local = values
         key_global = find_key_pt_in_global_frame(key_local, ar_tag_points)
-        print(f"Global Coordinates of Key {key} (local co-ordinates {key_local}): {key_global}")
+        print(f"Key {key}: (local co-ordinates {key_local})\t Global coords:{key_global}")
 
 if __name__ == "__main__":
     main()
