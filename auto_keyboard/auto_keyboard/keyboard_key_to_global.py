@@ -11,6 +11,14 @@ import numpy as np
         [x3, y3, z3], 
         [x4, y4, z4]
         ]
+
+Output:
+    Key board key locations of requested key in global frame
+    Example,
+    Key A, global co-ordinates = [x, y, z]
+    Key K, global co-ordinates = [x, y, z] 
+    ...
+    etc
  '''
 
 # Finding Keyboard Key pt Coordinates in Global Frame
@@ -256,4 +264,33 @@ def unit_vectors_bottom_and_left_edges_global_frame(bl_point, br_point, tl_point
     vec_left_edge = tl_point - bl_point
     unit_vec_left_edge = vec_left_edge / np.linalg.norm(vec_left_edge)
     return unit_vec_bottom_edge, unit_vec_left_edge
+
+def main():
+    # Example AR tag points
+    ar_tag_points = np.array([[30, 10*0.866, 10*0.5],
+                            [0, 10*0.866, 10*0.5],
+                            [0, 0, 0],
+                            [30, 0, 0]])
+
+    print("\n--- Testing Multiple Keys ---\n")
+    print("AR Tag Points:\n", ar_tag_points)
+
+    # Keys to test (replace with full dictionary after measurements)
+    keyboard_keys_dict = {
+        'k': np.array([17.5, 5]),
+        'A': np.array([4.5, 5])
+    }
+
+    # Results should show change in z-coordinates of keys
+    # and y coordinates  now *0.866
+    # no change in x-coordinates
+
+    for key, values in keyboard_keys_dict.items():
+        key_local = values
+        key_global = find_key_pt_in_global_frame(key_local, ar_tag_points)
+        print(f"Global Coordinates of Key {key} (local co-ordinates {key_local}): {key_global}")
+
+if __name__ == "__main__":
+    main()
+
 
