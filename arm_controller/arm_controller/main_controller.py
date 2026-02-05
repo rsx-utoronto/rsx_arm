@@ -35,7 +35,7 @@ class Controller(Node):
         # with open("initial_positions.yaml", "r") as f:
         #     init_config = yaml.safe_load(f)
         # self.init_joints = [init_config["joint_1"], init_config["joint_2"], init_config["joint_3"], init_config["joint_4"], init_config["joint_5"], init_config["joint_6", 0]]
-        self.initial_positions = [0] * n_joints
+        self.initial_positions = [0., 0., 0., 0., 0., 0., 0.]
         # TODO: LOAD THE YAML CORRECTLY
         # Initialize CAN connection
         if virtual:
@@ -62,7 +62,7 @@ class Controller(Node):
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
-        self.current_joints = [0.0] * self.n_joints
+        self.current_joints = self.initial_positions.copy()
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
 
@@ -73,7 +73,7 @@ class Controller(Node):
         self.safety_flags = [0] * self.n_joints
 
         # track target internal joints to prevent slippage
-        self.arm_internal_current_joints = [0.0] * self.n_joints
+        self.arm_internal_current_joints = self.initial_positions.copy()
 
         self.gripper_on = False
 
@@ -279,8 +279,8 @@ class Controller(Node):
 
             match self.state:
                 case ArmState.IDLE:
-                    self.safe_target_joints = self.current_joints
-                    # self.can_con.send_target_message(self.safe_target_joints)
+                    self.safe_target_joints = self.arm_internal_current_joints
+                    self.can_con.send_target_message(self.safe_target_joints)
                     # In idle state, only allow killswitch and state changes
                     # self.logger().info("Currently in IDLE: No control change")
                     pass
@@ -310,7 +310,6 @@ class Controller(Node):
 
                         target_pose = map_inputs_to_ik(
                             inputs, self.current_pose)
-                        # print(target_pose)
                         self.target_pose_pub.publish(target_pose)
                         self.current_pose = target_pose
                     else:
@@ -355,7 +354,8 @@ class Controller(Node):
                             self.executing_path = True
                             self.path_executor_thread.start()
                     pass
-        self.update_internal_pose_state(self.current_joints)
+        if self.state != ArmState.IK:
+            self.update_internal_pose_state(self.current_joints)
         time.sleep(0.05)
 
     def handle_joy(self, msg):
@@ -463,6 +463,8 @@ class Controller(Node):
             self.homing_stop.set()
 
     def update_internal_pose_state(self, joints):
+        for i in range(len(joints)):
+            joints[i] = np.pi * joints[i] / 180.0
         angles = Float32MultiArray(data=joints[0:6])
         self.arm_curr_joints_pub.publish(angles)
         # Pose will be returned in a subscription, should update elsewhere
@@ -488,7 +490,7 @@ class Controller(Node):
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
         # TODO: temporarily disabled, safety issues
-        # self.can_con.send_target_message(self.safe_target_joints)
+        self.can_con.send_target_message(self.safe_target_joints)
 
     def handle_keyboard_coords(self, msg):
         self.get_logger().info("Received keyboard coordinates from camera node")

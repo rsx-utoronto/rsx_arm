@@ -97,11 +97,12 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
 
 
 def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
-    delta = 0.05  # Incremental change for position
-    delta_rot = 0.1  # Incremental change for orientation (radians)
+    delta = 0.01  # Incremental change for position
+    delta_rot = 0.02      # Incremental change for orientation (radians)
 
     new_pose = Pose()
-    new_pose.position.x = curr_pose.position.x
+    new_pose.position.x = curr_pose.position.x + arm_inputs.l_horizontal * delta
+    # new_pose.position.x = curr_pose.position.x 
     new_pose.position.y = curr_pose.position.y + arm_inputs.l_vertical * delta
     new_pose.position.z = curr_pose.position.z + \
         (arm_inputs.r_trigger - arm_inputs.l_trigger) * delta
@@ -113,7 +114,7 @@ def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
     r = R.from_quat([curr_pose.orientation.x, curr_pose.orientation.y,
                     curr_pose.orientation.z, curr_pose.orientation.w])
     
-    new_r = r
+    new_r = r * y_rot 
     new_quat = new_r.as_quat()
     new_pose.orientation.x = new_quat[0]
     new_pose.orientation.y = new_quat[1]

@@ -19,7 +19,7 @@ public:
 
     // Subscriber to IK target joints topic
     ik_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-      "arm_ik_target_joints", 10,
+      "safe_arm_target_joints", 10,
       std::bind(&IkToRvizJointState::to_rviz_cb, this, std::placeholders::_1));
 
     // Subscriber to path planning target joints topic
@@ -47,7 +47,7 @@ private:
     js.position.resize(NUM_JOINTS);
 
     for (size_t i = 0; i < NUM_JOINTS; ++i) {
-      js.position[i] = static_cast<double>(msg->data[i]);
+      js.position[i] = static_cast<double>(msg->data[i])*3.14/180.0;  // Convert degrees to radians
     }
 
     joint_pub_->publish(js);

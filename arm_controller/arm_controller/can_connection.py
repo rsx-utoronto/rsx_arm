@@ -28,7 +28,7 @@ class CAN_connection():
         to store the values
         """
 
-        msg = self.bus.recv(timeout=0.0001)
+        msg = self.bus.recv(timeout=0.1)
         
         if msg == None:
             return None

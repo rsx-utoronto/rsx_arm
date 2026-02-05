@@ -72,17 +72,17 @@ Eigen::Isometry3d poseMsgToEigen(const geometry_msgs::msg::Pose& pose)
 }
 void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const
 {
-    RCLCPP_INFO(
-    rclcpp::get_logger("pose_logger"),
-    "Position: x=%f y=%f z=%f | Orientation: x=%f y=%f z=%f w=%f",
-    target_pose_msg->position.x,
-    target_pose_msg->position.y,
-    target_pose_msg->position.z,
-    target_pose_msg->orientation.x,
-    target_pose_msg->orientation.y,
-    target_pose_msg->orientation.z,
-    target_pose_msg->orientation.w
-  );
+//     RCLCPP_INFO(
+//     rclcpp::get_logger("pose_logger"),
+//     "Position: x=%f y=%f z=%f | Orientation: x=%f y=%f z=%f w=%f",
+//     target_pose_msg->position.x,
+//     target_pose_msg->position.y,
+//     target_pose_msg->position.z,
+//     target_pose_msg->orientation.x,
+//     target_pose_msg->orientation.y,
+//     target_pose_msg->orientation.z,
+//     target_pose_msg->orientation.w
+//   );
 
     if (!_move_group) {
         RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized");
@@ -119,10 +119,10 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     // Extract joint positions
     std::vector<double> joint_values;
     current_state->copyJointGroupPositions(joint_model_group, joint_values);
-    RCLCPP_INFO(get_logger(), "IK solution found:");
-    for (size_t i = 0; i < joint_values.size(); ++i) {
-        RCLCPP_INFO(get_logger(), "  Joint %zu: %.4f", i, joint_values[i]);
-    }
+    // RCLCPP_INFO(get_logger(), "IK solution found:");
+    // for (size_t i = 0; i < joint_values.size(); ++i) {
+    //     RCLCPP_INFO(get_logger(), "  Joint %zu: %.4f", i, joint_values[i]);
+    // }
 
     // Publish joint positions
     std_msgs::msg::Float32MultiArray msg;
