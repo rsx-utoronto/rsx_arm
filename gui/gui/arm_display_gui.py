@@ -6,40 +6,20 @@ import math
 import rclpy
 from rclpy.node import Node
 
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel
 
 from std_msgs.msg import String, Float32MultiArray
 
-
-class ArmGuiSubscriber(Node):
-    def __init__(self, on_state, on_curr, on_target):
-        super().__init__("arm_gui_node")
-
-        self.create_subscription(String, "arm_state", lambda m: on_state(m.data), 10)
-        self.create_subscription(
-            Float32MultiArray, "arm_curr_angles", lambda m: on_curr(list(m.data)), 10
-        )
-        self.create_subscription(
-            Float32MultiArray,
-            "safe_arm_target_joints",
-            lambda m: on_target(list(m.data)),
-            10,
-        )
-
-
-class Window(QWidget):
-    state_sig = pyqtSignal(str)
-    curr_sig = pyqtSignal(list)
-    target_sig = pyqtSignal(list)
-
+class Window(Node, QWidget):
     def __init__(self, stale_after_s=1.0):
-        super().__init__()
+        Node.__init__(self, "arm_gui_node")  
+        QWidget.__init__(self)         
 
         self.stale_after_s = float(stale_after_s)
         self._last = {"state": 0.0, "curr": 0.0, "target": 0.0}
 
-        self.setWindowTitle("Arm GUI")
+        self.setWindowTitle("Arm Display GUI")
         self.setGeometry(200, 200, 900, 250)
 
         layout = QVBoxLayout(self)
@@ -50,28 +30,37 @@ class Window(QWidget):
         layout.addWidget(self.curr_label)
         layout.addWidget(self.target_label)
 
-        self.state_sig.connect(self._set_state)
-        self.curr_sig.connect(self._set_curr)
-        self.target_sig.connect(self._set_target)
+ 
+        self.create_subscription(String, "arm_state", self.on_state, 10)
+        self.create_subscription(
+            Float32MultiArray, "arm_curr_angles", self.on_curr, 10
+        )
+        self.create_subscription(
+            Float32MultiArray,
+            "safe_arm_target_joints",
+            self.on_target,
+            10,
+        )
 
         self.watchdog = QTimer(self)
         self.watchdog.timeout.connect(self._mark_stale_if_needed)
         self.watchdog.start(200)
 
-    def on_state(self, state: str):
+    def on_state(self, msg: String):
         self._last["state"] = time.time()
-        self.state_sig.emit(state)
+        self.state_label.setText(f"State: {msg.data}")
 
-    def on_curr(self, joints: list):
+    def on_curr(self, msg: Float32MultiArray):
         self._last["curr"] = time.time()
-        self.curr_sig.emit(joints)
+        self.curr_label.setText(
+            f"Current joints: {self._fmt_joints(list(msg.data))}"
+        )
 
-    def on_target(self, joints: list):
+    def on_target(self, msg: Float32MultiArray):
         self._last["target"] = time.time()
-        self.target_sig.emit(joints)
-
-    def _set_state(self, state: str):
-        self.state_label.setText(f"State: {state}")
+        self.target_label.setText(
+            f"Target joints: {self._fmt_joints(list(msg.data))}"
+        )
 
     def _fmt_joints(self, joints: list) -> str:
         if not joints:
@@ -84,12 +73,6 @@ class Window(QWidget):
             except Exception:
                 parts.append(f"J{i}=?")
         return "  |  ".join(parts)
-
-    def _set_curr(self, joints: list):
-        self.curr_label.setText(f"Current joints: {self._fmt_joints(joints)}")
-
-    def _set_target(self, joints: list):
-        self.target_label.setText(f"Target joints: {self._fmt_joints(joints)}")
 
     def _mark_stale_if_needed(self):
         now = time.time()
@@ -108,10 +91,9 @@ def main():
     app = QApplication(sys.argv)
 
     win = Window(stale_after_s=1.0)
-    node = ArmGuiSubscriber(win.on_state, win.on_curr, win.on_target)
 
     ros_timer = QTimer()
-    ros_timer.timeout.connect(lambda: rclpy.spin_once(node, timeout_sec=0.01))
+    ros_timer.timeout.connect(lambda: rclpy.spin_once(win, timeout_sec=0.01))
     ros_timer.start(10)
 
     win.show()
@@ -119,7 +101,8 @@ def main():
     try:
         code = app.exec()
     finally:
-        node.destroy_node()
+    
+        win.destroy_node()
         rclpy.shutdown()
 
     sys.exit(code)
