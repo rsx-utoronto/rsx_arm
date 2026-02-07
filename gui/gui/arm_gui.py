@@ -18,7 +18,7 @@ class Window(Node, QWidget):
         Node.__init__(self, "arm_gui_node")  
         QWidget.__init__(self)
 
-        self.state = ArmState.NONE
+        self.state = ArmState.IDLE
         self.curr_joints = []
         self.target_joints = []
 
@@ -90,11 +90,11 @@ class Window(Node, QWidget):
         now = time.time()
         t = self.stale_after_s
 
-        if now - self._last["state"] > t:
+        if now - self.last_update_time["state"] > t:
             self.state_label.setText("State: (waiting...)")
-        if now - self._last["curr"] > t:
+        if now - self.last_update_time["curr"] > t:
             self.curr_label.setText("Current joints: (waiting...)")
-        if now - self._last["target"] > t:
+        if now - self.last_update_time["target"] > t:
             self.target_label.setText("Target joints: (waiting...)")
 
 
