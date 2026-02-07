@@ -4,7 +4,7 @@ from geometry_msgs.msg import Pose
 from std_msgs.msg import Float32MultiArray
 from pynput import keyboard
 from scipy.spatial.transform import Rotation as R
-
+import numpy as np
 
 def handle_joy_input(msg: Joy):
     arm_inputs = ArmInputs()
@@ -126,3 +126,41 @@ def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
 def clamp(value, min_value, max_value):
     """Clamps a value within a specified range."""
     return max(min_value, min(value, max_value))
+
+#for keyboard pressing
+def get_keyboard_normal(self, corners):
+    corners = np.array(corners)
+
+    # Use two edges of the keyboard plane
+    v1 = corners[1] - corners[0]   
+    v2 = corners[3] - corners[0]  
+
+    # Cross product gives plane normal
+    normal = np.cross(v1, v2)
+
+    # Normalize to unit vector
+    normal = normal / np.linalg.norm(normal)
+
+    return normal
+
+
+def get_intermediate_positions(self, position, corners, translation=[0,0,0]):
+    #tune parameters w/ physical testing
+    approach_dist = 0.1   
+    press_dist = 0.01   
+
+    #position of Tip
+    position = np.array(position)
+
+    ##Tip to End Effector translation
+    translation = np.array(translation)
+
+    normal = self.get_keyboard_normal(corners)
+
+    # Apply translation to target position
+    intermediate = position + translation
+
+    approach = intermediate + normal * approach_dist
+    press = intermediate + normal * press_dist
+
+    return approach, press

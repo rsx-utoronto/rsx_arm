@@ -11,6 +11,8 @@ from arm_msgs.msg import ArmInputs, KeyboardCoords
 from geometry_msgs.msg import Pose, Point, Quaternion
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
+from arm_utilities.arm_control_utils import get_keyboard_normal, get_intermediate_positions
+
 from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
 import copy
@@ -18,6 +20,7 @@ import functools
 from pynput import keyboard
 import time
 import math
+
 
 
 class Controller(Node):
@@ -496,6 +499,11 @@ class Controller(Node):
     def interpolate_key_positions(self, corners):
         # TODO: implement interpolation of key positions based on keyboard corners
         pass
+        # need to be tested and integrated
+        # from arm_control utils: get_keyboard_normal, get_intermediate_positions 
+        # get_intermediate_positions takes key position, keyboard corners, translation (from tip to EndEffector) 
+        # get_intermediate_positions returns approach and press positions 
+       
 
     def update_path_planner_joints(self, msg):
         self.current_path.append(list(msg.data))
