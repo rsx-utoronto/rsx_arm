@@ -60,7 +60,7 @@ class Controller(Node):
         self.speed_limits = [1.5, 2, 1, 1, 1.5, 1.5, 50]
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
-        # self.current_pose = Pose()
+        self.current_pose = Pose()
         self.current_joints = [0.0] * self.n_joints
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
@@ -112,6 +112,7 @@ class Controller(Node):
         self.joint_target_threshold = 1 # maximum allowed error in degrees to consider joint target reached
 
         # Nonblocking keyboard listener
+        # TODO: dear god please just vaporize any trace of a keyboard controller from the face of the earth
         self.keyboard_listener = keyboard.Listener(
             on_press=self.on_press,
             on_release=self.on_release
@@ -184,12 +185,12 @@ class Controller(Node):
             # Limit switch
             if api == CANAPI.CMD_API_STAT0.value:
                 if read_msg[2] == 1:
-                    self.get_logger().warn("Joint %d hit limit!" % n)
+                    self.get_logger().warn("Joint %d hit limit!" % index)
                     self.at_limit[index] = True
                     if index == 0 or index == 6:
                         # TODO: this should be cleaner, log if joint is on positive or negative side of limit
                         with open("limit_log.txt", "w") as f:
-                            f.write("Joint %d hit limit going: %f\n" % (index, math.copysign(self.current_joints[index])))
+                            f.write("Joint %d hit limit going: %f\n" % (index, math.copysign(1, self.current_joints[index])))
                             if index == 0:
                                 f.write("Joint 6 hit limit going %d\n" % self.current_joints[1])
                             else:
@@ -292,7 +293,9 @@ class Controller(Node):
                     # update internal state to reflect target, when input is zero, internal and real current joints should be equivalent given the assumption
                     # that the target is reachable
                     self.arm_internal_current_joints = self.safe_target_joints
-
+                    for i in range(self.n_joints):
+                        if type(self.safe_target_joints[i]) == np.float32:
+                            self.safe_target_joints[i] = self.safe_target_joints[i].item()
                     msg = Float32MultiArray()
                     msg.data = self.safe_target_joints
                     self.safe_target_joints_pub.publish(msg)
@@ -322,7 +325,7 @@ class Controller(Node):
                             self.get_logger().info(
                                 "Arm not homed, cannot move in IK mode, press X and O simultaneously to home")
                             target_pose = self.current_pose
-                            self.target_pose_pub.publish(target_pose)
+                            # self.target_pose_pub.publish(target_pose)
                             time.sleep(0.2)
                 case ArmState.PATH_PLANNING:
                     if self.path_executor_thread.is_alive:
@@ -354,10 +357,8 @@ class Controller(Node):
 
     def handle_joy(self, msg):
         self.update_arm(msg)
-
     def on_press(self, key):
-        self.update_arm(key)
-
+        pass
     def on_release(self, key):
         # On key release, send zeroed inputs to stop movement
         zero_inputs = ArmInputs()
@@ -474,7 +475,7 @@ class Controller(Node):
                 thread.join()
 
     def update_ik_target(self, msg):
-        self.target_joints = list(np.array(msg.data)*180/math.pi)
+        self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
