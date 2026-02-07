@@ -11,13 +11,20 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel
 
 from std_msgs.msg import String, Float32MultiArray
 
+from arm_utilities.arm_enum_utils import ArmState, SafetyErrors
+
 class Window(Node, QWidget):
     def __init__(self, stale_after_s=1.0):
         Node.__init__(self, "arm_gui_node")  
-        QWidget.__init__(self)         
+        QWidget.__init__(self)
+
+        self.state = ArmState.NONE
+        self.curr_joints = []
+        self.target_joints = []
+
+        self.last_update_time = {current: 0.0 for current in ["state", "curr", "target"]}         
 
         self.stale_after_s = float(stale_after_s)
-        self._last = {"state": 0.0, "curr": 0.0, "target": 0.0}
 
         self.setWindowTitle("Arm Display GUI")
         self.setGeometry(200, 200, 900, 250)
@@ -42,22 +49,27 @@ class Window(Node, QWidget):
             10,
         )
 
+
+
         self.watchdog = QTimer(self)
         self.watchdog.timeout.connect(self._mark_stale_if_needed)
         self.watchdog.start(200)
 
     def on_state(self, msg: String):
-        self._last["state"] = time.time()
+        self.state = ArmState(msg.data)
+        self.last_update_time["state"] = time.time()
         self.state_label.setText(f"State: {msg.data}")
 
     def on_curr(self, msg: Float32MultiArray):
-        self._last["curr"] = time.time()
+        self.curr_joints = list(msg.data)
+        self.last_update_time["curr"] = time.time()
         self.curr_label.setText(
             f"Current joints: {self._fmt_joints(list(msg.data))}"
         )
 
     def on_target(self, msg: Float32MultiArray):
-        self._last["target"] = time.time()
+        self.target_joints = list(msg.data)
+        self.last_update_time["target"] = time.time()   
         self.target_label.setText(
             f"Target joints: {self._fmt_joints(list(msg.data))}"
         )
