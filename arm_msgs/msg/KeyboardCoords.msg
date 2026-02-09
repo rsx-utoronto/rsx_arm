@@ -1,4 +1,75 @@
+# Keyboard corner coordinates in target (global) frame
 geometry_msgs/Point tl
 geometry_msgs/Point tr
 geometry_msgs/Point bl
 geometry_msgs/Point br
+
+# Keyboard key coordinates in target (global) frame
+geometry_msgs/Point A
+geometry_msgs/Point B 
+geometry_msgs/Point C
+geometry_msgs/Point D
+geometry_msgs/Point E
+geometry_msgs/Point F
+geometry_msgs/Point G
+geometry_msgs/Point H
+geometry_msgs/Point I
+geometry_msgs/Point J
+geometry_msgs/Point K
+geometry_msgs/Point L
+geometry_msgs/Point M
+geometry_msgs/Point N
+geometry_msgs/Point O
+geometry_msgs/Point P
+geometry_msgs/Point Q
+geometry_msgs/Point R
+geometry_msgs/Point S
+geometry_msgs/Point T
+geometry_msgs/Point U
+geometry_msgs/Point V
+geometry_msgs/Point W
+geometry_msgs/Point X
+geometry_msgs/Point Y
+geometry_msgs/Point Z
+
+geometry_msgs/Point Num_1
+geometry_msgs/Point Num_2
+geometry_msgs/Point Num_3
+geometry_msgs/Point Num_4
+geometry_msgs/Point Num_5
+geometry_msgs/Point Num_6
+geometry_msgs/Point Num_7
+geometry_msgs/Point Num_8
+geometry_msgs/Point Num_9
+geometry_msgs/Point Num_0
+
+geometry_msgs/Point Plus
+geometry_msgs/Point Minus
+geometry_msgs/Point Brackets_Open
+geometry_msgs/Point Brackets_Close
+geometry_msgs/Point Pipe
+geometry_msgs/Point Semicolon
+geometry_msgs/Point Quotations
+geometry_msgs/Point Less_Than
+geometry_msgs/Point Greater_Than
+geometry_msgs/Point Backslash
+
+geometry_msgs/Point Enter
+geometry_msgs/Point Backspace
+geometry_msgs/Point Escape
+geometry_msgs/Point Space
+geometry_msgs/Point Tab
+geometry_msgs/Point CapsLock
+geometry_msgs/Point Shift_Left
+geometry_msgs/Point Shift_Right
+geometry_msgs/Point Ctrl_Left
+geometry_msgs/Point Ctrl_Right
+geometry_msgs/Point Alt_Left
+geometry_msgs/Point Alt_Right
+geometry_msgs/Point Cmd 
+geometry_msgs/Point Fn
+geometry_msgs/Point Delete
+geometry_msgs/Point Tilda
+geometry_msgs/Point End
+geometry_msgs/Point PageUp
+geometry_msgs/Point PageDown
