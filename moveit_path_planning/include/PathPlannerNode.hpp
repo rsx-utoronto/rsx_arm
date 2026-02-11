@@ -7,6 +7,8 @@
 #include <moveit_msgs/msg/orientation_constraint.hpp>
 #include "arm_msgs/srv/plan_motion.hpp"
 #include "arm_msgs/action/plan_and_execute.hpp"
+#include <sensor_msgs/msg/joint_state.hpp>
+
 
 #define NUM_JOINTS 6
 
@@ -32,6 +34,8 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr _pose_pub;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr _joint_state_pub;
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_path_pub;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr _rviz_joint_pose_pub;
+
 
     void receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr msg) const;
     void updateCurrPoseCallback(geometry_msgs::msg::Pose::SharedPtr msg);
@@ -46,7 +50,7 @@ private:
     moveit::planning_interface::MoveGroupInterface* _move_group;
     rclcpp::Client<arm_msgs::srv::PlanMotion>::SharedPtr _client;
     // robot model for move group
-    moveit::core::RobotModelPtr robot_model;
+    moveit::core::RobotModelPtr robot_model_;
     const moveit::core::JointModelGroup* jmg;
     moveit::core::RobotStatePtr robot_state;
 public:

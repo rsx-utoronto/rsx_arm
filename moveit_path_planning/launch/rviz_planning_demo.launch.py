@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Launch file for RViz planning demo.
 
-Starts move_group, planner_server, and RViz with MoveIt plugin configured.
+Starts move_group, planner_server, and RViz with MoveIt plugin configured. Additionally runs rviz_sim to push
+joint outputs to the /joint_states branch that RViz reads.
 """
 
 from launch import LaunchDescription
@@ -77,11 +78,23 @@ def launch_setup(context, *args, **kwargs):
                    "0.0", "0.0", "world", "base_link"],
     )
 
+    # The node that pushes our output to RViz
+    joint_converter_node = Node(
+        package="moveit_path_planning",
+        executable="rviz_sim",
+        name="rviz_sim",
+        output="screen",
+        parameters=[
+            #moveit_config.robot_description_kinematics,  # ADD THIS LINE
+        ],
+    )
+
     return [
         move_group_launch,
         planner_server_launch,
         static_tf_node,
         rviz_node,
+        joint_converter_node
     ]
 
 
