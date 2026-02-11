@@ -58,13 +58,13 @@ class SafetyChecker():
             # Doing position comparisons for safety
             # Clamp to max change in theta
             if abs(pos[i] - self.curr_pos[i]) > self.max_d_theta[i]:
-
                 safe_goal_pos = self.curr_pos.copy()
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
                 print("Exceeded max position change for joint ", i)
                 print("Requested: ", pos[i], " Current: ", self.curr_pos[i],
                     " Max Change: ", self.max_d_theta[i])
                 return safe_goal_pos, joint_pos_safety_status
+
             elif pos[i] <= self.joint_limits[i][0] or pos[i] >= self.joint_limits[i][1]:
                 safe_goal_pos[i] = self.curr_pos[i]
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_LIMS.value

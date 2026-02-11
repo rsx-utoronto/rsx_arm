@@ -37,16 +37,12 @@ _move_group(move_group)
     jmg = robot_model_->getJointModelGroup(_move_group->getName());
     robot_state = std::make_shared<moveit::core::RobotState>(robot_model_);
     robot_state->setToDefaultValues();
-
-    //_joint_state_pub = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
 }
 
 void PathPlannerNode::receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const{
     // get trajectory plan based on target pos and publish joint targets 
     switch(_curr_state){
         case ArmState::IK: {
-            // incremental update
-            // check if still required, utils map_input_to_ik seems to handle it
             calculateIK(target_pose_msg);
             break;
         }
@@ -72,18 +68,6 @@ Eigen::Isometry3d poseMsgToEigen(const geometry_msgs::msg::Pose& pose)
 }
 void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const
 {
-//     RCLCPP_INFO(
-//     rclcpp::get_logger("pose_logger"),
-//     "Position: x=%f y=%f z=%f | Orientation: x=%f y=%f z=%f w=%f",
-//     target_pose_msg->position.x,
-//     target_pose_msg->position.y,
-//     target_pose_msg->position.z,
-//     target_pose_msg->orientation.x,
-//     target_pose_msg->orientation.y,
-//     target_pose_msg->orientation.z,
-//     target_pose_msg->orientation.w
-//   );
-
     if (!_move_group) {
         RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized");
         return;
@@ -119,10 +103,6 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
     // Extract joint positions
     std::vector<double> joint_values;
     current_state->copyJointGroupPositions(joint_model_group, joint_values);
-    // RCLCPP_INFO(get_logger(), "IK solution found:");
-    // for (size_t i = 0; i < joint_values.size(); ++i) {
-    //     RCLCPP_INFO(get_logger(), "  Joint %zu: %.4f", i, joint_values[i]);
-    // }
 
     // Publish joint positions
     std_msgs::msg::Float32MultiArray msg;
@@ -131,7 +111,6 @@ void PathPlannerNode::calculateIK(const geometry_msgs::msg::Pose::SharedPtr targ
 
 }
 
-// In your joint_callback function - add this at the end:
 void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
 {
     std::stringstream ss;
@@ -165,17 +144,6 @@ void PathPlannerNode::joint_callback(const std_msgs::msg::Float32MultiArray::Sha
 
     _pose_pub->publish(pose_msg);
     _curr_pose = std::make_shared<geometry_msgs::msg::Pose>(pose_msg);
-
-    // ✅ ADD THIS: Republish as JointState for MoveIt
-    sensor_msgs::msg::JointState joint_state_msg;
-    joint_state_msg.header.stamp = this->now();
-    joint_state_msg.header.frame_id = "";
-    
-    // Get joint names from your joint model group
-    joint_state_msg.name = jmg->getVariableNames();
-    joint_state_msg.position = joint_positions;
-    
-    //_joint_state_pub->publish(joint_state_msg);
 }
 
 void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const {
