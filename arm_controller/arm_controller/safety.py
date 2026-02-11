@@ -14,7 +14,7 @@ class SafetyChecker():
     def __init__(self):
 
         # TODO: max change in theta at a given step, need to test and put in a config file
-        self.max_d_theta = [10, 10, 10, 10, 120, 120, 80000]
+        self.max_d_theta = [20, 20, 20, 20, 20, 20, 80000]
         # TODO: currently set arbitrarily, needs to correspond correctly with the actual arm
         self.joint_limits = [(-180, 180), (-180, 180), (-180, 180),
                              (-180, 180), (-math.inf, math.inf), (-math.inf, math.inf), (-math.inf, math.inf)]
@@ -44,35 +44,34 @@ class SafetyChecker():
             # TODO: the typing here is hardcoded, it shouldn't be
             safety_status[i] = int(pos_safety_status[i]) + \
                 int(curr_safety_status[i])
-        return goal_pos, safety_status
+        return self.goal_pos, safety_status
 
     def constrain_safe_pos(self, pos: list = None) -> None:
 
         joint_pos_safety_status = [SafetyErrors.NONE.value]*len(self.goal_pos)
         if not pos:
             pos = self.goal_pos
-        safe_goal_pos = pos
+        safe_goal_pos = self.curr_pos.copy()
+        # print(self.curr_pos)
         # Going through each element of GOAL_POS
-        for i in range(len(self.goal_pos)):
+        for i in range(len(pos)):
             # Doing position comparisons for safety
             # Clamp to max change in theta
-            safe_goal_pos[i] = clamp(
-                pos[i], self.curr_pos[i]-self.max_d_theta[i], self.curr_pos[i]+self.max_d_theta[i])
-
-            if safe_goal_pos[i] != pos[i]:
-                print("Constrained joint %d due to excessive change in angle" % i)
-                self.logger().info("Constrained joint %d due to excessive change in angle" % i)
+            if abs(pos[i] - self.curr_pos[i]) > self.max_d_theta[i]:
+                safe_goal_pos = self.curr_pos.copy()
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
+                print("Exceeded max position change for joint ", i)
+                print("Requested: ", pos[i], " Current: ", self.curr_pos[i],
+                    " Max Change: ", self.max_d_theta[i])
+                return safe_goal_pos, joint_pos_safety_status
 
-            pos[i] = safe_goal_pos[i]
+            elif pos[i] <= self.joint_limits[i][0] or pos[i] >= self.joint_limits[i][1]:
+                safe_goal_pos[i] = self.curr_pos[i]
+                joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_LIMS.value
+                print("Exceeded joint limits for joint ", i)
+            else:
+                safe_goal_pos[i] = pos[i]
 
-            safe_goal_pos[i] = clamp(
-                pos[i], self.joint_limits[i][0], self.joint_limits[i][1])
-            if safe_goal_pos[i] != pos[i]:
-                print("Constrained joint %d due to movement outside joint limits" % i)
-                self.logger().info("Constrained joint %d due to movement outside joint limits" % i)
-                joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
-                continue
         return safe_goal_pos, joint_pos_safety_status
 
     def current_check(self, pos: list = None) -> None:
