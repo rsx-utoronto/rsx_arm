@@ -115,6 +115,10 @@ namespace DiffWrist {
             // --- 3. ZY decomposition → wrist roll α, pitch β ---
             auto [alpha, beta] = decomposeZY(R_wrist);
 
+            // Needs further debugging, seems like our axes are a bit off but i can't tell for sure
+            beta = -beta;
+            alpha = -alpha;
+
             // --- 4. Differential inverse ---
             //    J5 = α + β
             //    J6 = α - β
@@ -313,7 +317,7 @@ void PathPlannerNode::calculateIK(
 
     // ------------------------------------------------------------------
     // Step 5 — Publish
-    // ------------------------------------------------------------------
+    // ------------------------------------------------------------------  
     std_msgs::msg::Float32MultiArray msg;
     msg.data.assign(joint_values.begin(), joint_values.end());
     _joint_pose_pub->publish(msg);
