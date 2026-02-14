@@ -483,19 +483,18 @@ class Controller(Node):
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
-        # trac_ik can't handle a differential wrist, it provides positional IK solutions and then we generate the wrist angles ourselves
-        self.target_joints[3], self.target_joints[4], self.target_joints[5] = self.update_wrist_orientation_ik(self.target_pose.orientation)
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-                        self.target_joints, self.current_joints)
+                        self.target_joints, self.arm_internal_current_joints) 
+        print(self.target_joints)
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
+        # TODO: temporarily disabled, safety issues
         self.can_con.send_target_message(self.safe_target_joints)
+        time.sleep(0.05)
 
-    # TODO: need to add calculations for diff wrist
-    def update_wrist_orientation_ik(self, target_orientation = None):
-        return self.current_joints[3], self.current_joints[4], self.current_joints[5]
+
     def handle_keyboard_coords(self, msg):
         self.get_logger().info("Received keyboard coordinates from camera node")
         corners = msg.corners  # assuming corners is a list of 4 (x, y) tuples

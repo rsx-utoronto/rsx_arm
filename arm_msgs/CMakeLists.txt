@@ -31,6 +31,9 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ArmInputs.msg"
   "msg/KeyboardCoords.msg"
+  "msg/TargetPosition.msg"
+  "msg/TargetPositionArray.msg"
+  "msg/ArmStatuses.msg"
   "srv/PlanMotion.srv"
   "action/PlanAndExecute.action"
   DEPENDENCIES geometry_msgs moveit_msgs
