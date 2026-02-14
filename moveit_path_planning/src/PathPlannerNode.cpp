@@ -14,127 +14,153 @@
 
 using namespace std::chrono_literals;
 
-// ---------------------------------------------------------------------------
-// Differential wrist solver (ported from diff_wrist_solver.py)
-// ---------------------------------------------------------------------------
 
 namespace DiffWrist {
 
-    // Rotation matrix about Z axis
-    static Eigen::Matrix3d rotZ(double angle)
+    static double wrap(double a)
     {
+        return std::remainder(a, 2.0 * M_PI);
+    }
+
+    static Eigen::Matrix3d rotX(double a)
+    {
+        double c = std::cos(a), s = std::sin(a);
         Eigen::Matrix3d R;
-        double c = std::cos(angle), s = std::sin(angle);
-        R <<  c, -s,  0,
-              s,  c,  0,
-              0,  0,  1;
+        R << 1,  0,  0,
+             0,  c, -s,
+             0,  s,  c;
         return R;
     }
 
-    // Rotation matrix about Y axis
-    static Eigen::Matrix3d rotY(double angle)
+    static Eigen::Matrix3d rotY(double a)
     {
+        double c = std::cos(a), s = std::sin(a);
         Eigen::Matrix3d R;
-        double c = std::cos(angle), s = std::sin(angle);
         R <<  c,  0,  s,
               0,  1,  0,
              -s,  0,  c;
         return R;
     }
 
-    // Wrap angle to (-π, π]
-    static double wrap(double a)
+    static Eigen::Matrix3d rotZ(double a)
     {
-        return std::remainder(a, 2.0 * M_PI);
+        double c = std::cos(a), s = std::sin(a);
+        Eigen::Matrix3d R;
+        R <<  c, -s,  0,
+              s,  c,  0,
+              0,  0,  1;
+        return R;
     }
 
-    // Decompose R = Rot_Z(alpha) * Rot_Y(beta) → returns {alpha, beta}
+    // Decompose R = Rot_X(pitch) * Rot_Y(roll)
     //
-    // R = [cosα cosβ   -sinα   cosα sinβ]
-    //     [sinα cosβ    cosα   sinα sinβ]
-    //     [  -sinβ        0      cosβ   ]
+    // Expanding:
+    //   R = [ cosR        0      sinR     ]
+    //       [ sinP sinR   cosP  -sinP cosR ]
+    //       [-cosP sinR   sinP   cosP cosR ]
     //
-    // alpha = atan2( R[1,0], R[0,0] )
-    // beta  = atan2(-R[2,0], R[2,2] )
+    // roll  = atan2(  R[0,2],  R[0,0] )   (from row 0)
+    // pitch = atan2(  R[2,1],  R[1,1] )   (from col 1)
     //
-    // Gimbal lock guard: when cos(beta) ≈ 0 fix alpha = 0
-    static std::pair<double,double> decomposeZY(const Eigen::Matrix3d& R)
+    // Gimbal lock when cos(roll) ≈ 0 → fix pitch = 0
+    static std::pair<double,double> decomposeXY(const Eigen::Matrix3d& R)
     {
-        double cos_beta = std::sqrt(R(0,0)*R(0,0) + R(1,0)*R(1,0));
+        double cos_roll = std::sqrt(R(0,0)*R(0,0) + R(0,2)*R(0,2));
 
-        double alpha, beta;
-        if (cos_beta < 1e-6) {          // near gimbal lock
-            alpha = 0.0;
-            beta  = std::atan2(-R(2,0), cos_beta);
+        double pitch, roll;
+        if (cos_roll < 1e-6) {      // gimbal lock: roll ≈ ±π/2
+            pitch = 0.0;
+            roll  = std::atan2(R(0,2), cos_roll);
         } else {
-            alpha = std::atan2(R(1,0),  R(0,0));
-            beta  = std::atan2(-R(2,0), R(2,2));
+            roll  = std::atan2( R(0,2),  R(0,0));
+            pitch = std::atan2(-R(2,1),  R(1,1));
         }
-        return {alpha, beta};
+        return {pitch, roll};
     }
 
     struct Solution {
-        double j4, j5, j6;
-        double wrist_roll, wrist_pitch;
+        double j4;            // elbow roll (radians)
+        double j5;            // unused — kept for struct size compat, same as wrist_roll
+        double j6;            // unused — kept for struct size compat, same as wrist_pitch
+        double wrist_pitch;   // radians — publish as degrees at index 5
+        double wrist_roll;    // radians — publish as degrees at index 4
     };
 
-    // Main solver — mirrors solve_diff_wrist() in the Python file.
+    // -----------------------------------------------------------------------
+    // solve()
     //
-    // R_pre_j4   : FK rotation from base through J1-J3 (Eigen 3x3)
-    // R_target   : desired EE rotation (Eigen 3x3)
-    // j4_current : current elbow roll (radians), used to bias solution
+    // R_pre_j4   : FK rotation from world/base through J1-J3 (the frame J4
+    //              sits in).  J4 rotates about the LOCAL Z of this frame.
+    // R_target   : desired EE rotation in the world/base frame.
+    // j4_current : current elbow roll (radians) — biases solution toward
+    //              minimal joint motion.
     // limits     : {j4_min, j4_max, j5_min, j5_max, j6_min, j6_max}
-    // j4_samples : how many elbow-roll candidates to try (default 64)
+    //
+    // Strategy
+    // ---------
+    // Express R_target in the J3-output (pre-J4) local frame:
+    //   R_local = R_pre_j4^T * R_target
+    //
+    // R_local must be produced by the chain  Rot_Z(j4) * Rot_X(pitch) * Rot_Y(roll).
+    //
+    // The yaw component of R_local (rotation about Z) must come entirely from
+    // J4 because the wrist has no yaw DOF.  Extract it analytically:
+    //
+    //   j4 = atan2( R_local[1,0], R_local[0,0] )   — the Z-axis Euler angle
+    //
+    // Then the wrist residual is:
+    //   R_wrist = Rot_Z(-j4) * R_local
+    //
+    // which should now be expressible as Rot_X(pitch) * Rot_Y(roll).
+    // Decompose and apply the differential inverse.
+    //
+    // Because this is analytical (not a search) it is exact and fast.
+    // The only search remaining is over the ±2π wrap of j4 to find the
+    // solution closest to j4_current within limits.
+    // -----------------------------------------------------------------------
     static std::optional<Solution> solve(
         const Eigen::Matrix3d& R_pre_j4,
         const Eigen::Matrix3d& R_target,
         double j4_current,
-        std::array<double,6> limits,   // {j4min,j4max, j5min,j5max, j6min,j6max}
-        int j4_samples = 64)
+        std::array<double,6> limits)
     {
         const double j4_min = limits[0], j4_max = limits[1];
-        const double j5_min = limits[2], j5_max = limits[3];
-        const double j6_min = limits[4], j6_max = limits[5];
+        const double pitch_min = limits[2], pitch_max = limits[3];
+        const double roll_min  = limits[4], roll_max  = limits[5];
 
+        // --- 1. Express target in the J3-output local frame ---
+        Eigen::Matrix3d R_local = R_pre_j4.transpose() * R_target;
+
+        // --- 2. Extract the yaw component → this is J4 ---
+        //   R_local = Rot_Z(j4) * R_wrist
+        //   The Z-Euler angle of R_local is the yaw J4 must produce.
+        double j4_raw = std::atan2(R_local(1, 0), R_local(0, 0));
+
+        // --- 3. Wrist residual after J4 removes the yaw ---
+        Eigen::Matrix3d R_wrist = rotZ(-j4_raw) * R_local;
+
+        // --- 4. Decompose residual into Rot_X(pitch) * Rot_Y(roll) ---
+        //   These are published directly in degrees to the CAN pipeline.
+        //   calc_differential() in arm_can_utils.py converts them to
+        //   motor angles:  motor1 = roll*WRIST_RATIO + pitch
+        //                  motor2 = roll*WRIST_RATIO - pitch
+        auto [pitch, roll] = decomposeXY(R_wrist);
+
+        // --- 5. Find the best ±2π wrap of j4 closest to j4_current ---
         std::optional<Solution> best;
         double best_cost = std::numeric_limits<double>::infinity();
 
-        for (int i = 0; i < j4_samples; ++i)
-        {
-            double j4 = j4_min + (j4_max - j4_min) * i / (j4_samples - 1);
+        for (int k = -1; k <= 1; ++k) {
+            double j4 = j4_raw + k * 2.0 * M_PI;
 
-            // --- 1. Rotation through J4 ---
-            Eigen::Matrix3d R_j4        = rotZ(j4);
-            Eigen::Matrix3d R_through_j4 = R_pre_j4 * R_j4;
+            if (j4    < j4_min    || j4    > j4_max)    continue;
+            if (pitch < pitch_min || pitch > pitch_max) continue;
+            if (roll  < roll_min  || roll  > roll_max)  continue;
 
-            // --- 2. Residual rotation the wrist must produce ---
-            //    R_through_j4 * R_wrist = R_target
-            //    R_wrist = R_through_j4^T * R_target
-            Eigen::Matrix3d R_wrist = R_through_j4.transpose() * R_target;
-
-            // --- 3. ZY decomposition → wrist roll α, pitch β ---
-            auto [alpha, beta] = decomposeZY(R_wrist);
-
-            // Needs further debugging, seems like our axes are a bit off but i can't tell for sure
-            beta = -beta;
-            alpha = -alpha;
-
-            // --- 4. Differential inverse ---
-            //    J5 = α + β
-            //    J6 = α - β
-            double j5 = wrap(alpha + beta);
-            double j6 = wrap(alpha - beta);
-
-            // --- 5. Feasibility ---
-            if (j4 < j4_min || j4 > j4_max) continue;
-            if (j5 < j5_min || j5 > j5_max) continue;
-            if (j6 < j6_min || j6 > j6_max) continue;
-
-            // --- 6. Cost: minimise motion from current J4 ---
             double cost = (j4 - j4_current) * (j4 - j4_current);
             if (cost < best_cost) {
                 best_cost = cost;
-                best = Solution{j4, j5, j6, alpha, beta};
+                best = Solution{j4, 0.0, 0.0, pitch, roll};
             }
         }
 
@@ -258,8 +284,6 @@ void PathPlannerNode::calculateIK(
     //
     //   We read the transform of the link immediately before J4
     //   (the "elbow roll input" frame) from MoveIt's robot state.
-    //   This is the same frame used in fk_to_elbow.py.
-    //
     //   Adjust "link_3" to whatever your URDF calls the link whose
     //   child joint is J4 (elbow roll).
     // ------------------------------------------------------------------
@@ -281,15 +305,26 @@ void PathPlannerNode::calculateIK(
     // Current J4 reading (used to bias the solution toward minimal motion)
     double j4_current = joint_values[3];
 
-    // Joint limits — adjust to match your URDF / hardware
+    // Joint limits for J4 only — J5/J6 limits are not needed here because
+    // we publish roll/pitch directly and calc_differential() handles the
+    // motor coupling on the CAN side.
     std::array<double,6> limits = {
-        -M_PI,      M_PI,        // J4 elbow roll
-        -2*M_PI,    2*M_PI,      // J5 motor 1
-        -2*M_PI,    2*M_PI       // J6 motor 2
+        -M_PI,  M_PI,   // J4 elbow roll
+        -M_PI,  M_PI,   // wrist pitch (±180°)
+        -M_PI,  M_PI    // wrist roll  (±180°)
     };
 
     // ------------------------------------------------------------------
     // Step 4 — Differential wrist solver
+    // ------------------------------------------------------------------
+    // Note: generate_data_packet() in arm_can_utils.py calls calc_differential()
+    // which handles the motor coupling:
+    //   motor1 = roll * WRIST_RATIO + pitch
+    //   motor2 = roll * WRIST_RATIO - pitch
+    //
+    // It expects data_list[-3] = roll (degrees), data_list[-2] = pitch (degrees).
+    // So we publish wrist_roll and wrist_pitch in degrees directly — do NOT
+    // pre-compute motor angles here, the CAN layer does that.
     // ------------------------------------------------------------------
     auto wrist_solution = DiffWrist::solve(
         R_pre_j4, R_target, j4_current, limits);
@@ -298,26 +333,27 @@ void PathPlannerNode::calculateIK(
         RCLCPP_WARN(get_logger(),
             "Differential wrist solver found no feasible solution — "
             "publishing position-only IK result");
-        // Fall through and publish whatever TRAC-IK gave us
     } else {
-        // Overwrite J4, J5, J6 with the analytically correct values
+        // J4: elbow roll — stays in radians (your arm node handles conversion)
         joint_values[3] = wrist_solution->j4;
-        joint_values[4] = wrist_solution->j5;
-        joint_values[5] = wrist_solution->j6;
+
+        // J5, J6: publish roll and pitch in degrees so calc_differential()
+        // receives the values it expects.
+        // data_list[-3] = roll  → index 4
+        // data_list[-2] = pitch → index 5
+        joint_values[4] = wrist_solution->wrist_roll  * (180.0 / M_PI);  // roll  → degrees
+        joint_values[5] = wrist_solution->wrist_pitch * (180.0 / M_PI);  // pitch → degrees
 
         RCLCPP_DEBUG(get_logger(),
-            "Wrist solved — J4=%.3f J5=%.3f J6=%.3f  "
-            "(roll=%.3f  pitch=%.3f)",
+            "Wrist solved — J4=%.3frad  roll=%.2f°  pitch=%.2f°",
             wrist_solution->j4,
-            wrist_solution->j5,
-            wrist_solution->j6,
-            wrist_solution->wrist_roll,
-            wrist_solution->wrist_pitch);
+            joint_values[4],
+            joint_values[5]);
     }
 
     // ------------------------------------------------------------------
     // Step 5 — Publish
-    // ------------------------------------------------------------------  
+    // ------------------------------------------------------------------
     std_msgs::msg::Float32MultiArray msg;
     msg.data.assign(joint_values.begin(), joint_values.end());
     _joint_pose_pub->publish(msg);
@@ -350,7 +386,10 @@ void PathPlannerNode::joint_callback(
     _curr_pose = std::make_shared<geometry_msgs::msg::Pose>(pose_msg);
 }
 
-void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const
+// ---------------------------------------------------------------------------
+
+void PathPlannerNode::calculatePath(
+    const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const
 {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "sub callback");
 
@@ -370,11 +409,15 @@ void PathPlannerNode::calculatePath(const geometry_msgs::msg::Pose::SharedPtr ta
     publishPath(plan_msg.trajectory_);
 }
 
+// ---------------------------------------------------------------------------
+
 void PathPlannerNode::updateCurrPoseCallback(
     geometry_msgs::msg::Pose::SharedPtr curr_pose_msg)
 {
     _curr_pose = curr_pose_msg;
 }
+
+// ---------------------------------------------------------------------------
 
 void PathPlannerNode::updateStateCallback(
     std_msgs::msg::String::SharedPtr curr_state_msg)
@@ -385,6 +428,8 @@ void PathPlannerNode::updateStateCallback(
     else if (curr_state_msg->data == "PATH_PLANNING") _curr_state = ArmState::PATH_PLANNING;
     else if (curr_state_msg->data == "SCIENCE")       _curr_state = ArmState::SCIENCE;
 }
+
+// ---------------------------------------------------------------------------
 
 void PathPlannerNode::publishPath(
     moveit_msgs::msg::RobotTrajectory& trajectory) const

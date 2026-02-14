@@ -7,7 +7,7 @@ Calculates 3D positions using RealSense depth data and camera intrinsics
 
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import Float32MultiArray
-from arm_msgs.msg import KeyboardCorners
+from arm_msgs.msg import KeyboardCoords
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import rclpy
@@ -25,11 +25,8 @@ class CameraNode(Node):
         super().__init__('camera_aruco_node')
         
         # Publishers
-        self.camera_pub = self.create_publisher(
-            Float32MultiArray, 'camera_numpy_array_topic', 10
-        )
-        self.keyboard_corner_pub = self.create_publisher(
-            KeyboardCorners, 'keyboard_corners', 10
+        self.keyboard_coords_pub = self.create_publisher(
+            KeyboardCoords, 'keyboard_coords', 10
         )
         
         # CV Bridge for image conversion
