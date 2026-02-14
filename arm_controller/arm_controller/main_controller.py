@@ -62,6 +62,19 @@ class Controller(Node):
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
+# Set the default pose (only for sim)
+        # TODO: home in MoveIt is currently set to the origin (bad)
+        # Position: x: 0.054901; y: 0.36896; z: 0.58728
+        # Orientation: x: 0; y: 0; z: 0.706825; w: 0.707388
+        if self.virtual:
+            self.current_pose.position.x = 0.054901
+            self.current_pose.position.y = 0.36896
+            self.current_pose.position.z = 0.58728
+            self.current_pose.orientation.x = 0.0
+            self.current_pose.orientation.y = 0.0
+            self.current_pose.orientation.z = 0.706825
+            self.current_pose.orientation.w = 0.707388
+
         self.current_joints = self.initial_positions.copy()
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
@@ -308,10 +321,10 @@ class Controller(Node):
                         if self.homing_thread.is_alive():
                             self.homing_thread.join()
 
-                        target_pose = map_inputs_to_ik(
+                        self.target_pose = map_inputs_to_ik(
                             inputs, self.current_pose)
-                        self.target_pose_pub.publish(target_pose)
-                        self.current_pose = target_pose
+                        self.target_pose_pub.publish(self.target_pose)
+                        self.current_pose = self.target_pose
                     else:
                         if inputs.x and inputs.circle and inputs.triangle and inputs.square or self.virtual:
                             self.get_logger().info("OVERRIDING HOMING")
@@ -326,7 +339,7 @@ class Controller(Node):
                         else:
                             self.get_logger().info(
                                 "Arm not homed, cannot move in IK mode, press X and O simultaneously to home")
-                            target_pose = self.current_pose
+                            self.target_pose = self.current_pose
                             # self.target_pose_pub.publish(target_pose)
                             time.sleep(0.2)
                 case ArmState.PATH_PLANNING:
@@ -347,10 +360,10 @@ class Controller(Node):
                             if self.path_executor_thread.is_alive():
                                 self.path_executor_thread.join()
                                 
-                            target_pose = self.keyboard_positions[target]
+                            self.target_pose = self.keyboard_positions[target]
                             self.get_logger().info("Moving to key: %s" % target)
                             # TODO: path plan should publish to an intermediate pose offset from the keyboard prior to publishing the actual key press
-                            self.target_pose_pub.publish(target_pose)
+                            self.target_pose_pub.publish(self.target_pose)
                             self.executing_path = True
                             self.path_executor_thread.start()
                     pass
@@ -470,7 +483,8 @@ class Controller(Node):
         # Pose will be returned in a subscription, should update elsewhere
 
     def update_fk_pose_callback(self, msg):
-        self.current_pose = msg
+        if not self.virtual:
+            self.current_pose = msg
 
     def shutdown_node(self):
         self.get_logger().info("Shutting down node")

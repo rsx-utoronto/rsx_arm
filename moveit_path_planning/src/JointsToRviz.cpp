@@ -5,6 +5,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include <geometry_msgs/msg/pose.hpp>
 
 class IkToRvizJointState : public rclcpp::Node
 {
@@ -16,6 +17,15 @@ public:
   {
     // Publisher to RViz joint_states topic
     joint_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
+
+    // Publish to the arm_fk_pose topic to fake position updates
+    fk_pose_pub_ = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 10);
+
+    // Subscribes to the arm_target_pose topic, which will later be echoed directly to arm_fk_pose
+    // This will act as a pseudo-position update for when the arm is being run in RViz
+    rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr target_pose_sub = this->create_subscription<geometry_msgs::msg::Pose>(
+      "arm_target_pose", 10,
+      std::bind(&IkToRvizJointState::target_pose_sub_callback, this, std::placeholders::_1));
 
     // Subscriber to IK target joints topic
     ik_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
@@ -53,9 +63,15 @@ private:
     joint_pub_->publish(js);
   }
 
+    // Callback to update the fk pose in sim
+void target_pose_sub_callback(geometry_msgs::msg::Pose::SharedPtr target_pose_msg) {
+  this->fk_pose_pub_->publish(*target_pose_msg);
+}
+
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_pub_;
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr ik_sub_;
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr path_planning_sub_;
+  rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr fk_pose_pub_;
   std::vector<std::string> joint_names_;
 };
 
