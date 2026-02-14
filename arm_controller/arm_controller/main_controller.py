@@ -7,7 +7,7 @@ import numpy as np
 
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
-from arm_msgs.msg import ArmInputs, KeyboardCoords
+from arm_msgs.msg import ArmInputs, KeyboardCoords, TargetPosition
 from geometry_msgs.msg import Pose, Point, Quaternion
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
@@ -18,7 +18,7 @@ import functools
 from pynput import keyboard
 import time
 import math
-
+from scipy.spatial.transform import Rotation
 
 class Controller(Node):
     """
@@ -93,7 +93,7 @@ class Controller(Node):
             Pose, "arm_target_pose", 10)
         self.killswitch_pub = self.create_publisher(
             UInt8, "arm_killswitch", 10)
-
+        self.keyboard_target_pub = self.create_publisher(TargetPosition, "key_targets", 10)
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
             Joy, "/joy", self.handle_joy, 10)
@@ -153,15 +153,18 @@ class Controller(Node):
         self.arm_update_lock = threading.Lock()
 
         self.threads = [self.homing_thread, self.can_read_thread, self.path_executor_thread]
+        self.executing_path = False
         
         # Initialization flags for CAN readings (for setting initial joint values)
         self.init = [False]*7
 
         # Keyboard targets to be hard coded at time of challenge
         # TODO: parse from config file
-        self.keyboard_targets = []
+        self.keyboard_targets = ["s"]
         # TODO: set up all keys
-        self.keyboard_positions = {}
+        self.keyboard_offsets = {"s" : np.array([-0.0645, 0.715, 0.012])}
+        self.keyboard_positions = self.keyboard_offsets.copy()
+        self.current_key = None
         self.last_quadrant = [0, 0] # for tracking which side of the joint base and wrist are in
         try:
             with open("limit_log.txt") as f:
@@ -270,7 +273,7 @@ class Controller(Node):
                     self.get_logger().info("Switching to IK mode, homed and ready to move")
 
             elif inputs.dpad_right:
-                self.state = ArmState.PATH_PLANNING
+                self.state = ArmState.AUTO_KEYBOARD
                 self.get_logger().info("Switching to PATH PLANNING mode")
 
             state_string = String()
@@ -342,18 +345,23 @@ class Controller(Node):
                     # TODO: actively update the relative location of keyboard targets based on detected keyboard corners
                     for target in self.keyboard_targets:
                         if self.executing_path:
-                            pass
+                            if inputs.circle:
+                                self.executing_path = False
+                                if self.path_executor_thread.is_alive():
+                                    self.path_executor_thread.join()
+                            else:
+                                pass
                         else:
+                            
                             if self.path_executor_thread.is_alive():
                                 self.path_executor_thread.join()
-                                
-                            target_pose = self.keyboard_positions[target]
                             self.get_logger().info("Moving to key: %s" % target)
+                            self.current_key = target
+                            
                             # TODO: path plan should publish to an intermediate pose offset from the keyboard prior to publishing the actual key press
-                            self.target_pose_pub.publish(target_pose)
+                            # self.target_pose_pub.publish(target_pose)
                             self.executing_path = True
                             self.path_executor_thread.start()
-                    pass
         if self.state != ArmState.IK:
             self.update_internal_pose_state(self.current_joints)
         time.sleep(0.05)
@@ -485,50 +493,57 @@ class Controller(Node):
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints) 
-        print(self.target_joints)
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
-        # TODO: temporarily disabled, safety issues
         self.can_con.send_target_message(self.safe_target_joints)
         time.sleep(0.05)
 
 
     def handle_keyboard_coords(self, msg):
-        self.get_logger().info("Received keyboard coordinates from camera node")
-        corners = msg.corners  # assuming corners is a list of 4 (x, y) tuples
+        corners = [msg.tl, msg.tr, msg.bl, msg.br]
         # Process corners to determine key positions
         self.interpolate_key_positions(corners)
 
     def interpolate_key_positions(self, corners):
-        # TODO: implement interpolation of key positions based on keyboard corners
-        pass
+        # zero_r = Rotation.identity()
+        # tl_corner_tf = RigidTransform.from_components(np.array([corners[0].x, corners[0].y, corners[0].z]), zero_r)
+        for key in self.keyboard_targets:
+            self.keyboard_positions[key] = self.keyboard_offsets[key] + np.array([corners[0].x, corners[0].y, corners[0].z], dtype = float)
 
     def update_path_planner_joints(self, msg):
         self.current_path.append(list(msg.data))
 
     def path_executor_loop(self):
-        while len(self.current_path) > 0 and self.shutdown == False:
-            for step in self.current_path:
-                error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints)]
-                if all(e < self.joint_target_threshold for e in error):
-                    self.current_path.pop(0)
-                    continue
+        # while len(self.current_path) > 0 and self.shutdown == False:
+        while self.executing_path:
+            target_pose = self.keyboard_positions[self.current_key]
+            key_target = TargetPosition()
+            key_target.name = self.current_key
+            key_target.position.x, key_target.position.y, key_target.position.z = target_pose[0], target_pose[1], target_pose[2]
+            key_target.distance = 0.0
+            
+            self.keyboard_target_pub.publish(key_target)
+            # for step in self.current_path:
+            #     error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints)]
+            #     if all(e < self.joint_target_threshold for e in error):
+            #         self.current_path.pop(0)
+            #         continue
                     
-                self.target_joints[0:6] = step
-                self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-                    self.target_joints, self.current_joints)
-                msg = Float32MultiArray()
-                msg.data = self.safe_target_joints
-                self.safe_target_joints_pub.publish(msg)
+            #     self.target_joints[0:6] = step
+            #     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
+            #         self.target_joints, self.current_joints)
+            #     msg = Float32MultiArray()
+            #     msg.data = self.safe_target_joints
+            #     self.safe_target_joints_pub.publish(msg)
 
-                self.internal_current_joints = self.safe_target_joints
+            #     self.internal_current_joints = self.safe_target_joints
 
-                # DISABLED TEMPORARILY FOR SAFETY
-                # self.can_con.send_target_message(self.safe_target_joints)
-                time.sleep(0.1)  # wait for some time before next step
-            self.executing_path = False
+            #     # DISABLED TEMPORARILY FOR SAFETY
+            #     # self.can_con.send_target_message(self.safe_target_joints)
+            #     time.sleep(0.1)  # wait for some time before next step
+            # self.executing_path = False
 def real_controller(args=None):
     rclpy.init(args=args)
 

@@ -25,7 +25,7 @@ from PyQt5.QtGui import QFont, QColor, QPalette, QImage, QPixmap
 from std_msgs.msg import String, Float32MultiArray, Bool
 from sensor_msgs.msg import Image
 
-from arm_msgs.msg import TargetPositionArray  # Custom message type for target positions of keyboard
+from arm_msgs.msg import TargetPositionArray, TargetPosition, ArmStatuses  # Custom message type for target positions of keyboard
 
 from arm_utilities.arm_enum_utils import ArmState, SafetyErrors
 
@@ -77,7 +77,6 @@ class StatusIndicator(QFrame):
                 font-family: 'Courier New', monospace;
                 font-size: 10pt;
                 font-weight: bold;
-                # text-shadow: 0 0 15px {color};
                 border: none;
             }}
         """)
@@ -89,7 +88,6 @@ class StatusIndicator(QFrame):
                 color: {color};
                 font-family: 'Courier New', monospace;
                 font-size: 11pt;
-                # text-shadow: 0 0 8px {color};
                 border: none;
                 padding: 5px;
             }}
@@ -136,7 +134,6 @@ class TargetDisplay(QFrame):
                 font-family: 'Courier New', monospace;
                 font-size: 10pt;
                 font-weight: bold;
-                # text-shadow: 0 0 10px #00ddff;
                 border: none;
             }
         """)
@@ -154,7 +151,6 @@ class TargetDisplay(QFrame):
                     color: #00ffaa;
                     font-family: 'Courier New', monospace;
                     font-size: 9pt;
-                    # text-shadow: 0 0 5px #00ffaa;
                     border: none;
                 }
             """)
@@ -267,6 +263,7 @@ class ArmGUI(Node, QWidget):
         self.watchdog = QTimer(self)
         self.watchdog.timeout.connect(self._mark_stale_if_needed)
         self.watchdog.start(200)
+        self.target_displays = {}
     
     def setup_ui(self):
         """Setup the main UI with cyberpunk theme"""
@@ -298,11 +295,9 @@ class ArmGUI(Node, QWidget):
             }
             QCheckBox::indicator:checked {
                 background-color: #00ffff;
-                # box-shadow: 0 0 10px #00ffff;
             }
             QCheckBox::indicator:hover {
                 border-color: #00ffff;
-                # box-shadow: 0 0 5px #00ffff;
             }
         """)
         
@@ -429,7 +424,6 @@ class ArmGUI(Node, QWidget):
                 font-size: 12pt;
                 font-weight: bold;
                 color: {color};
-                # text-shadow: 0 0 15px {color};
                 padding-top: 15px;
                 background-color: rgba(0, 0, 0, 100);
             }}
@@ -455,12 +449,12 @@ class ArmGUI(Node, QWidget):
         # New subscriptions - UPDATE TOPIC NAMES AS NEEDED
         # Camera feed
         self.create_subscription(Image, "/annotated_video", self.on_camera, 10)
-        self.create_subscription(Image, "/raw_video", self.on_camera, 10)  # Optional raw feed
+        self.create_subscription(Image, '/camera/camera/color/image_rect_raw', self.on_camera, 10)  # Optional raw feed
         
         # Current pose (x, y, z, roll, pitch, yaw)
         self.create_subscription(Float32MultiArray, "/arm_curr_pose", self.on_curr_pose, 10)
         
-        self.create_subscription(TargetPositionArray, "/key_targets", self.on_targets, 10)
+        self.create_subscription(TargetPosition, "/key_targets", self.on_targets, 10)
         
         # Limit switches status
         self.create_subscription(ArmStatuses, "/arm_lim_switches", self.on_limit_switches, 10)
@@ -478,7 +472,7 @@ class ArmGUI(Node, QWidget):
     
     def on_state(self, msg: String):
         """Handle arm state updates"""
-        self.state = ArmState(msg.data)
+        self.state = ArmState[msg.data]
         self.last_update_time["state"] = time.time()
         self.state_indicator.update_status(msg.data)
     
@@ -524,45 +518,34 @@ class ArmGUI(Node, QWidget):
         except Exception as e:
             self.get_logger().error(f"Camera conversion error: {e}")
     
-    def on_targets(self, msg: String):
+    def on_targets(self, msg: TargetPosition):
         """
         Handle target positions (String placeholder version)
         TODO: Replace with on_targets_custom when using TargetPositionArray
         
         Expected format: "name1,x,y,z,dist;name2,x,y,z,dist;..."
         """
+        targets_data = {}
         self.last_update_time["targets"] = time.time()
-        
-        try:
-            targets_data = {}
-            for target_str in msg.data.split(';'):
-                if not target_str.strip():
-                    continue
-                parts = target_str.split(',')
-                if len(parts) >= 5:
-                    name = parts[0]
-                    x, y, z, dist = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4])
-                    targets_data[name] = (x, y, z, dist)
+        targets_data[msg.name] = (msg.position, 0.0)
+        self.targets = targets_data
+        self._update_target_displays()
+        # try:
             
-            self.targets = targets_data
-            self._update_target_displays()
-        except Exception as e:
-            self.get_logger().error(f"Target parsing error: {e}")
+        #     for target_str in msg.data.split(';'):
+        #         if not target_str.strip():
+        #             continue
+        #         parts = target_str.split(',')
+        #         if len(parts) >= 5:
+        #             name = parts[0]
+        #             x, y, z, dist = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4])
+        #             targets_data[name] = (x, y, z, dist)
+            
+            
+        # except Exception as e:
+        #     self.get_logger().error(f"Target parsing error: {e}")
     
-    # TODO: Uncomment and use this when TargetPositionArray message is available
-    # def on_targets_custom(self, msg):
-    #     """
-    #     Handle target positions using custom TargetPositionArray message
-    #     """
-    #     self.last_update_time["targets"] = time.time()
-    #     
-    #     targets_data = {}
-    #     for target in msg.targets:
-    #         targets_data[target.name] = (target.x, target.y, target.z, target.distance)
-    #     
-    #     self.targets = targets_data
-    #     self._update_target_displays()
-    
+
     def on_limit_switches(self, msg: String):
         """Handle limit switch status update"""
         self.last_update_time["limit_switches"] = time.time()
@@ -598,31 +581,36 @@ class ArmGUI(Node, QWidget):
         Sorts targets by distance (closest to furthest)
         """
         # Clear existing target displays
-        while self.targets_layout.count() > 1:  # Keep the stretch at the end
-            item = self.targets_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        # while self.targets_layout.count() > 1:  # Keep the stretch at the end
+        #     item = self.targets_layout.takeAt(0)
+        #     if item.widget():
+        #         item.widget().deleteLater()
         
-        # Sort targets by distance (closest first)
-        sorted_targets = sorted(self.targets.items(), key=lambda x: x[1][3])
+        # # Sort targets by distance (closest first)
+        # sorted_targets = sorted(self.targets.items(), key=lambda x: x[1][3])
         
         # Create new display widgets for each target
-        for name, (x, y, z, distance) in sorted_targets:
-            display = TargetDisplay(name)
-            display.update_data(x, y, z, distance)
+        
+        for name in self.targets.keys():
+            if name not in self.target_displays.keys():
+                print("creating display")
+                self.target_displays[name] = TargetDisplay(name)
+                self.targets_layout.insertWidget(self.targets_layout.count() - 1, self.target_displays[name])
+            
+            self.target_displays[name].update_data(self.targets[name][0].x, self.targets[name][0].y, self.targets[name][0].z, self.targets[name][1])
             
             # Apply visibility toggles
             if not self.dist_check.isChecked():
-                display.dist_label.hide()
+                self.target_displays[name].dist_label.hide()
             if not self.x_check.isChecked():
-                display.x_label.hide()
+                self.target_displays[name].x_label.hide()
             if not self.y_check.isChecked():
-                display.y_label.hide()
+                self.target_displays[name].y_label.hide()
             if not self.z_check.isChecked():
-                display.z_label.hide()
+                self.target_displays[name].z_label.hide()
             
             # Insert before the stretch
-            self.targets_layout.insertWidget(self.targets_layout.count() - 1, display)
+            
     
     def toggle_target_display(self):
         """Toggle visibility of target data fields based on checkboxes"""
