@@ -26,7 +26,7 @@ cd ../.. && \
 colcon build --packages-select arm_controller arm_launch arm_moveit_config arm_msgs arm_utilities auto_keyboard gui moveit_path_planning&& \
 
 # Another helper to build arm code
-echo -e "\nalias build_arm='workon_arm && colcon build --packages-select arm_controller arm_launch arm_moveit_config arm_utilities auto_keyboard gui moveit_path_planning --packages-skip arm_msgs" >> ~/.bashrc && \
+echo -e "\nalias build_arm='colcon build --packages-select arm_controller arm_launch arm_moveit_config arm_utilities auto_keyboard gui moveit_path_planning --packages-skip arm_msgs" >> ~/.bashrc && \
 
 # Run the two helper commands
 source ~/.bashrc && build_arm && \
