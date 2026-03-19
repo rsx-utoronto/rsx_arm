@@ -112,14 +112,6 @@ class Controller(Node):
         self.current_path = []
         self.joint_target_threshold = 1 # maximum allowed error in degrees to consider joint target reached
 
-        # Nonblocking keyboard listener
-        # TODO: dear god please just vaporize any trace of a keyboard controller from the face of the earth
-        self.keyboard_listener = keyboard.Listener(
-            on_press=self.on_press,
-            on_release=self.on_release
-        )
-        self.keyboard_listener.start()
-
         # Joint limit tracking
         self.at_limit = [False] * self.n_joints
 
@@ -233,6 +225,7 @@ class Controller(Node):
 
 
     def update_arm(self, update):
+        # TODO: need to update state tracking to consistently unify real world angles with internal state
         # lock to prevent local variables from being modified by CAN threads during execution
         with self.arm_update_lock:
             match self.control_mode:
@@ -278,6 +271,7 @@ class Controller(Node):
             self.state_pub.publish(state_string)
 
             match self.state:
+                # TODO: add killswitch
                 case ArmState.IDLE:
                     self.safe_target_joints = self.arm_internal_current_joints
                     self.can_con.send_target_message(self.safe_target_joints)
@@ -355,6 +349,7 @@ class Controller(Node):
                             self.path_executor_thread.start()
                     pass
         if self.state != ArmState.IK:
+            # TODO: need to be updating internal pose state using FK pose updates, need to resolve discrepancies from IK solutions
             self.update_internal_pose_state(self.current_joints)
         time.sleep(0.05)
 
@@ -369,6 +364,7 @@ class Controller(Node):
 
     def home_arm(self, joint_indices=[0, 1, 2, 3, 4, 5, 6],  hz: float = 50.0):
         # endpoint refers to positive-direction endpoint
+        # TODO: handle homing in parallel either using the multithreaded executor provided by ROS2 or moving it to a different node altogether
         """joint index is numbered 0 to 6 in order of base rotation, shoulder, elbow, elbow roll, wrist_pitch, wrist_roll, gripper"""
         period = 1.0 / hz
         target_joints = copy.deepcopy(self.current_joints)
@@ -484,16 +480,14 @@ class Controller(Node):
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-                        self.target_joints, self.arm_internal_current_joints) 
-        print(self.target_joints)
+                        self.target_joints, self.current_joints)
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
-        # TODO: temporarily disabled, safety issues
         self.can_con.send_target_message(self.safe_target_joints)
-        time.sleep(0.05)
 
+        time.sleep(0.05)  # wait for some time before next update
 
     def handle_keyboard_coords(self, msg):
         self.get_logger().info("Received keyboard coordinates from camera node")
