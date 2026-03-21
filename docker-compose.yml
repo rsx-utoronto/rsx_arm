@@ -1,0 +1,130 @@
+x-common-env: &common_env
+  ROS_DISTRO: humble
+  WS_DIR: /arm_ros2_ws
+  ROS_LOCALHOST_ONLY: "1"
+  RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+  ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-7}
+  SYNC_DOTFILES_ON_START: ${SYNC_DOTFILES_ON_START:-1}
+
+x-common-vols: &common_vols
+  - ./:/arm_ros2_ws/src/rsx_arm:rw
+  - ${HOME}/.ssh:/home/dev/.ssh:ro
+  - ${HOST_HOME}:/host_home:ro   # <— host home (set by scripts)
+
+x-realsense-usb: &realsense_usb
+  privileged: true         
+  devices:
+    - /dev/bus/usb:/dev/bus/usb
+    - /dev/dri:/dev/dri    # GPU for RViz etc. (not the camera, but useful)
+    # - /dev/video0:/dev/video0    # some RealSense models expose V4L nodes
+    # - /dev/video1:/dev/video1
+
+services:
+  rsxarm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USERNAME: dev
+        USER_UID: ${UID:-1000}
+        USER_GID: ${GID:-1000}
+        SHELL_FLAVOR: ${SHELL_FLAVOR:-zsh}     # zsh|bash
+        EDITOR_FLAVOR: ${EDITOR_FLAVOR:-nvim}  # nvim|vscode
+        WITH_GUI: ${WITH_GUI:-1}               # include GUI tools [0 for headless build]
+        HOST_FLAVOR: ${HOST_FLAVOR:-linux-x11}
+    image: rsxarm:humble
+    container_name: rsxarm
+    working_dir: /arm_ros2_ws
+
+    environment: *common_env
+    volumes: *common_vols
+    networks: [ default ]
+    tty: true
+    stdin_open: true
+    user: "${UID:-1000}:${GID:-1000}"
+    profiles: [ "base" ]
+
+  rsxarm-wayland:
+    extends: rsxarm
+    container_name: rsxarm-wayland
+    environment:
+      <<: *common_env
+      QT_QPA_PLATFORM: xcb      # Qt Wayland + Ogre(GLX) fails; force X11 backend
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-1}
+      XDG_RUNTIME_DIR: /run/user/${UID:-1000}   # ← set container-side path
+      DISPLAY: ${DISPLAY}                       # ← allow X11 fallback too
+    volumes:
+      - ./:/arm_ros2_ws/src/rsx_arm:rw
+      - ${HOME}/.ssh:/home/dev/.ssh:ro
+      - ${HOST_HOME}:/host_home:ro
+      - ${HOME}/.config/nvim:/home/dev/.config/nvim:ro
+      - ${HOME}/.config/lazygit:/home/dev/.config/lazygit:ro
+      - ${XDG_RUNTIME_DIR}:/run/user/${UID:-1000}      # ← mount the WHOLE runtime dir
+      - /dev/dri:/dev/dri
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw        # ← for X11 fallback
+    # devices: ["/dev/dri"]
+    <<: *realsense_usb
+    network_mode: host
+    profiles: [ "hyprland" ]
+    group_add: [ "${RENDER_GID}", "${VIDEO_GID}" ]
+
+  rsxarm-x11:
+    extends: rsxarm
+    container_name: rsxarm-x11
+    environment:
+      <<: *common_env
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+    volumes:
+      - ./:/arm_ros2_ws/src/rsx_arm:rw
+      - ${HOME}/.ssh:/home/dev/.ssh:ro
+      - ${HOST_HOME}:/host_home:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    # devices: [ "/dev/dri" ]
+    <<: *realsense_usb
+    network_mode: host
+    profiles: [ "x11" ]
+    group_add: [ "${RENDER_GID}", "${VIDEO_GID}" ]
+
+  rsxarm-mac:
+    extends: rsxarm
+    container_name: rsxarm-mac
+    profiles: [ "mac" ]
+    environment:
+      <<: *common_env
+      DISPLAY: host.docker.internal:0
+      LIBGL_ALWAYS_INDIRECT: "1"
+      QT_X11_NO_MITSHM: "1"
+
+
+  rsxarm-win:
+    extends: rsxarm
+    container_name: rsxarm-win
+    profiles: [ "windows" ]
+    environment:
+      <<: *common_env
+      DISPLAY: host.docker.internal:0.0
+      QT_X11_NO_MITSHM: "1"
+
+  rsxarm-wsl:
+    extends: rsxarm
+    container_name: rsxarm-wsl
+    environment:
+      <<: *common_env
+      DISPLAY: ${DISPLAY}
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-0}
+      XDG_RUNTIME_DIR: /mnt/wslg/runtime-dir
+    volumes:
+      - ./:/arm_ros2_ws/src/rsx_arm:rw
+      - ${HOME}/.ssh:/home/dev/.ssh:ro
+      - ${HOST_HOME}:/host_home:ro
+      - /mnt/wslg/.X11-unix:/tmp/.X11-unix:ro
+      - /mnt/wslg/runtime-dir:/mnt/wslg/runtime-dir:ro
+    profiles: [ "windows-wsl" ]
+    <<: *realsense_usb
+    group_add: [ "${RENDER_GID}", "${VIDEO_GID}" ]
+
+
+
+networks:
+  default: {}
