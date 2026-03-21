@@ -42,7 +42,7 @@ def normalize_override_paths(
         return [part for part in parts if part]
     return list(override_paths)
 
-
+# TODO: add a generalized config loader that can load configs for other nodes as well, not just arm controller
 def load_arm_controller_config(
     override_paths: Iterable[str | Path] | str | Path | None = None,
     default_path: str | Path | None = None,

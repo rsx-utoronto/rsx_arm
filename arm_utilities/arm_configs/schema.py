@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 
+# TODO: include alternative config types
 @dataclass(frozen=True)
 class ArmControllerConfig:
     # Node Name
