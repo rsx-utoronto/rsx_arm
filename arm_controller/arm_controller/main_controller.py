@@ -168,6 +168,8 @@ class Controller(Node):
         except:
             self.get_logger().warn ("error logging limits!")
 
+        self.state_unifer = False 
+        # TODO: update to true once state unification is tested and consistent
 
     def read_can_callback(self):
         while self.shutdown == False:
@@ -229,29 +231,32 @@ class Controller(Node):
     def update_arm(self, update):
         # TODO: need to update state tracking to consistently unify real world angles with internal state
         #TODO: modify threshold values according to testing or... 
-        real_to_internal_error_threshold = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-        real_to_internal_error_time_threshold = 500_000_000 # example of 0.5 seconds in nanoseconds
+        if self.state_unifer:
+            real_to_internal_error_threshold = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+            real_to_internal_error_time_threshold = 500_000_000 # example of 0.5 seconds in nanoseconds TODO: tune this based on testing
 
-        real_to_internal_error = self.current_joints - self.arm_internal_current_joints
-        excessive_error = False
-        for error, threshold in zip(real_to_internal_error, real_to_internal_error_threshold):
-            if abs(error) > threshold:
-                excessive_error = True
-                break
+            real_to_internal_error = self.current_joints - self.arm_internal_current_joints
+            excessive_error = False
+            for error, threshold in zip(real_to_internal_error, real_to_internal_error_threshold):
+                if abs(error) > threshold:
+                    excessive_error = True
+                    # TODO: could be good to consider only updating state of exceeding joints and not all joints
+                    break
 
-        if excessive_error:
-            self.arm_internal_current_joints = self.current_joints.copy()
-            self.real_to_internal_error_log.append(time.time_ns())
+            if excessive_error:
+                self.arm_internal_current_joints = self.current_joints.copy()
+                # TODO: maybe reset? could get really long eventually but not required
+                self.real_to_internal_error_log.append(time.time_ns())
 
-            #set to IDLE state if 5 errors occur within the span of the real_to_internal_error_time_threshold
-            log_length = len(self.real_to_internal_error_log)
+                #set to IDLE state if 5 errors occur within the span of the real_to_internal_error_time_threshold
+                log_length = len(self.real_to_internal_error_log)
 
-            if (log_length >= 5):
-                if(self.real_to_internal_error_log[-1] - self.real_to_internal_error_log[-5] < real_to_internal_error_time_threshold):
-                    self.state = ArmState.IDLE
-            return
+                if (log_length >= 5):
+                    if(self.real_to_internal_error_log[-1] - self.real_to_internal_error_log[-5] < real_to_internal_error_time_threshold):
+                        self.state = ArmState.IDLE
+                return
 
-        # lock to prevent local variables from being modified by CAN threads during execution
+            # lock to prevent local variables from being modified by CAN threads during execution
         with self.arm_update_lock:
             match self.control_mode:
                 case ControlMode.CONTROLLER:
