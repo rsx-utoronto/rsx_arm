@@ -5,7 +5,7 @@ from rclpy.node import Node
 import threading
 import numpy as np
 
-from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Joy, JointState
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
 from arm_msgs.msg import ArmInputs, KeyboardCoords
 from geometry_msgs.msg import Pose, Point, Quaternion
@@ -115,6 +115,9 @@ class Controller(Node):
         self.fk_sub = self.create_subscription(
             Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target, 10)
+
+        # Subscriber to the RViz joint_states topic (used to update joint angles when in sim so safety doesn't trigger)
+        self.joint_states_sub = self.create_subscription(JointState, "joint_states", self.update_sim_joints, 10)
 
         self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
         self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
@@ -515,6 +518,14 @@ class Controller(Node):
         corners = msg.corners  # assuming corners is a list of 4 (x, y) tuples
         # Process corners to determine key positions
         self.interpolate_key_positions(corners)
+
+    # When the RViz sim is enabled, update the internal joints so safety doesn't complain
+    def update_sim_joints(self, msg):
+        self.current_joints = [float(i*180/math.pi) for i in msg.position]
+        out_msg = Float32MultiArray()
+        out_msg.data = self.current_joints
+        self.arm_curr_joints_pub.publish(out_msg)
+        self.current_joints.append(0.)
 
     def interpolate_key_positions(self, corners):
         # TODO: implement interpolation of key positions based on keyboard corners
