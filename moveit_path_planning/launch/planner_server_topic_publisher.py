@@ -130,13 +130,14 @@ def launch_setup(context, *args, **kwargs):
         We may need to call "execute" on planning to get the joint states to update!!!    
     """
 
-    return [planner_server_node,
+    return [
+            # planner_server_node,
             move_group_launch,
             path_planner_publisher_node,
-            static_tf_node,
+            # static_tf_node,
             robot_state_publisher,
             ros2_control_node,
-            joint_state_broadcaster_spawner,
+            # joint_state_broadcaster_spawner,
             arm_controller_spawner,
             ee_controller_spawner,
             ]

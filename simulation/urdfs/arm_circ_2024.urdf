@@ -1,0 +1,201 @@
+<?xml version="1.0"?>
+<robot name="arm">
+
+    <!-- links -->
+
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <box size="5 5 0.5"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <link name="link_1">
+        <visual>
+            <origin xyz="0.0 0.0 -4.25" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="3 3 9.5"/>
+            </geometry> 
+        </visual>
+    </link>
+
+    <link name="link1_joint">
+        <visual>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 1.57 0.0"/>
+            <geometry>
+                <cylinder radius="2" length="3.2"/>
+            </geometry>
+            <material name="red">
+                <color rgba="1.0 0.0 0.0 1.0"/>
+            </material>
+        </visual>
+    </link>
+
+    <link name="link_2">
+        <visual name="">
+            <origin xyz="0.0 0.0 -18" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="3 3 36"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <link name="link2_joint">
+        <visual>
+            <origin xyz="0.0 0.0 -36" rpy="0.0 1.57 0.0"/>
+            <geometry>
+                <cylinder radius="2" length="3.2"/>
+            </geometry>
+            <material name="red">
+                <color rgba="1.0 0.0 0.0 1.0"/>
+            </material>
+        </visual>
+    </link>
+
+    <link name="link_3_r3">
+        <visual name="">
+            <origin xyz="0.0 0.0 -5" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="3 3 10"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <link name="link_3_d4">
+        <visual name="">
+            <origin xyz="0 -17 0" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="3 34 3"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <link name="link3_joint">
+        <visual>
+            <origin xyz="0.0 0.0 0.0" rpy="1.57 0 0.0"/>
+            <geometry>
+                <cylinder radius="2" length="3.2"/>
+            </geometry>
+            <material name="red">
+                <color rgba="1.0 0.0 0.0 1.0"/>
+            </material>
+        </visual>
+    </link>
+
+    <link name="wrist_pitch">
+        <visual>
+            <origin xyz="0.0 0.0 0.0" rpy="0 1.57 0.0"/>
+            <geometry>
+                <cylinder radius="2" length="3.2"/>
+            </geometry>
+            <material name="red">
+                <color rgba="1.0 0.0 0.0 1.0"/>
+            </material>
+        </visual>
+    </link>
+
+    <link name="wrist_roll">
+        <visual>
+            <origin xyz="0.0 0.0 0.0" rpy="1.57 0 0.0"/>
+            <geometry>
+                <cylinder radius="2" length="3.2"/>
+            </geometry>
+            <material name="red">
+                <color rgba="1.0 0.0 0.0 1.0"/>
+            </material>
+        </visual>
+    </link>
+
+    <link name="link_5">
+        <visual name="">
+            <origin xyz="0 -12.5 0" rpy="1.57 0.0 0.0"/>
+            <geometry>
+                <box size="3 3 23"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <!-- Joints -->
+
+    <joint name="Joint_1" type="continuous">
+        <origin xyz="0.0 0.0 9.5" rpy="0.0 0.0 0.0"/>
+        <parent link="base_link"/>
+        <child link="link_1"/>
+        <axis xyz="0.0 0.0 1"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="joint_1_extra" type="fixed">
+        <origin xyz="0.0 0.0 0" rpy="0.0 0.0 0.0"/>
+        <parent link="link_1"/>
+        <child link="link1_joint"/>
+        <axis xyz="0.0 0.0 0.0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="Joint_2" type="continuous">
+        <origin xyz="0.0 0.0 0" rpy="3.14 0.0 0.0"/>
+        <parent link="link1_joint"/>
+        <child link="link_2"/>
+        <axis xyz="1 0.0 0.0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="joint_2_extra" type="fixed">
+        <origin xyz="0.0 0.0 0" rpy="0.0 0.0 0.0"/>
+        <parent link="link_2"/>
+        <child link="link2_joint"/>
+        <axis xyz="0.0 0.0 0.0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="Joint_3" type="continuous">
+        <origin xyz="0.0 0.0 -36" rpy="0.0 0.0 0.0"/>
+        <parent link="link2_joint"/>
+        <child link="link_3_r3"/>
+        <axis xyz="1 0.0 0.0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="joint3_internal" type="fixed">
+        <origin xyz="0.0 0.0 -10" rpy="0.0 0.0 0.0"/>
+        <parent link="link_3_r3"/>
+        <child link="link_3_d4"/>
+        <axis xyz="0.0 0.0 0.0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="joint_3_extra" type="fixed">
+        <origin xyz="0.0 -34 0" rpy="0.0 0.0 0.0"/>
+        <parent link="link_3_d4"/>
+        <child link="link3_joint"/>
+        <axis xyz="1 0.0 0.0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="Joint_4" type="continuous">
+        <origin xyz="0.0 0 0" rpy="0.0 0.0 0.0"/>
+        <parent link="link3_joint"/>
+        <child link="wrist_pitch"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="Joint_5" type="continuous">
+        <origin xyz="0.0 0 0" rpy="0.0 0.0 0.0"/>
+        <parent link="wrist_pitch"/>
+        <child link="wrist_roll"/>
+        <axis xyz="1 0 0.0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+    <joint name="Joint_6" type="continuous">
+        <origin xyz="0.0 0.0 0" rpy="0.0 0.0 0.0"/>
+        <parent link="wrist_roll"/>
+        <child link="link_5"/>
+        <axis xyz="0 1 0.0"/>
+        <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+
+</robot>

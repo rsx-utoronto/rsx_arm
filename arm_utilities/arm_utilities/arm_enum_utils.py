@@ -25,9 +25,10 @@ class HomingStatus(Enum):
 class SafetyErrors(Enum):
     NONE = 0
     EXCEEDING_POS = 1
-    EXCEEDING_CURRENT = 2
-    EXCEEDING_POS_CURRENT = 3
-    LIMIT_SWITCH = 4  # May switch out of an error as this is not only used as an error
+    EXCEEDING_LIMS = 2
+    EXCEEDING_CURRENT = 3
+    EXCEEDING_POS_CURRENT = 4
+    LIMIT_SWITCH = 5  # May switch out of an error as this is not only used as an error
 
 
 class CANAPI(Enum):

@@ -1,15 +1,37 @@
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    config_file_arg = DeclareLaunchArgument(
+        "config_file",
+        default_value=PathJoinSubstitution([
+            FindPackageShare("arm_utilities"),
+            "arm_configs",
+            "arm_controller_default.yaml",
+        ]),
+        description="Base controller config YAML",
+    )
+
+    config_overrides_arg = DeclareLaunchArgument(
+        "config_overrides",
+        default_value="",
+        description="Comma-separated list of controller config overrides",
+    )
 
     # Arm_Controller node
     arm_controller_node = Node(
         package='controller',
         executable='arm_controller',
         name='Arm_Controller',
-        output='screen'
+        output='screen',
+        parameters=[{
+            "config_file": LaunchConfiguration("config_file"),
+            "config_overrides": LaunchConfiguration("config_overrides"),
+        }],
     )
 
     # Arm_Manual node
@@ -29,6 +51,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        config_file_arg,
+        config_overrides_arg,
         arm_controller_node,
         arm_manual_node,
         arm_safety_node

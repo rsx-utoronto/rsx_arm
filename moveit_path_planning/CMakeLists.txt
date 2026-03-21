@@ -27,6 +27,7 @@ find_package(arm_msgs REQUIRED)
 include_directories(include)
 
 add_executable(test_movements src/test_movements.cpp)
+add_executable(rviz_sim src/JointsToRviz.cpp)
 
 add_executable(path_planning
         include/PathPlannerNode.hpp
@@ -53,11 +54,22 @@ ament_target_dependencies(
         rclcpp
 )
 
+target_compile_features(rviz_sim PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+ament_target_dependencies(
+        rviz_sim
+        moveit_ros_planning_interface
+        arm_msgs
+        rclcpp
+)
+
 
 install(TARGETS test_movements
         DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS path_planning
+        DESTINATION lib/${PROJECT_NAME})
+
+install(TARGETS rviz_sim
         DESTINATION lib/${PROJECT_NAME})
 
 

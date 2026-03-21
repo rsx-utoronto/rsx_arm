@@ -1,0 +1,2 @@
+Joint 0 hit limit going: 1.000000
+Joint 6 hit limit going 0

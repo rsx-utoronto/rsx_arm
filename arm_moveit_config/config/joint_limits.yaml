@@ -18,33 +18,44 @@ joint_limits:
     max_velocity: 0
     has_acceleration_limits: false
     max_acceleration: 0
-  joint_1:
-    has_velocity_limits: false
-    max_velocity: 0
-    has_acceleration_limits: false
-    max_acceleration: 0
-  joint_2:
-    has_velocity_limits: false
-    max_velocity: 0
-    has_acceleration_limits: false
-    max_acceleration: 0
-  joint_3:
-    has_velocity_limits: false
-    max_velocity: 0
-    has_acceleration_limits: false
-    max_acceleration: 0
-  joint_4:
-    has_velocity_limits: false
-    max_velocity: 0
-    has_acceleration_limits: false
-    max_acceleration: 0
-  joint_5:
-    has_velocity_limits: false
-    max_velocity: 0
-    has_acceleration_limits: false
-    max_acceleration: 0
-  joint_6:
-    has_velocity_limits: false
-    max_velocity: 0
-    has_acceleration_limits: false
-    max_acceleration: 0
+  joint_1:  # Base rotation
+    has_position_limits: true
+    min_position: -3.14159
+    max_position: 3.14159
+    has_velocity_limits: true
+    max_velocity: 2.0
+    
+  joint_2:  # Shoulder pitch
+    has_position_limits: true
+    min_position: -1.57
+    max_position: 1.57
+    has_velocity_limits: true
+    max_velocity: 2.0
+    
+  joint_3:  # Elbow pitch
+    has_position_limits: true
+    min_position: -2.0
+    max_position: 2.0
+    has_velocity_limits: true
+    max_velocity: 2.0
+    
+  joint_4:  # Elbow roll
+    has_position_limits: true
+    min_position: -1.57  # -90 degrees
+    max_position: 1.57   # +90 degrees
+    has_velocity_limits: true
+    max_velocity: 2.0
+    
+  joint_5:  # Wrist pitch
+    has_position_limits: true
+    min_position: -1.57 
+    max_position: 1.57
+    has_velocity_limits: true
+    max_velocity: 2.0
+    
+  joint_6:  # Wrist roll
+    has_position_limits: true
+    min_position: -1.57
+    max_position: 1.57
+    has_velocity_limits: true
+    max_velocity: 2.0

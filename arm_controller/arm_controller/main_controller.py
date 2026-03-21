@@ -10,7 +10,8 @@ from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArra
 from arm_msgs.msg import ArmInputs, KeyboardCoords
 from geometry_msgs.msg import Pose, Point, Quaternion
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
-from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
+from arm_utilities.arm_control_utils import handle_joy_input, map_inputs_to_manual, map_inputs_to_ik
+from arm_utilities.arm_configs import load_arm_controller_config_from_node
 from arm_utilities.arm_control_utils import get_keyboard_normal, get_intermediate_positions
 
 from arm_controller.can_connection import CAN_connection
@@ -20,6 +21,8 @@ import functools
 from pynput import keyboard
 import time
 import math
+import time
+import math
 
 
 
@@ -27,18 +30,19 @@ class Controller(Node):
     """
     (None)
 
-    Controller class for the robotic arm. Handles input from joystick/keyboard/GUI,
-    manages arm state, safety checks, and communicates with the CAN bus to control the arm motors
+    This class represents an instance of controller node and connects the node to 
+    its publishing and subscribing topics
     """
 
     def __init__(self, can_update_rate=1000, n_joints=7, virtual=False):
         super().__init__("Arm_Controller")
+        self.cfg = load_arm_controller_config_from_node(self)
 
         self.n_joints = n_joints
         # with open("initial_positions.yaml", "r") as f:
         #     init_config = yaml.safe_load(f)
         # self.init_joints = [init_config["joint_1"], init_config["joint_2"], init_config["joint_3"], init_config["joint_4"], init_config["joint_5"], init_config["joint_6", 0]]
-        self.initial_positions = [0] * n_joints
+        self.initial_positions = [0., 0., 0., 0., 0., 0., 0.]
         # TODO: LOAD THE YAML CORRECTLY
         # Initialize CAN connection
         if virtual:
@@ -47,6 +51,7 @@ class Controller(Node):
         else:
             self.can_con = CAN_connection(num_joints=n_joints)
 
+        self.virtual = virtual
         # intialize safety checker
         self.safety_checker = SafetyChecker()
         # Attributes to hold data for publishing to topics
@@ -59,12 +64,11 @@ class Controller(Node):
         # Attribute to store/publish killswitch value
         self.killswitch = 0
 
-        # TODO load from config
-        self.speed_limits = [1.5, 2, 1, 1, 1.5, 1.5, 50]
+        self.speed_limits = self.cfg.speed_limits
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
-        self.current_joints = [0.0] * self.n_joints
+        self.current_joints = self.initial_positions.copy()
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
 
@@ -75,36 +79,43 @@ class Controller(Node):
         self.safety_flags = [0] * self.n_joints
 
         # track target internal joints to prevent slippage
-        self.arm_internal_current_joints = [0.0] * self.n_joints
+        self.arm_internal_current_joints = self.initial_positions.copy()
 
         self.gripper_on = False
 
         # Publishers
-        self.state_pub = self.create_publisher(String, "arm_state", 10)
-
-        # Publisher for safe target joints after safety check, used for debugging and data logging
-        self.safe_target_joints_pub = self.create_publisher(
-            Float32MultiArray, "safe_arm_target_joints", 10)
-
-        # Used for publishing current joint angles, used in forward kinematics calculations
-        self.arm_curr_joints_pub = self.create_publisher(
-            Float32MultiArray, "arm_curr_angles", 10)
-        
-        # Publisher for target end effector pose in IK mode
+        self.state_pub = self.create_publisher(
+            String, self.cfg.arm_state_topic, self.cfg.publisher_depth_queue)
+        self.target_joint_pub = self.create_publisher(
+            Float32MultiArray, self.cfg.target_joint_topic, self.cfg.publisher_depth_queue)
         self.target_pose_pub = self.create_publisher(
-            Pose, "arm_target_pose", 10)
+            Pose, self.cfg.target_pose_topic, self.cfg.publisher_depth_queue)
         self.killswitch_pub = self.create_publisher(
-            UInt8, "arm_killswitch", 10)
+            UInt8, self.cfg.killswitch_topic, self.cfg.publisher_depth_queue)
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
-            Joy, "/joy", self.handle_joy, 10)
+            Joy, self.cfg.joy_topic, self.handle_joy, self.cfg.subscriber_depth_queue)
         
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
             Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
-        self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target, 10)
+        self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
+            self.cfg.subscriber_depth_queue)
 
+        # Safety subscribers
+        self.joint_safety_sub = self.create_subscription(
+            UInt8MultiArray, self.cfg.joint_safety_state_topic, self.process_safety,
+            self.cfg.subscriber_depth_queue)
+
+        # Nonblocking keyboard listener
+        self.keyboard_listener = keyboard.Listener(
+            on_press=self.on_press,
+            on_release=self.on_release
+        )
+        self.keyboard_listener.start()
+
+        self.homing_thread = threading.Thread(target=self.home_arm)
         self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
         self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
         self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 10)
@@ -113,14 +124,6 @@ class Controller(Node):
         # will fill when a path is given
         self.current_path = []
         self.joint_target_threshold = 1 # maximum allowed error in degrees to consider joint target reached
-
-        # Nonblocking keyboard listener
-        # TODO: dear god please just vaporize any trace of a keyboard controller from the face of the earth
-        self.keyboard_listener = keyboard.Listener(
-            on_press=self.on_press,
-            on_release=self.on_release
-        )
-        self.keyboard_listener.start()
 
         # Joint limit tracking
         self.at_limit = [False] * self.n_joints
@@ -232,17 +235,16 @@ class Controller(Node):
                     self.init[index] = True
                 
             threading.Event().wait(1/self.can_rate)
-
+    def process_safety(self, msg):
+        pass
 
     def update_arm(self, update):
+        # TODO: need to update state tracking to consistently unify real world angles with internal state
         # lock to prevent local variables from being modified by CAN threads during execution
         with self.arm_update_lock:
             match self.control_mode:
                 case ControlMode.CONTROLLER:
                     inputs = handle_joy_input(update)
-                case ControlMode.KEYBOARD:
-                    inputs = handle_keyboard_input(update)
-
                 case ControlMode.GUI:
                     # Update arm state based on GUI input
                     pass
@@ -280,9 +282,10 @@ class Controller(Node):
             self.state_pub.publish(state_string)
 
             match self.state:
+                # TODO: add killswitch
                 case ArmState.IDLE:
-                    self.safe_target_joints = self.current_joints
-                    # self.can_con.send_target_message(self.safe_target_joints)
+                    self.safe_target_joints = self.arm_internal_current_joints
+                    self.can_con.send_target_message(self.safe_target_joints)
                     # In idle state, only allow killswitch and state changes
                     # self.logger().info("Currently in IDLE: No control change")
                     pass
@@ -305,18 +308,19 @@ class Controller(Node):
 
                     self.can_con.send_target_message(self.safe_target_joints)
                 case ArmState.IK:
-                    if not False in self.homed:
+                    if not False in self.homed or self.cfg.allow_ik_without_homing:
                         # Join homing thread if just finished homing
                         if self.homing_thread.is_alive():
                             self.homing_thread.join()
 
                         target_pose = map_inputs_to_ik(
                             inputs, self.current_pose)
-                        # print(target_pose)
                         self.target_pose_pub.publish(target_pose)
+                        self.current_pose = target_pose
                     else:
-                        if inputs.x and inputs.circle and inputs.triangle and inputs.square:
+                        if inputs.x and inputs.circle and inputs.triangle and inputs.square or self.virtual:
                             self.get_logger().info("OVERRIDING HOMING")
+                            # TODO: include offsets in override
                             # for i in range(self.n_joints - 1):
                             #     self.joint_offsets[i] = self.initial_positions[i] - self.current_joints[i]
                             self.homed = [True]*self.n_joints
@@ -355,7 +359,9 @@ class Controller(Node):
                             self.executing_path = True
                             self.path_executor_thread.start()
                     pass
-        self.update_internal_pose_state(self.current_joints)
+        if self.state != ArmState.IK:
+            # TODO: need to be updating internal pose state using FK pose updates, need to resolve discrepancies from IK solutions
+            self.update_internal_pose_state(self.current_joints)
         time.sleep(0.05)
 
     def handle_joy(self, msg):
@@ -369,6 +375,7 @@ class Controller(Node):
 
     def home_arm(self, joint_indices=[0, 1, 2, 3, 4, 5, 6],  hz: float = 50.0):
         # endpoint refers to positive-direction endpoint
+        # TODO: handle homing in parallel either using the multithreaded executor provided by ROS2 or moving it to a different node altogether
         """joint index is numbered 0 to 6 in order of base rotation, shoulder, elbow, elbow roll, wrist_pitch, wrist_roll, gripper"""
         period = 1.0 / hz
         target_joints = copy.deepcopy(self.current_joints)
@@ -463,6 +470,8 @@ class Controller(Node):
             self.homing_stop.set()
 
     def update_internal_pose_state(self, joints):
+        for i in range(len(joints)):
+            joints[i] = np.pi * joints[i] / 180.0
         angles = Float32MultiArray(data=joints[0:6])
         self.arm_curr_joints_pub.publish(angles)
         # Pose will be returned in a subscription, should update elsewhere
@@ -487,8 +496,9 @@ class Controller(Node):
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
-        # TODO: temporarily disabled, safety issues
-        # self.can_con.send_target_message(self.safe_target_joints)
+        self.can_con.send_target_message(self.safe_target_joints)
+
+        time.sleep(0.05)  # wait for some time before next update
 
     def handle_keyboard_coords(self, msg):
         self.get_logger().info("Received keyboard coordinates from camera node")

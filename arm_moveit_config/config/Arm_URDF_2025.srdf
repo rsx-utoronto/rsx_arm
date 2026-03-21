@@ -10,13 +10,6 @@
     <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
     <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
     <group name="rover_arm">
-        <joint name="virt_joint"/>
-        <joint name="joint_1"/>
-        <joint name="joint_2"/>
-        <joint name="joint_3"/>
-        <joint name="joint_4"/>
-        <joint name="joint_5"/>
-        <joint name="joint_6"/>
         <chain base_link="base_link" tip_link="link_6"/>
     </group>
     <group name="end_effector">
@@ -27,7 +20,7 @@
     <group_state name="home" group="rover_arm">
         <joint name="joint_1" value="0"/>
         <joint name="joint_2" value="0"/>
-        <joint name="joint_3" value="1.57"/>
+        <joint name="joint_3" value="0"/>
         <joint name="joint_4" value="0"/>
         <joint name="joint_5" value="0"/>
         <joint name="joint_6" value="0"/>

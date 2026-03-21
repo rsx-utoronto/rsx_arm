@@ -23,3 +23,10 @@ Subscribe to arm_target_joints for joint targets:
 ```bash
 ros2 topic echo /arm_target_joints
 ```
+
+### Rviz testing
+
+Push target joint values to Rviz:
+```bash
+ros2 run moveit_path_planning rviz_sim
+```

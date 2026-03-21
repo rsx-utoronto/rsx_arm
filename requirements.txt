@@ -4,14 +4,14 @@ jinja2
 typeguard
 empy<4
 lark
-numpy<2
+opencv-python==4.9.0.80
+numpy<1.25
 python-xlib
-evdev
+# evdev
 pynput
 scipy
 rclpy
 python-can==4.6.0
 autopep8
-ultralytics
 pyrealsense2
 PyQt6

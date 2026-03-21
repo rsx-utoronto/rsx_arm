@@ -161,6 +161,103 @@ If you are placing a file into one of the python packages:
       ```
 - Track progress with an issue board (e.g., "Migrate node X", "Convert launch file Y").
 
+## Docker Workflow
+The workflow is `env -> build -> up -> enter -> (inside container) cd src/rsx_arm -> deps -> setup_ws -> add_alias`
+
+1. Setup the environment variables
+```bash
+# For Linux (Wayland)
+source ./docker-scripts/env-linux.sh hyprland
+
+# For Linux (X11)
+source ./docker-scripts/env-linux.sh x11
+
+# For WSL-G
+source ./docker-scripts/env-wsl.sh
+```
+
+2. Build the image
+```bash
+# zsh + Neovim (default)
+./docker-scripts/build.sh zsh nvim
+
+# bash + VS Code (i.e., don’t install nvim)
+./docker-scripts/build.sh bash vscode
+```
+
+3. Start the container.
+```bash
+# Linux + Hyprland (Wayland)
+# Notes:
+# Hyprland commonly wayland-1
+# xhost +local: is used in wayland for using x11 when using Gazebo
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"   
+xhost +local:
+./docker-scripts/up.sh hyprland
+
+# Linux + X11
+xhost +local:
+./docker-scripts/up.sh x11
+
+# macOS
+./docker-scripts/up.sh mac
+
+# Windows (PowerShell)
+./docker-scripts/windows-up.ps1 -Profile windows -Shell zsh -Editor nvim
+
+# Windows WSL (WSLG)
+./docker-scripts/up.sh wsl
+```
+
+4. Enter the dev shell.
+Choose service based on your platform.
+- Linux: `rsxarm-x11`
+- Linux (Wayland): `rsxarm-wayland`
+- Mac: `rsxarm-mac`
+- WSL: `rsxarm-wsl`
+- Windows(PowerShell): `rsxarm-win`
+
+```bash
+# choose service if you used a profile name 
+# (rsxarm, rsxarm-x11, rsxarm-wayland, rsxarm-mac, rsxarm-win, rsxarm-wsl)
+
+./docker-scripts/enter.sh rsxarm
+```
+
+5. Inside the container: Install deps & build
+```bash
+./docker-scripts/deps.sh
+./docker-scripts/setup_ws.sh
+# run your nodes/launch files; ROS environment is sourced automatically by the entrypoint
+```
+
+6. Add helpful alias.
+- `workon_arm`: `cd` into work dir, and source ROS. Note that this alias is redundant since sourcing is already done by Docker.
+- `build_arm`: call `workon_arm`, then call `colcon build` and `colcon test`
+```bash
+./docker-scripts/add_alias.sh --both
+```
+
+If you want use `VSCode` (use `NeoVim` instead for better experience :) )
+```bash
+# For normal code
+code .
+
+# For X11
+code-x11 .
+
+# For Wayland
+code-wayland .
+```
+
+### RealSense for WSL
+On the Windows host, attach the camera to WSL with usbipd
+```bash
+usbipd wsl list
+usbipd wsl attach --busid <BUSID> --distribution <YourWSLDistroName>
+```
+
 # Collaboration Code of Conduct:
 
   1. Engineering Specification and Background Research (FOCs, Research into task)
