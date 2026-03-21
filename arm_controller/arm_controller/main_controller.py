@@ -19,14 +19,16 @@ import functools
 from pynput import keyboard
 import time
 import math
+import time
+import math
 
 
 class Controller(Node):
     """
     (None)
 
-    Controller class for the robotic arm. Handles input from joystick/keyboard/GUI,
-    manages arm state, safety checks, and communicates with the CAN bus to control the arm motors
+    This class represents an instance of controller node and connects the node to 
+    its publishing and subscribing topics
     """
 
     def __init__(self, can_update_rate=1000, n_joints=7, virtual=False):
