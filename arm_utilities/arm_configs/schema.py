@@ -24,7 +24,6 @@ class ArmControllerConfig:
     joint_safety_state_topic: str
 
     # Buttons
-    homing_combo_buttons: list[str]
 
     # IK Homing Config
     allow_ik_without_homing: bool

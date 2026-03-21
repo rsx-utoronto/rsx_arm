@@ -20,10 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'arm_gui = gui.qt5_gui:main'
+            'arm_gui = gui.arm_gui:main'
         ],
     },
-    scripts=[
-        'scripts/run_gui.bash',
-    ],
 )
