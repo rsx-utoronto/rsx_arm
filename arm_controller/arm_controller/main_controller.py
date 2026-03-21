@@ -12,6 +12,7 @@ from geometry_msgs.msg import Pose
 
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus
 from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
+from arm_utilities.arm_configs import load_arm_controller_config_from_node
 
 
 from pynput import keyboard
@@ -27,6 +28,7 @@ class Controller(Node):
 
     def __init__(self):
         super().__init__("Arm_Controller")
+        self.cfg = load_arm_controller_config_from_node(self)
 
         # Attributes to hold data for publishing to topics
         # Attribute to publish state
@@ -41,8 +43,7 @@ class Controller(Node):
         self.homed = False
         self.home_confirmed = False
 
-        # TODO load from config
-        self.speed_limits = [0.1, 0.09, 0.15, 0.75, 0.12, 0.12, 20]
+        self.speed_limits = self.cfg.speed_limits
 
         self.current_pose = Pose()
         self.current_joints = [0.0]*6
@@ -50,25 +51,28 @@ class Controller(Node):
         self.gripper_on = False
 
         # Publishers
-        self.state_pub = self.create_publisher(String, "arm_state", 10)
+        self.state_pub = self.create_publisher(
+            String, self.cfg.arm_state_topic, self.cfg.publisher_depth_queue)
         self.target_joint_pub = self.create_publisher(
-            Float32MultiArray, "arm_target_joints", 10)
+            Float32MultiArray, self.cfg.target_joint_topic, self.cfg.publisher_depth_queue)
         self.target_pose_pub = self.create_publisher(
-            Pose, "arm_target_pose", 10)
+            Pose, self.cfg.target_pose_topic, self.cfg.publisher_depth_queue)
         self.killswitch_pub = self.create_publisher(
-            UInt8, "arm_killswitch", 10)
+            UInt8, self.cfg.killswitch_topic, self.cfg.publisher_depth_queue)
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
-            Joy, "/joy", self.handle_joy, 10)
+            Joy, self.cfg.joy_topic, self.handle_joy, self.cfg.subscriber_depth_queue)
 
         # CAN feedback subscriber
         self.feedback_sub = self.create_subscription(
-            Float32MultiArray, "arm_curr_pos", self.update_internal_joint_state, 10)
+            Float32MultiArray, self.cfg.arm_curr_pos_topic, self.update_internal_joint_state,
+            self.cfg.subscriber_depth_queue)
 
         # Safety subscribers
         self.joint_safety_sub = self.create_subscription(
-            UInt8MultiArray, "joint_safety_state", self.process_safety, 10)
+            UInt8MultiArray, self.cfg.joint_safety_state_topic, self.process_safety,
+            self.cfg.subscriber_depth_queue)
 
         # Nonblocking keyboard listener
         self.keyboard_listener = keyboard.Listener(
@@ -117,7 +121,7 @@ class Controller(Node):
                     inputs, self.speed_limits, self.current_joints)
                 self.target_joint_pub.publish(target_joints)
             case ArmState.IK:
-                if self.homed:
+                if self.homed or self.cfg.allow_ik_without_homing:
                     # Join homing thread if just finished homing
                     if self.homing_thread.is_alive():
                         self.homing_thread.join()
@@ -125,7 +129,7 @@ class Controller(Node):
                     target_pose = map_inputs_to_ik(inputs, self.current_pose)
                     self.target_pose_pub.publish(target_pose)
                 else:
-                    if inputs.x and inputs.o:
+                    if self.homing_combo_pressed(inputs):
                         self.get_logger().info("Homing arm, press X to cancel")
                         self.homing = True
                         self.homing_thread.start()
@@ -145,6 +149,13 @@ class Controller(Node):
         # On key release, send zeroed inputs to stop movement
         zero_inputs = ArmInputs()
         self.update_arm(zero_inputs)
+
+    def homing_combo_pressed(self, inputs):
+        for name in self.cfg.homing_combo_buttons:
+            attr = "circle" if name == "o" else name
+            if not getattr(inputs, attr, False):
+                return False
+        return True
 
     def home_arm(self):
         while self.homing == HomingStatus.ACTIVE:
