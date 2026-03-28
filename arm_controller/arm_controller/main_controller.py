@@ -17,6 +17,7 @@ import copy
 import functools
 from pynput import keyboard
 import time
+from moveit_msgs.msg import RobotTrajectory
 import math
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -109,13 +110,17 @@ class Controller(Node):
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
             Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
+        
+        self.path_planning_sub = self.create_subscription(
+            RobotTrajectory, "trajectory_joints", self.get_trajectory, 10)
+        
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target, 10)
 
         self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
         self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
         self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 10, callback_group=self.path_group)
-        self.path_executor_thread = threading.Thread(
-            target=self.path_executor_loop, daemon=True)
+        # self.path_executor_thread = threading.Thread(
+            # target=self.path_executor_loop, daemon=True)
 
         self.safe_rviz_joints_pub = self.create_publisher(
             JointState, "joint_states", 10)
@@ -155,7 +160,10 @@ class Controller(Node):
 
         self.arm_update_lock = threading.Lock()
 
-        self.threads = [self.homing_thread, self.can_read_thread, self.path_executor_thread]
+        self.threads = [self.homing_thread, 
+                        self.can_read_thread, 
+                        # self.path_executor_thread
+                        ]
         
         # Initialization flags for CAN readings (for setting initial joint values)
         self.init = [False]*7
@@ -338,19 +346,20 @@ class Controller(Node):
                             target_pose = self.current_pose
                             # self.target_pose_pub.publish(target_pose)
                             time.sleep(0.2)
-                case ArmState.PATH_PLANNING:
-                    if self.path_executor_thread.is_alive():
-                        self.get_logger().info("thread alive")
-                        if not self.executing_path:
-                            self.get_logger().info("joining!")
-                            self.path_executor_thread.join()
-                        else:
-                            pass
-                    else:
-                        #self.get_logger().info("Path executor")
-                        self.path_executor_thread = threading.Thread(target=self.path_executor_loop, daemon=True)
-                        self.path_executor_thread.start()
-                        self.executing_path = True
+                # case ArmState.PATH_PLANNING:
+                    # break
+                    # if self.path_executor_thread.is_alive():
+                    #     self.get_logger().info("thread alive")
+                    #     if not self.executing_path:
+                    #         self.get_logger().info("joining!")
+                    #         self.path_executor_thread.join()
+                    #     else:
+                    #         pass
+                    # else:
+                    #     #self.get_logger().info("Path executor")
+                    #     self.path_executor_thread = threading.Thread(target=self.path_executor_loop, daemon=True)
+                    #     self.path_executor_thread.start()
+                    #     self.executing_path = True
                 case ArmState.AUTO_KEYBOARD:
                     # TODO: actively update the relative location of keyboard targets based on detected keyboard corners
                     for target in self.keyboard_targets:
@@ -563,6 +572,53 @@ class Controller(Node):
                 # self.can_con.send_target_message(self.safe_target_joints)
                 time.sleep(0.1)  # wait for some time before next step
         self.executing_path = False
+        
+    def get_trajectory(self, msg):
+        self.path_frames += 1
+        self.current_path.append(list(msg.data))
+        
+        self.executing_path = True
+        #self.get_logger().info("in path executor")
+        while len(self.current_path) > 0 and self.shutdown == False:
+            #self.get_logger().info("in while loop")
+            for step in self.current_path:
+                #self.get_logger().info("length of list: " + str(len(self.current_path)))
+                error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
+                if all(e < self.joint_target_threshold for e in error):
+                    self.current_path.pop(0)
+                    continue
+                    
+                self.target_joints[0:6] = step
+                self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
+                    self.target_joints, self.current_joints)
+                msg = Float32MultiArray()
+                msg.data = self.safe_target_joints
+                self.safe_target_joints_pub.publish(msg)
+
+                self.internal_current_joints = self.safe_target_joints
+                self.get_logger().info("publishing to rviz")
+
+                # 1. Create the JointState message
+                joint_state = JointState()
+
+                # 2. Add the timestamp (essential for robot_state_publisher)
+                joint_state.header.stamp = self.get_clock().now().to_msg()
+                
+                # 3. Map the names and data
+                joint_state.name = ['joint_1','joint_2','joint_3', 'joint_4','joint_5','joint_6']
+                
+                # Float32MultiArray data is stored in .data (which is a list/array)
+                # We convert it to a list of floats for JointState
+                joint_state.position = [float(val) for val in msg.data]
+                joint_state.position.pop(6)
+                self.safe_rviz_joints_pub.publish(joint_state)
+
+                # DISABLED TEMPORARILY FOR SAFETY
+                # self.can_con.send_target_message(self.safe_target_joints)
+                time.sleep(0.1)  # wait for some time before next step
+        self.executing_path = False
+        return
+
 def real_controller(args=None):
     rclpy.init(args=args)
 

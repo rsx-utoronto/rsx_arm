@@ -193,9 +193,10 @@ PathPlannerNode::PathPlannerNode(moveit::planning_interface::MoveGroupInterface*
         std::bind(&PathPlannerNode::joint_callback, this, std::placeholders::_1));
 
     _joint_pose_pub  = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_ik_target_joints", 1);
-    _rviz_joint_pose_pub = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 1);
+    // _rviz_joint_pose_pub = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 1);
     _pose_pub        = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 1);
     _joint_path_pub  = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_path_joints", 1);
+    _trajectory_pub  = this->create_publisher<moveit_msgs::msg::RobotTrajectory>("trajectory_joints", 1);
 
     moveit::core::RobotModelConstPtr robot_model_ = _move_group->getRobotModel();
     jmg          = robot_model_->getJointModelGroup(_move_group->getName());
@@ -434,13 +435,14 @@ void PathPlannerNode::updateStateCallback(
 void PathPlannerNode::publishPath(
     moveit_msgs::msg::RobotTrajectory& trajectory) const
 {
-    for (const auto& point : trajectory.joint_trajectory.points) {
-        std::array<double, NUM_JOINTS> joint_positions{};
-        for (size_t i = 0; i < NUM_JOINTS && i < point.positions.size(); ++i)
-            joint_positions[i] = point.positions[i];
+    _trajectory_pub->publish(trajectory);
+    // for (const auto& point : trajectory.joint_trajectory.points) {
+    //     std::array<double, NUM_JOINTS> joint_positions{};
+    //     for (size_t i = 0; i < NUM_JOINTS && i < point.positions.size(); ++i)
+    //         joint_positions[i] = point.positions[i];
 
-        std_msgs::msg::Float32MultiArray msg;
-        msg.data.assign(joint_positions.begin(), joint_positions.end());
-        _joint_path_pub->publish(msg);
-    }
+    //     std_msgs::msg::Float32MultiArray msg;
+    //     msg.data.assign(joint_positions.begin(), joint_positions.end());
+    //     _joint_path_pub->publish(msg);
+    // }
 }

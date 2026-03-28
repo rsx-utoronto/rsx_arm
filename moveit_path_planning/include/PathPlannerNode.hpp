@@ -34,7 +34,8 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr _pose_pub;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr _joint_state_pub;
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_path_pub;
-    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr _rviz_joint_pose_pub;
+    // rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr _rviz_joint_pose_pub;
+    rclcpp::Publisher<moveit_msgs::msg::RobotTrajectory>::SharedPtr _trajectory_pub;
 
 
     void receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr msg) const;
