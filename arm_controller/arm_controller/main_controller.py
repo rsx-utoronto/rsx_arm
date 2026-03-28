@@ -118,9 +118,9 @@ class Controller(Node):
 
         self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
         self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
-        self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 10, callback_group=self.path_group)
-        # self.path_executor_thread = threading.Thread(
-            # target=self.path_executor_loop, daemon=True)
+        self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 100, callback_group=self.path_group)
+        self.path_executor_thread = threading.Thread(
+            target=self.path_executor_loop, daemon=True)
 
         self.safe_rviz_joints_pub = self.create_publisher(
             JointState, "joint_states", 10)
@@ -540,7 +540,7 @@ class Controller(Node):
                 #self.get_logger().info("length of list: " + str(len(self.current_path)))
                 error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
                 if all(e < self.joint_target_threshold for e in error):
-                    self.current_path.pop(0)
+                    #self.current_path.pop(0)
                     continue
                     
                 self.target_joints[0:6] = step
@@ -585,7 +585,7 @@ class Controller(Node):
                 #self.get_logger().info("length of list: " + str(len(self.current_path)))
                 error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
                 if all(e < self.joint_target_threshold for e in error):
-                    self.current_path.pop(0)
+                    #self.current_path.pop(0)
                     continue
                     
                 self.target_joints[0:6] = step
@@ -617,8 +617,6 @@ class Controller(Node):
                 # self.can_con.send_target_message(self.safe_target_joints)
                 time.sleep(0.1)  # wait for some time before next step
         self.executing_path = False
-        return
-
 def real_controller(args=None):
     rclpy.init(args=args)
 
@@ -645,6 +643,8 @@ def virtual_controller(args=None):
         executor.spin()
     except KeyboardInterrupt:
         arm_controller.get_logger().info("Keyboard interrupt received")
+    except Exception as e:
+        print(e)
     finally:
         arm_controller.shutdown_node()
         arm_controller.destroy_node()
