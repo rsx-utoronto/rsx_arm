@@ -1,12 +1,12 @@
 node_name: "Arm_Controller"
 speed_limits:
-  - 0.1
-  - 0.09
-  - 0.15
-  - 0.75
-  - 0.12
-  - 0.12
-  - 20
+  - 1.5
+  - 2
+  - 1
+  - 1
+  - 0.5
+  - 0.5
+  - 50
 publisher_depth_queue: 10
 subscriber_depth_queue: 10
 arm_state_topic: "arm_state"

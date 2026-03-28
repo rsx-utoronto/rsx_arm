@@ -36,11 +36,8 @@ class Controller(Node):
         self.cfg = load_arm_controller_config_from_node(self)
 
         self.n_joints = n_joints
-        # with open("initial_positions.yaml", "r") as f:
-        #     init_config = yaml.safe_load(f)
-        # self.init_joints = [init_config["joint_1"], init_config["joint_2"], init_config["joint_3"], init_config["joint_4"], init_config["joint_5"], init_config["joint_6", 0]]
         self.initial_positions = [0., 0., 0., 0., 0., 0., 0.]
-        # TODO: LOAD THE YAML CORRECTLY
+
         # Initialize CAN connection
         if virtual:
             self.can_con = CAN_connection(
@@ -81,6 +78,13 @@ class Controller(Node):
         self.gripper_on = False
 
         # Publishers
+        # Publisher for safe target joints after safety check, used for debugging and data logging
+        self.safe_target_joints_pub = self.create_publisher(
+            Float32MultiArray, "safe_arm_target_joints", 10)
+
+        # Used for publishing current joint angles, used in forward kinematics calculations
+        self.arm_curr_joints_pub = self.create_publisher(
+            Float32MultiArray, "arm_curr_angles", 10)
         self.state_pub = self.create_publisher(
             String, self.cfg.arm_state_topic, self.cfg.publisher_depth_queue)
         self.target_joint_pub = self.create_publisher(
