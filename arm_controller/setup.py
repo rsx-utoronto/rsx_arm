@@ -25,7 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             "main_controller = arm_controller.main_controller:real_controller",
-            "virtual_controller = arm_controller.main_controller:virtual_controller"
+            "virtual_controller = arm_controller.main_controller:virtual_controller",
+            "dummy_controller = arm_controller.dummy_controller:main"
         ],
     },
 )
