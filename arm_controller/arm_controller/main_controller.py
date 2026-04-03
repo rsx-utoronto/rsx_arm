@@ -244,6 +244,15 @@ class Controller(Node):
                 case ControlMode.GUI:
                     # Update arm state based on GUI input
                     pass
+            if inputs.share:
+                self.safe_target_joints = self.current_joints
+                self.get_logger().error("KILLSWITCH PRESSED, LOCKING ARM AND EXITING")
+                for i in range(10):
+                    self.safe_target_joints_pub(self.safe_target_joints)
+                    time.sleep(0.05)
+                    
+                self.shutdown_node()
+                sys.exit()
 
             if inputs.dpad_up and inputs.dpad_down and inputs.dpad_left and inputs.dpad_right:
                 if self.state != ArmState.AUTO_KEYBOARD:
@@ -282,8 +291,8 @@ class Controller(Node):
                     self.safe_target_joints = self.arm_internal_current_joints
                     self.can_con.send_target_message(self.safe_target_joints)
                     # In idle state, only allow killswitch and state changes
-                    # self.logger().info("Currently in IDLE: No control change")
-                    pass
+                    self.logger().info("Currently in IDLE: No control change")
+
                 case ArmState.MANUAL:
                     # use internal current joints to prevent joint slippage when no input is given
                     self.target_joints = map_inputs_to_manual(
@@ -354,6 +363,7 @@ class Controller(Node):
                             self.executing_path = True
                             self.path_executor_thread.start()
                     pass
+        # TODO: arm pose should update with the arm's movement, this can be done with internal state that's checked with against the real state but requires testing for jitter
         if self.state != ArmState.IK:
             self.update_internal_pose_state(self.current_joints)
         time.sleep(0.05)
@@ -485,12 +495,10 @@ class Controller(Node):
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints) 
-        print(self.target_joints)
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
-        # TODO: temporarily disabled, safety issues
         self.can_con.send_target_message(self.safe_target_joints)
         time.sleep(0.05)
 
