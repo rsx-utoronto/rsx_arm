@@ -14,6 +14,7 @@ import rclpy
 from rclpy.node import Node
 import cv2
 import pyrealsense2 as rs
+import time
 
 
 class CameraNode(Node):
@@ -22,11 +23,11 @@ class CameraNode(Node):
     """
 
     def __init__(self):
-        super().__init__('camera_aruco_node')
+        super().__init__('camera_node')
         
         # Publishers
         self.keyboard_coords_pub = self.create_publisher(
-            KeyboardCoords, 'keyboard_coords', 10
+            KeyboardCoords, 'keyboard_corners', 10
         )
         
         # CV Bridge for image conversion
@@ -41,13 +42,13 @@ class CameraNode(Node):
         )
         self.depth_sub = self.create_subscription(
             Image, 
-            '/camera/camera/aligned_depth_to_color/image_raw', 
+            '/camera/camera/depth/image_rect_raw',
             self.update_depth_map, 
             10
         )
         self.camera_info_sub = self.create_subscription(
             CameraInfo, 
-            '/camera/camera/aligned_depth_to_color/camera_info', 
+           '/camera/camera/depth/camera_info',
             self.camera_info_callback, 
             10
         )
@@ -82,7 +83,7 @@ class CameraNode(Node):
         self.depth_scale = 0.001
         
         self.get_logger().info("Camera ArUco node started.")
-        self.get_logger().info(f"Expected ArUco marker IDs: {self.marker_ids}")
+        # self.get_logger().info(f"Expected ArUco marker IDs: {self.marker_ids}")
 
     def setup_aruco_detector(self):
         """Setup OpenCV ArUco detector with appropriate dictionary"""
@@ -92,7 +93,7 @@ class CameraNode(Node):
         # - cv2.aruco.DICT_5X5_100: 5x5 bits, 100 markers
         # - cv2.aruco.DICT_6X6_250: 6x6 bits, 250 markers
         
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50)
         
         # Create detector parameters
         self.aruco_params = cv2.aruco.DetectorParameters()
@@ -164,10 +165,9 @@ class CameraNode(Node):
             corners, ids, rejected = self.aruco_detector.detectMarkers(cv_image)
             
             if ids is not None and len(ids) >= 4:
-                self.get_logger().info(
-                    f"Detected {len(ids)} ArUco markers: {ids.flatten().tolist()}", 
-                    throttle_duration_sec=2.0
-                )
+                # self.get_logger().info(
+                #     f"Detected {len(ids)} ArUco markers: {ids.flatten().tolist()}"
+                # )
                 
                 # Process markers to get keyboard corners
                 keyboard_corners_msg = self.process_aruco_markers(
@@ -175,21 +175,21 @@ class CameraNode(Node):
                 )
                 
                 if keyboard_corners_msg is not None:
-                    self.keyboard_corner_pub.publish(keyboard_corners_msg)
-                    self.get_logger().info(
-                        "Published keyboard corners", 
-                        throttle_duration_sec=5.0
-                    )
+                    self.keyboard_coords_pub.publish(keyboard_corners_msg)
+                    # self.get_logger().info(
+                    #     "Published keyboard corners"
+                    # )
             
             # Visualization
-            if self.visualize and ids is not None:
-                display_frame = cv_image.copy()
-                cv2.aruco.drawDetectedMarkers(display_frame, corners, ids)
-                cv2.imshow("ArUco Detection", display_frame)
-                cv2.waitKey(1)
-            elif self.visualize:
-                cv2.imshow("ArUco Detection", cv_image)
-                cv2.waitKey(1)
+            # if self.visualize and ids is not None:
+            #     display_frame = cv_image.copy()
+            #     cv2.aruco.drawDetectedMarkers(display_frame, corners, ids)
+            #     cv2.imshow("ArUco Detection", display_frame)
+            #     cv2.waitKey(1)
+            # elif self.visualize:
+            #     cv2.imshow("ArUco Detection", cv_image)
+            #     cv2.waitKey(1)
+            time.sleep(0.1)
                 
         except CvBridgeError as e:
             self.get_logger().error(f"Image conversion error: {e}")
@@ -297,36 +297,36 @@ class CameraNode(Node):
             return None
         
         # Validate the corner ordering makes sense
-        if not self.validate_corner_geometry(keyboard_corners_3d):
-            self.get_logger().warn(
-                "Corner geometry validation failed - check marker placement",
-                throttle_duration_sec=5.0
-            )
-            return None
+        # if not self.validate_corner_geometry(keyboard_corners_3d):
+        #     self.get_logger().warn(
+        #         "Corner geometry validation failed - check marker placement",
+        #         throttle_duration_sec=5.0
+        #     )
+        #     return None
         
         # Create and populate message
-        msg = KeyboardCorners()
+        msg = KeyboardCoords()
         
         # Assuming KeyboardCorners has fields like:
         # top_left, top_right, bottom_right, bottom_left
         # Each being a Point or similar with x, y, z
         
         try:
-            msg.top_left.x = float(keyboard_corners_3d[0][0])
-            msg.top_left.y = float(keyboard_corners_3d[0][1])
-            msg.top_left.z = float(keyboard_corners_3d[0][2])
+            msg.tl.x = float(keyboard_corners_3d[0][0])
+            msg.tl.y = float(keyboard_corners_3d[0][1])
+            msg.tl.z = float(keyboard_corners_3d[0][2])
             
-            msg.top_right.x = float(keyboard_corners_3d[1][0])
-            msg.top_right.y = float(keyboard_corners_3d[1][1])
-            msg.top_right.z = float(keyboard_corners_3d[1][2])
+            msg.tr.x = float(keyboard_corners_3d[1][0])
+            msg.tr.y = float(keyboard_corners_3d[1][1])
+            msg.tr.z = float(keyboard_corners_3d[1][2])
             
-            msg.bottom_right.x = float(keyboard_corners_3d[2][0])
-            msg.bottom_right.y = float(keyboard_corners_3d[2][1])
-            msg.bottom_right.z = float(keyboard_corners_3d[2][2])
+            msg.br.x = float(keyboard_corners_3d[2][0])
+            msg.br.y = float(keyboard_corners_3d[2][1])
+            msg.br.z = float(keyboard_corners_3d[2][2])
             
-            msg.bottom_left.x = float(keyboard_corners_3d[3][0])
-            msg.bottom_left.y = float(keyboard_corners_3d[3][1])
-            msg.bottom_left.z = float(keyboard_corners_3d[3][2])
+            msg.bl.x = float(keyboard_corners_3d[3][0])
+            msg.bl.y = float(keyboard_corners_3d[3][1])
+            msg.bl.z = float(keyboard_corners_3d[3][2])
             
             return msg
         except Exception as e:
