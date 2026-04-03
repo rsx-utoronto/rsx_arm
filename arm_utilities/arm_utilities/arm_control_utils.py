@@ -40,43 +40,6 @@ def handle_joy_input(msg: Joy):
 
     return arm_inputs
 
-
-def handle_keyboard_input(key):
-    arm_inputs = ArmInputs()  # defaults to 0.0/0
-
-    # mapping for character keys
-    char_map = {
-        'w': ('l_vertical',  1.0), 's': ('l_vertical', -1.0),
-        'a': ('l_horizontal',  1.0), 'd': ('l_horizontal', -1.0),
-        'i': ('r_vertical',  1.0), 'k': ('r_vertical', -1.0),
-        'j': ('r_horizontal', 1.0), 'l': ('r_horizontal', -1.0),
-        'p': ('x', 1), 'o': ('o', 1), 'u': ('triangle', 1), ';': ('square', 1),
-        'q': ('l1', 1), 'e': ('r1', 1),
-        'f': ('share', 1), 'h': ('options', 1), 'y': ('r3', 1),
-    }
-
-    # mapping for special keys
-    special_map = {
-        keyboard.Key.space: ('r_trigger', 1.0),
-        keyboard.Key.shift: ('l_trigger', 1.0),
-        keyboard.Key.left:  ('dpad_left', 1),
-        keyboard.Key.right: ('dpad_right', 1),
-        keyboard.Key.up:    ('dpad_up', 1),
-        keyboard.Key.down:  ('dpad_down', 1),
-    }
-
-    try:
-        if key.char in char_map:
-            attr, val = char_map[key.char]
-            setattr(arm_inputs, attr, val)
-    except AttributeError:
-        if key in special_map:
-            attr, val = special_map[key]
-            setattr(arm_inputs, attr, val)
-
-    return arm_inputs
-
-
 def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_joints: list):
     manual_commands = {
         'base_rotation': arm_inputs.l_horizontal,

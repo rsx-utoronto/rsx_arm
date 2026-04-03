@@ -7,7 +7,7 @@ lark
 opencv-python==4.9.0.80
 numpy<1.25
 python-xlib
-evdev
+# evdev
 pynput
 scipy
 rclpy
