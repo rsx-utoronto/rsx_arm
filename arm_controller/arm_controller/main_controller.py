@@ -7,7 +7,7 @@ import numpy as np
 
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
-from arm_msgs.msg import ArmInputs, KeyboardCoords, TargetPosition
+from arm_msgs.msg import ArmInputs, KeyboardCoords, TargetPosition, ArmStatuses
 from geometry_msgs.msg import Pose, Point, Quaternion
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, map_inputs_to_manual, map_inputs_to_ik
@@ -91,8 +91,18 @@ class Controller(Node):
             Float32MultiArray, self.cfg["target_joint_topic"], self.cfg["publisher_depth_queue"])
         self.target_pose_pub = self.create_publisher(
             Pose, self.cfg["target_pose_topic"], self.cfg["publisher_depth_queue"])
-        self.killswitch_pub = self.create_publisher(
-            UInt8, self.cfg["killswitch_topic"], self.cfg["publisher_depth_queue"])
+        # self.killswitch_pub = self.create_publisher(
+        #     UInt8, self.cfg["killswitch_topic"], self.cfg["publisher_depth_queue"])
+        self.limit_switch_pub = self.create_publisher(
+            ArmStatuses, "arm_lim_switches", self.cfg["publisher_depth_queue"])
+        self.safety_status_pub = self.create_publisher(
+            ArmStatuses, "arm_safety_status", self.cfg["publisher_depth_queue"])
+        self.homing_status_pub = self.create_publisher(
+            String, "arm_homing_status", self.cfg["publisher_depth_queue"])
+        self.path_planning_status_pub = self.create_publisher(
+            String, "arm_path_planning_status", self.cfg["publisher_depth_queue"])
+        self.keyboard_target_pub = self.create_publisher(
+            TargetPosition, "key_targets", self.cfg["publisher_depth_queue"])
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
@@ -111,7 +121,7 @@ class Controller(Node):
 
         self.homing_thread = threading.Thread(target=self.home_arm)
         self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
-        self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
+        # self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
         self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 10)
         self.path_executor_thread = threading.Thread(
             target=self.path_executor_loop, daemon=True)
@@ -196,6 +206,7 @@ class Controller(Node):
                 if read_msg[2] == 1:
                     self.get_logger().warn("Joint %d hit limit!" % index)
                     self.at_limit[index] = True
+                    self.publish_limit_switch_status()
                     if index == 0 or index == 6:
                         # TODO: this should be cleaner, log if joint is on positive or negative side of limit
                         with open("limit_log.txt", "w") as f:
@@ -307,6 +318,7 @@ class Controller(Node):
                         inputs, self.speed_limits, self.arm_internal_current_joints)
                     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints)
+                    self.publish_safety_status()
 
                     # update internal state to reflect target, when input is zero, internal and real current joints should be equivalent given the assumption
                     # that the target is reachable
@@ -338,7 +350,8 @@ class Controller(Node):
                             self.homed = [True]*self.n_joints
                         elif inputs.x and inputs.circle:
                             self.get_logger().info("Homing arm, press X to cancel")
-                            self.homing = True
+                            self.homing = HomingStatus.ACTIVE
+                            self.publish_homing_status()
                             self.homing_thread.start()
                         else:
                             self.get_logger().info(
@@ -355,12 +368,14 @@ class Controller(Node):
                     else:
                         self.path_executor_thread.start()
                         self.executing_path = True
+                        self.publish_path_planning_status()
                 case ArmState.AUTO_KEYBOARD:
                     # TODO: actively update the relative location of keyboard targets based on detected keyboard corners
                     for target in self.keyboard_targets:
                         if self.executing_path:
                             if inputs.circle:
                                 self.executing_path = False
+                                self.publish_path_planning_status()
                                 if self.path_executor_thread.is_alive():
                                     self.path_executor_thread.join()
                             else:
@@ -375,6 +390,7 @@ class Controller(Node):
                             # TODO: path plan should publish to an intermediate pose offset from the keyboard prior to publishing the actual key press
                             # self.target_pose_pub.publish(target_pose)
                             self.executing_path = True
+                            self.publish_path_planning_status()
                             self.path_executor_thread.start()
                     pass
         # TODO: arm pose should update with the arm's movement, this can be done with internal state that's checked with against the real state but requires testing for jitter
@@ -457,10 +473,12 @@ class Controller(Node):
             # double check that we are not finished yet
             if all(homed == True for homed in self.homed):
                 self.homing = HomingStatus.COMPLETE
+                self.publish_homing_status()
             
             # once a step has been calculated for each joint, publish the targets and then wait
             self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                 target_joints, self.current_joints)
+            self.publish_safety_status()
             msg = Float32MultiArray()
             msg.data = self.safe_target_joints
             self.safe_target_joints_pub.publish(msg)
@@ -477,6 +495,7 @@ class Controller(Node):
             return  # already running
         self.get_logger().info("Homing arm... press X to cancel.")
         self.homing = HomingStatus.ACTIVE
+        self.publish_homing_status()
         self.homing_stop.clear()
         self.homing_thread.start()
 
@@ -486,7 +505,30 @@ class Controller(Node):
             if self.homing == HomingStatus.ACTIVE:
                 self.get_logger().info("Homing canceled.")
             self.homing = HomingStatus.IDLE
+            self.publish_homing_status()
             self.homing_stop.set()
+
+    def publish_safety_status(self):
+        msg = ArmStatuses()  #creates an ArmStatues msg
+        statuses = [str(flag) for flag in self.safety_flags]
+        msg.joint1, msg.joint2, msg.joint3, msg.joint4, msg.joint5, msg.joint6, msg.joint7 = statuses
+        self.safety_status_pub.publish(msg)
+
+    def publish_limit_switch_status(self):
+        msg = ArmStatuses()
+        statuses = ["TRIGGERED" if value else "CLEAR" for value in self.at_limit]
+        msg.joint1, msg.joint2, msg.joint3, msg.joint4, msg.joint5, msg.joint6, msg.joint7 = statuses
+        self.limit_switch_pub.publish(msg)
+
+    def publish_path_planning_status(self):
+        msg = String()
+        msg.data = "ACTIVE" if self.executing_path else "IDLE"
+        self.path_planning_status_pub.publish(msg)
+
+    def publish_homing_status(self):
+        msg = String()
+        msg.data = self.homing.name
+        self.homing_status_pub.publish(msg)
 
     def update_internal_pose_state(self, joints):
         for i in range(len(joints)):
@@ -511,6 +553,7 @@ class Controller(Node):
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints) 
+        self.publish_safety_status()
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
@@ -562,6 +605,8 @@ class Controller(Node):
             #     # self.can_con.send_target_message(self.safe_target_joints)
             #     time.sleep(0.1)  # wait for some time before next step
             # self.executing_path = False
+        self.executing_path = False
+        self.publish_path_planning_status()
 def real_controller(args=None):
     rclpy.init(args=args)
 

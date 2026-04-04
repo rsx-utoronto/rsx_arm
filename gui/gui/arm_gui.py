@@ -24,6 +24,7 @@ from PyQt5.QtGui import QFont, QColor, QPalette, QImage, QPixmap
 
 from std_msgs.msg import String, Float32MultiArray, Bool
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Pose
 
 from arm_msgs.msg import TargetPositionArray, TargetPosition, ArmStatuses  # Custom message type for target positions of keyboard
 
@@ -452,7 +453,7 @@ class ArmGUI(Node, QWidget):
         self.create_subscription(Image, '/camera/camera/color/image_rect_raw', self.on_camera, 10)  # Optional raw feed
         
         # Current pose (x, y, z, roll, pitch, yaw)
-        self.create_subscription(Float32MultiArray, "/arm_curr_pose", self.on_curr_pose, 10)
+        self.create_subscription(Pose, "arm_fk_pose", self.on_curr_pose, 10)
         
         self.create_subscription(TargetPosition, "/key_targets", self.on_targets, 10)
         
@@ -480,30 +481,22 @@ class ArmGUI(Node, QWidget):
         """Handle current joint angles update"""
         self.curr_joints = list(msg.data)
         self.last_update_time["curr_joints"] = time.time()
-        self.curr_joints_indicator.update_status(self._fmt_joints(list(msg.data)))
+        self.curr_joints_indicator.update_status(self._fmt_joints(list(msg.data), assume_radians=True))
     
     def on_target_joints(self, msg: Float32MultiArray):
         """Handle target joint angles update"""
         self.target_joints = list(msg.data)
         self.last_update_time["target_joints"] = time.time()
-        self.target_joints_indicator.update_status(self._fmt_joints(list(msg.data)))
+        self.target_joints_indicator.update_status(self._fmt_joints(list(msg.data), assume_radians=False)) #main controller line 551, target joints already in degree
     
-    def on_curr_pose(self, msg: Float32MultiArray):
-        """
-        Handle current pose update (x, y, z, roll, pitch, yaw)
-        Expected array: [x, y, z, roll, pitch, yaw]
-        """
-        self.curr_pose = list(msg.data)
+    def on_curr_pose(self, msg: Pose):
+        """Handle current pose update from the FK Pose topic."""
+        # arm_fk_pose provides XYZ plus quaternion orientation; convert quaternion to roll/pitch/yaw here if the GUI should show all 6 pose values.
+        self.curr_pose = [msg.position.x, msg.position.y, msg.position.z]
         self.last_update_time["curr_pose"] = time.time()
-        
-        if len(self.curr_pose) >= 6:
-            pose_str = f"X:{self.curr_pose[0]:.3f} Y:{self.curr_pose[1]:.3f} Z:{self.curr_pose[2]:.3f}\n"
-            pose_str += f"R:{math.degrees(self.curr_pose[3]):.1f}° P:{math.degrees(self.curr_pose[4]):.1f}° Y:{math.degrees(self.curr_pose[5]):.1f}°"
-            self.pose_indicator.update_status(pose_str)
-        elif len(self.curr_pose) >= 3:
-            pose_str = f"X:{self.curr_pose[0]:.3f} Y:{self.curr_pose[1]:.3f} Z:{self.curr_pose[2]:.3f}"
-            self.pose_indicator.update_status(pose_str)
-    
+        pose_str = f"X:{self.curr_pose[0]:.3f} Y:{self.curr_pose[1]:.3f} Z:{self.curr_pose[2]:.3f}"
+        self.pose_indicator.update_status(pose_str)
+
     def on_camera(self, msg: Image):
         """
         Handle camera image messages
@@ -546,16 +539,17 @@ class ArmGUI(Node, QWidget):
         #     self.get_logger().error(f"Target parsing error: {e}")
     
 
-    def on_limit_switches(self, msg: String):
+    def on_limit_switches(self, msg: ArmStatuses):
         """Handle limit switch status update"""
         self.last_update_time["limit_switches"] = time.time()
-        self.limit_switches_indicator.update_status(msg.data)
+        status = " | ".join([f"J1:{msg.joint1}", f"J2:{msg.joint2}", f"J3:{msg.joint3}", f"J4:{msg.joint4}", f"J5:{msg.joint5}", f"J6:{msg.joint6}", f"J7:{msg.joint7}"])
+        self.limit_switches_indicator.update_status(status)
     
-    def on_safety_status(self, msg: String):
+    def on_safety_status(self, msg: ArmStatuses):
         """Handle safety status update"""
-        self.safety_status = msg.data
+        self.safety_status = " | ".join([f"J1:{msg.joint1}", f"J2:{msg.joint2}", f"J3:{msg.joint3}", f"J4:{msg.joint4}", f"J5:{msg.joint5}", f"J6:{msg.joint6}", f"J7:{msg.joint7}"])
         self.last_update_time["safety"] = time.time()
-        self.safety_indicator.update_status(msg.data)
+        self.safety_indicator.update_status(self.safety_status)
     
     def on_homing_status(self, msg: String):
         """Handle homing status update"""
@@ -623,7 +617,7 @@ class ArmGUI(Node, QWidget):
                 display.y_label.setVisible(self.y_check.isChecked())
                 display.z_label.setVisible(self.z_check.isChecked())
     
-    def _fmt_joints(self, joints: list) -> str:
+    def _fmt_joints(self, joints: list, assume_radians: bool = True) -> str:
         """
         Format joint angles for display
         Converts radians to degrees
@@ -634,7 +628,7 @@ class ArmGUI(Node, QWidget):
         for i, j in enumerate(joints, start=1):
             try:
                 jf = float(j)
-                angle_deg = math.degrees(jf)
+                angle_deg = math.degrees(jf) if assume_radians else jf
                 parts.append(f"J{i}={angle_deg:.1f}°" if math.isfinite(jf) else f"J{i}=?")
             except Exception:
                 parts.append(f"J{i}=?")
