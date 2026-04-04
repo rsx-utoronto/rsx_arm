@@ -11,7 +11,7 @@ from arm_msgs.msg import ArmInputs, KeyboardCoords, TargetPosition
 from geometry_msgs.msg import Pose, Point, Quaternion
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, map_inputs_to_manual, map_inputs_to_ik
-from arm_utilities.arm_configs import load_arm_controller_config_from_node
+from arm_configs.loader import load_arm_controller_config_from_node, load_keyboard_config_from_node
 from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
 import copy
@@ -58,7 +58,7 @@ class Controller(Node):
         # Attribute to store/publish killswitch value
         self.killswitch = 0
 
-        self.speed_limits = self.cfg.speed_limits
+        self.speed_limits = self.cfg["speed_limits"]
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
@@ -86,35 +86,28 @@ class Controller(Node):
         self.arm_curr_joints_pub = self.create_publisher(
             Float32MultiArray, "arm_curr_angles", 10)
         self.state_pub = self.create_publisher(
-            String, self.cfg.arm_state_topic, self.cfg.publisher_depth_queue)
+            String, self.cfg["arm_state_topic"], self.cfg["publisher_depth_queue"])
         self.target_joint_pub = self.create_publisher(
-            Float32MultiArray, self.cfg.target_joint_topic, self.cfg.publisher_depth_queue)
+            Float32MultiArray, self.cfg["target_joint_topic"], self.cfg["publisher_depth_queue"])
         self.target_pose_pub = self.create_publisher(
-            Pose, self.cfg.target_pose_topic, self.cfg.publisher_depth_queue)
+            Pose, self.cfg["target_pose_topic"], self.cfg["publisher_depth_queue"])
         self.killswitch_pub = self.create_publisher(
-            UInt8, self.cfg.killswitch_topic, self.cfg.publisher_depth_queue)
+            UInt8, self.cfg["killswitch_topic"], self.cfg["publisher_depth_queue"])
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
-            Joy, self.cfg.joy_topic, self.handle_joy, self.cfg.subscriber_depth_queue)
+            Joy, self.cfg["joy_topic"], self.handle_joy, self.cfg["subscriber_depth_queue"])
         
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
             Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
-            self.cfg.subscriber_depth_queue)
+            self.cfg["subscriber_depth_queue"])
 
         # Safety subscribers
         self.joint_safety_sub = self.create_subscription(
-            UInt8MultiArray, self.cfg.joint_safety_state_topic, self.process_safety,
-            self.cfg.subscriber_depth_queue)
-
-        # Nonblocking keyboard listener
-        self.keyboard_listener = keyboard.Listener(
-            on_press=self.on_press,
-            on_release=self.on_release
-        )
-        self.keyboard_listener.start()
+            UInt8MultiArray, self.cfg["joint_safety_state_topic"], self.process_safety,
+            self.cfg["subscriber_depth_queue"])
 
         self.homing_thread = threading.Thread(target=self.home_arm)
         self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
@@ -165,12 +158,18 @@ class Controller(Node):
         self.init = [False]*7
 
         # Keyboard targets to be hard coded at time of challenge
-        # TODO: parse from config file
-        self.keyboard_targets = ["s"]
-        # TODO: set up all keys
-        self.keyboard_offsets = {"s" : np.array([-0.0645, 0.715, 0.012])}
-        self.keyboard_positions = self.keyboard_offsets.copy()
+        self.keyboard_targets = []
+
+        self.keyboard = load_keyboard_config_from_node(self)
+        self.key_positions = self.keyboard["keyboard"]["keys"]
+        self.keys = self.key_positions.keys()
+        for key in self.keyboard_targets:
+            if key not in self.keys:
+                self.logger.warn(f"Key {key} not found in config")
+        self.relative_key_positions = self.key_positions.copy()
         self.current_key = None
+
+        # TODO: potentially remove
         self.last_quadrant = [0, 0] # for tracking which side of the joint base and wrist are in
         try:
             with open("limit_log.txt") as f:
@@ -321,7 +320,7 @@ class Controller(Node):
 
                     self.can_con.send_target_message(self.safe_target_joints)
                 case ArmState.IK:
-                    if not False in self.homed or self.cfg.allow_ik_without_homing:
+                    if not False in self.homed or self.cfg["allow_ik_without_homing"]:
                         # Join homing thread if just finished homing
                         if self.homing_thread.is_alive():
                             self.homing_thread.join()
@@ -529,7 +528,7 @@ class Controller(Node):
         # zero_r = Rotation.identity()
         # tl_corner_tf = RigidTransform.from_components(np.array([corners[0].x, corners[0].y, corners[0].z]), zero_r)
         for key in self.keyboard_targets:
-            self.keyboard_positions[key] = self.keyboard_offsets[key] + np.array([corners[0].x, corners[0].y, corners[0].z], dtype = float)
+            self.key_positions[key] = self.key_positions[key] + np.array([corners[0].x, corners[0].y, corners[0].z], dtype = float)
 
     def update_path_planner_joints(self, msg):
         self.current_path.append(list(msg.data))
@@ -537,7 +536,7 @@ class Controller(Node):
     def path_executor_loop(self):
         # while len(self.current_path) > 0 and self.shutdown == False:
         while self.executing_path:
-            target_pose = self.keyboard_positions[self.current_key]
+            target_pose = self.key_positions[self.current_key]
             key_target = TargetPosition()
             key_target.name = self.current_key
             key_target.position.x, key_target.position.y, key_target.position.z = target_pose[0], target_pose[1], target_pose[2]

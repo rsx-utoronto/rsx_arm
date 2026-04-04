@@ -1,9 +1,10 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
+from launch.conditions import IfCondition, UnlessCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     config_file_arg = DeclareLaunchArgument(
@@ -22,40 +23,86 @@ def generate_launch_description():
         description="Comma-separated list of controller config overrides",
     )
 
+    virtual = LaunchConfiguration('virtual')
+    virtual_arg = DeclareLaunchArgument(
+        "virtual",
+        default_value="false",
+        description="Comma-separated list of controller config overrides",
+    )
+    
+    ik_on = LaunchConfiguration('ik_on')
+    ik_arg = DeclareLaunchArgument(
+        "ik_on",
+        default_value="true",
+        description="Comma-separated list of controller config overrides",
+    )
+
+    gui_on = LaunchConfiguration('gui_on')
+    gui_arg = DeclareLaunchArgument(
+        "gui_on",
+        default_value="false",
+        description="Comma-separated list of controller config overrides",
+    )
+    
+    joy_node = Node(
+        package='joy',
+        executable='joy_node',
+        name='joy_node',
+        output='screen'
+    )
     # Arm_Controller node
-    arm_controller_node = Node(
-        package='controller',
-        executable='arm_controller',
+    virtual_arm_controller_node = Node(
+        package='arm_controller',
+        executable='virtual_controller',
         name='Arm_Controller',
         output='screen',
         parameters=[{
             "config_file": LaunchConfiguration("config_file"),
             "config_overrides": LaunchConfiguration("config_overrides"),
         }],
+        condition=IfCondition(virtual)
     )
 
-    # Arm_Manual node
-    arm_manual_node = Node(
-        package='manual',
-        executable='manual',
-        name='Arm_Manual',
-        output='screen'
+    arm_controller_node = Node(
+        package='arm_controller',
+        executable='main_controller',
+        name='Arm_Controller',
+        output='screen',
+        parameters=[{
+            "config_file": LaunchConfiguration("config_file"),
+            "config_overrides": LaunchConfiguration("config_overrides"),
+        }],
+        condition=UnlessCondition(virtual)
     )
 
-    # Arm_Safety node
-    arm_safety_node = Node(
-        package='safety',
-        executable='safety_node',
-        name='Arm_Safety',
-        output='screen'
+    gui_node = Node(
+        package='gui',
+        executable='arm_gui',
+        name='Arm_GUI',
+        output='screen',
+        condition=IfCondition(gui_on)
     )
 
+    ik_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('moveit_path_planning'),
+                'launch',
+                'planner_server_topic_publisher.py'
+            ])
+        ),
+        condition=IfCondition(ik_on)
+    )
     return LaunchDescription([
         config_file_arg,
         config_overrides_arg,
+        virtual_arg,
+        ik_arg,
+        ik_launch,
+        joy_node,
+        virtual_arm_controller_node,
         arm_controller_node,
-        arm_manual_node,
-        arm_safety_node
+        gui_node
     ])
 
 
