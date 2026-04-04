@@ -588,6 +588,10 @@ class Controller(Node):
         #while len(self.current_path) > 0 and self.shutdown == False:
             #self.get_logger().info("in while loop")
         for step in self.current_path:
+            # TODO: Real implementation commented out for now; the implementation in code is
+            # not using safety
+
+
             #self.get_logger().info("length of list: " + str(len(self.current_path)))
             # error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
             # if all(e < self.joint_target_threshold for e in error):
@@ -615,7 +619,7 @@ class Controller(Node):
             
             # Float32MultiArray data is stored in .data (which is a list/array)
             # We convert it to a list of floats for JointState
-            joint_state.position = [float(val) for val in step]
+            joint_state.position = [float(val) for val in step] # Change "step" to "self.target_joints" later to use safety
             if len(joint_state.position) == 7:
                 joint_state.position.pop(6)
             self.safe_rviz_joints_pub.publish(joint_state)
