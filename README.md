@@ -1,6 +1,6 @@
 # RSX's ARM Repository, now on ROS2!
 
-Welcome to `arm-ros2`! This repository will host the ROS 2 (Humble) version of the RSX arm control software, migrated from the `arm/` folder in the old ROS 1 `rsx-rover` repo. Proceed with caution.
+Welcome to `arm-ros2`! This repository will host the ROS 2 (Humble) version of the RSX arm control software, migrated from the `arm/` folder in the old ROS 1 `rsx-rover` repo. Proceed with caution. The following are computer setup instructions, for guidance on setting up and running the arm, see [arm_instructions.md](arm_instructions.md)
 
 ## Prerequisites
 

@@ -1,4 +1,0 @@
-<launch>
-	<arg name="rvizconfig" default="$(find rover)/rover/simulation/rviz_config/point_cloud_testing.rviz"/>
-	<node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true"/>
-</launch>

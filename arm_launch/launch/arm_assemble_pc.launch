@@ -1,5 +1,0 @@
-<launch>
-	<node type="arm_point_cloud_assembler" pkg="rover" name="arm_pc_assembler" output="screen">
-		<remap from="cloud_input" to="/camera/depth/points"/>
-	</node>
-</launch>
