@@ -60,7 +60,7 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
 
 
 def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
-    delta = 0.01  # Incremental change for position
+    delta = 0.005  # Incremental change for position
     delta_rot = 0.02 # Incremental change for orientation (radians)
 
     new_pose = Pose()
@@ -70,14 +70,16 @@ def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
         (arm_inputs.r_trigger - arm_inputs.l_trigger) * delta
 
 
-    x_rot = R.from_euler('xyz', [arm_inputs.r_vertical*delta_rot, 0, 0], degrees=False)
-    y_rot = R.from_euler('xyz', [0, (arm_inputs.r1-arm_inputs.l1)*delta_rot, 0], degrees=False)
-    z_rot = R.from_euler('xyz', [0, 0, arm_inputs.r_horizontal*delta_rot], degrees=False)
+    delta_r = R.from_euler('XYZ', [
+    arm_inputs.r_vertical * delta_rot,
+    (arm_inputs.r1 - arm_inputs.l1) * delta_rot,
+    arm_inputs.r_horizontal * delta_rot
+    ], degrees=False)
     r = R.from_quat([curr_pose.orientation.x, curr_pose.orientation.y,
                     curr_pose.orientation.z, curr_pose.orientation.w])
     
     # TODO: needs testing
-    new_r = r * x_rot * y_rot * z_rot 
+    new_r = delta_r * r  # Apply incremental rotation to current orientation
     new_quat = new_r.as_quat()
     new_pose.orientation.x = new_quat[0]
     new_pose.orientation.y = new_quat[1]

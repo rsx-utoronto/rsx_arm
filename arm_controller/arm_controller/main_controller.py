@@ -228,7 +228,7 @@ class Controller(Node):
                         (wrist1_angle + wrist2_angle) / 2)
                     self.current_joints[5] = float(
                         (wrist1_angle - wrist2_angle) / 2)
-
+                
                 else:
                     self.current_joints[index] = value + self.joint_offsets[index]
                 
@@ -299,7 +299,7 @@ class Controller(Node):
                     self.safe_target_joints = self.arm_internal_current_joints
                     self.can_con.send_target_message(self.safe_target_joints)
                     # In idle state, only allow killswitch and state changes
-                    self.logger().info("Currently in IDLE: No control change")
+                    self.get_logger().info("Currently in IDLE: No control change")
 
                 case ArmState.MANUAL:
                     # use internal current joints to prevent joint slippage when no input is given
