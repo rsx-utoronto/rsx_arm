@@ -7,42 +7,42 @@ import numpy as np
 
 from sensor_msgs.msg import Joy, JointState
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
-from arm_msgs.msg import ArmInputs, KeyboardCoords
+from arm_msgs.msg import ArmInputs, KeyboardCoords, TargetPosition
 from geometry_msgs.msg import Pose, Point, Quaternion
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
-from arm_utilities.arm_control_utils import handle_joy_input, handle_keyboard_input, map_inputs_to_manual, map_inputs_to_ik
+from arm_utilities.arm_control_utils import handle_joy_input, map_inputs_to_manual, map_inputs_to_ik
+from arm_configs.loader import load_arm_controller_config_from_node, load_keyboard_config_from_node
 from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
 import copy
 import functools
 from pynput import keyboard
 import time
+import math
+import time
 from moveit_msgs.msg import RobotTrajectory
 import math
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-
 class Controller(Node):
     """
     (None)
 
-    Controller class for the robotic arm. Handles input from joystick/keyboard/GUI,
-    manages arm state, safety checks, and communicates with the CAN bus to control the arm motors
+    This class represents an instance of controller node and connects the node to 
+    its publishing and subscribing topics
     """
 
     def __init__(self, can_update_rate=1000, n_joints=7, virtual=False):
         super().__init__("Arm_Controller")
+        self.cfg = load_arm_controller_config_from_node(self)
 
         # Test to see what we get from the path planning topic
         self.path_frames = 0
 
         self.n_joints = n_joints
-        # with open("initial_positions.yaml", "r") as f:
-        #     init_config = yaml.safe_load(f)
-        # self.init_joints = [init_config["joint_1"], init_config["joint_2"], init_config["joint_3"], init_config["joint_4"], init_config["joint_5"], init_config["joint_6", 0]]
         self.initial_positions = [0., 0., 0., 0., 0., 0., 0.]
-        # TODO: LOAD THE YAML CORRECTLY
+
         # Initialize CAN connection
         if virtual:
             self.can_con = CAN_connection(
@@ -63,8 +63,7 @@ class Controller(Node):
         # Attribute to store/publish killswitch value
         self.killswitch = 0
 
-        # TODO load from config
-        self.speed_limits = [1.5, 2, 1, 1, 1.5, 1.5, 50]
+        self.speed_limits = self.cfg["speed_limits"]
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
@@ -87,8 +86,6 @@ class Controller(Node):
         self.path_group = MutuallyExclusiveCallbackGroup()
 
         # Publishers
-        self.state_pub = self.create_publisher(String, "arm_state", 10)
-
         # Publisher for safe target joints after safety check, used for debugging and data logging
         self.safe_target_joints_pub = self.create_publisher(
             Float32MultiArray, "safe_arm_target_joints", 10)
@@ -96,16 +93,18 @@ class Controller(Node):
         # Used for publishing current joint angles, used in forward kinematics calculations
         self.arm_curr_joints_pub = self.create_publisher(
             Float32MultiArray, "arm_curr_angles", 10)
-        
-        # Publisher for target end effector pose in IK mode
+        self.state_pub = self.create_publisher(
+            String, self.cfg["arm_state_topic"], self.cfg["publisher_depth_queue"])
+        self.target_joint_pub = self.create_publisher(
+            Float32MultiArray, self.cfg["target_joint_topic"], self.cfg["publisher_depth_queue"])
         self.target_pose_pub = self.create_publisher(
-            Pose, "arm_target_pose", 10)
+            Pose, self.cfg["target_pose_topic"], self.cfg["publisher_depth_queue"])
         self.killswitch_pub = self.create_publisher(
-            UInt8, "arm_killswitch", 10)
+            UInt8, self.cfg["killswitch_topic"], self.cfg["publisher_depth_queue"])
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
-            Joy, "/joy", self.handle_joy, 10)
+            Joy, self.cfg["joy_topic"], self.handle_joy, self.cfg["subscriber_depth_queue"])
         
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
@@ -114,8 +113,15 @@ class Controller(Node):
         self.path_planning_sub = self.create_subscription(
             RobotTrajectory, "trajectory_joints", self.get_trajectory, 10)
         
-        self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target, 10)
+        self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
+            self.cfg["subscriber_depth_queue"])
 
+        # Safety subscribers
+        self.joint_safety_sub = self.create_subscription(
+            UInt8MultiArray, self.cfg["joint_safety_state_topic"], self.process_safety,
+            self.cfg["subscriber_depth_queue"])
+
+        self.homing_thread = threading.Thread(target=self.home_arm)
         self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
         self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
         self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 100, callback_group=self.path_group)
@@ -164,6 +170,7 @@ class Controller(Node):
                         self.can_read_thread, 
                         # self.path_executor_thread
                         ]
+        self.executing_path = False
         
         # Initialization flags for CAN readings (for setting initial joint values)
         self.init = [False]*7
@@ -172,10 +179,18 @@ class Controller(Node):
         self.executing_path = False
 
         # Keyboard targets to be hard coded at time of challenge
-        # TODO: parse from config file
         self.keyboard_targets = []
-        # TODO: set up all keys
-        self.keyboard_positions = {}
+
+        self.keyboard = load_keyboard_config_from_node(self)
+        self.key_positions = self.keyboard["keyboard"]["keys"]
+        self.keys = self.key_positions.keys()
+        for key in self.keyboard_targets:
+            if key not in self.keys:
+                self.logger.warn(f"Key {key} not found in config")
+        self.relative_key_positions = self.key_positions.copy()
+        self.current_key = None
+
+        # TODO: potentially remove
         self.last_quadrant = [0, 0] # for tracking which side of the joint base and wrist are in
         try:
             with open("limit_log.txt") as f:
@@ -234,7 +249,7 @@ class Controller(Node):
                         (wrist1_angle + wrist2_angle) / 2)
                     self.current_joints[5] = float(
                         (wrist1_angle - wrist2_angle) / 2)
-
+                
                 else:
                     self.current_joints[index] = value + self.joint_offsets[index]
                 
@@ -244,7 +259,8 @@ class Controller(Node):
                     self.init[index] = True
                 
             threading.Event().wait(1/self.can_rate)
-
+    def process_safety(self, msg):
+        pass
 
     def update_arm(self, update):
         self.get_logger().info("Path frames:" + str(self.path_frames))
@@ -254,12 +270,18 @@ class Controller(Node):
             match self.control_mode:
                 case ControlMode.CONTROLLER:
                     inputs = handle_joy_input(update)
-                case ControlMode.KEYBOARD:
-                    inputs = handle_keyboard_input(update)
-
                 case ControlMode.GUI:
                     # Update arm state based on GUI input
                     pass
+            if inputs.share:
+                self.safe_target_joints = self.current_joints
+                self.get_logger().error("KILLSWITCH PRESSED, LOCKING ARM AND EXITING")
+                for i in range(10):
+                    self.safe_target_joints_pub(self.safe_target_joints)
+                    time.sleep(0.05)
+                    
+                self.shutdown_node()
+                sys.exit()
 
             if inputs.dpad_up and inputs.dpad_down and inputs.dpad_left and inputs.dpad_right:
                 if self.state != ArmState.AUTO_KEYBOARD:
@@ -286,7 +308,7 @@ class Controller(Node):
                     self.get_logger().info("Switching to IK mode, homed and ready to move")
 
             elif inputs.dpad_right:
-                self.state = ArmState.PATH_PLANNING
+                self.state = ArmState.AUTO_KEYBOARD
                 self.get_logger().info("Switching to PATH PLANNING mode")
 
             state_string = String()
@@ -299,8 +321,8 @@ class Controller(Node):
                     self.safe_target_joints = self.arm_internal_current_joints
                     self.can_con.send_target_message(self.safe_target_joints)
                     # In idle state, only allow killswitch and state changes
-                    # self.logger().info("Currently in IDLE: No control change")
-                    pass
+                    self.get_logger().info("Currently in IDLE: No control change")
+
                 case ArmState.MANUAL:
                     # use internal current joints to prevent joint slippage when no input is given
                     self.target_joints = map_inputs_to_manual(
@@ -320,7 +342,7 @@ class Controller(Node):
 
                     self.can_con.send_target_message(self.safe_target_joints)
                 case ArmState.IK:
-                    if not False in self.homed:
+                    if not False in self.homed or self.cfg["allow_ik_without_homing"]:
                         # Join homing thread if just finished homing
                         if self.homing_thread.is_alive():
                             self.homing_thread.join()
@@ -364,18 +386,25 @@ class Controller(Node):
                     # TODO: actively update the relative location of keyboard targets based on detected keyboard corners
                     for target in self.keyboard_targets:
                         if self.executing_path:
-                            pass
+                            if inputs.circle:
+                                self.executing_path = False
+                                if self.path_executor_thread.is_alive():
+                                    self.path_executor_thread.join()
+                            else:
+                                pass
                         else:
+                            
                             if self.path_executor_thread.is_alive():
                                 self.path_executor_thread.join()
-                                
-                            target_pose = self.keyboard_positions[target]
                             self.get_logger().info("Moving to key: %s" % target)
+                            self.current_key = target
+                            
                             # TODO: path plan should publish to an intermediate pose offset from the keyboard prior to publishing the actual key press
-                            self.target_pose_pub.publish(target_pose)
+                            # self.target_pose_pub.publish(target_pose)
                             self.executing_path = True
                             self.path_executor_thread.start()
                     pass
+        # TODO: arm pose should update with the arm's movement, this can be done with internal state that's checked with against the real state but requires testing for jitter
         if self.state != ArmState.IK:
             # TODO: need to be updating internal pose state using FK pose updates, need to resolve discrepancies from IK solutions
             self.update_internal_pose_state(self.current_joints)
@@ -508,7 +537,7 @@ class Controller(Node):
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-                        self.target_joints, self.current_joints)
+                        self.target_joints, self.arm_internal_current_joints) 
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
@@ -518,14 +547,15 @@ class Controller(Node):
         time.sleep(0.05)  # wait for some time before next update
 
     def handle_keyboard_coords(self, msg):
-        self.get_logger().info("Received keyboard coordinates from camera node")
-        corners = msg.corners  # assuming corners is a list of 4 (x, y) tuples
+        corners = [msg.tl, msg.tr, msg.bl, msg.br]
         # Process corners to determine key positions
         self.interpolate_key_positions(corners)
 
     def interpolate_key_positions(self, corners):
-        # TODO: implement interpolation of key positions based on keyboard corners
-        pass
+        # zero_r = Rotation.identity()
+        # tl_corner_tf = RigidTransform.from_components(np.array([corners[0].x, corners[0].y, corners[0].z]), zero_r)
+        for key in self.keyboard_targets:
+            self.key_positions[key] = self.key_positions[key] + np.array([corners[0].x, corners[0].y, corners[0].z], dtype = float)
 
     def update_path_planner_joints(self, msg):
         self.path_frames += 1
@@ -543,12 +573,12 @@ class Controller(Node):
                     #self.current_path.pop(0)
                     continue
                     
-                self.target_joints[0:6] = step
-                self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-                    self.target_joints, self.current_joints)
-                msg = Float32MultiArray()
-                msg.data = self.safe_target_joints
-                self.safe_target_joints_pub.publish(msg)
+            #     self.target_joints[0:6] = step
+            #     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
+            #         self.target_joints, self.current_joints)
+            #     msg = Float32MultiArray()
+            #     msg.data = self.safe_target_joints
+            #     self.safe_target_joints_pub.publish(msg)
 
                 self.internal_current_joints = self.safe_target_joints
                 self.get_logger().info("publishing to rviz")

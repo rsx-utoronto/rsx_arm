@@ -1,0 +1,440 @@
+keyboard:
+  model: redragon_k552
+  origin: top_left
+  units: mm
+  keys:
+    Esc:
+      center_x_mm: 12.5
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F1:
+      center_x_mm: 50.6
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F2:
+      center_x_mm: 69.65
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F3:
+      center_x_mm: 88.7
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F4:
+      center_x_mm: 107.75
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F5:
+      center_x_mm: 136.325
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F6:
+      center_x_mm: 155.375
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F7:
+      center_x_mm: 174.425
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F8:
+      center_x_mm: 193.475
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F9:
+      center_x_mm: 222.05
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F10:
+      center_x_mm: 241.1
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F11:
+      center_x_mm: 260.15
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F12:
+      center_x_mm: 279.2
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    PrtSc:
+      center_x_mm: 307.775
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Scroll Lock:
+      center_x_mm: 326.825
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Pause:
+      center_x_mm: 345.875
+      center_y_mm: 12.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Grave:
+      center_x_mm: 12.5
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '1':
+      center_x_mm: 31.55
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '2':
+      center_x_mm: 50.6
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '3':
+      center_x_mm: 69.65
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '4':
+      center_x_mm: 88.7
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '5':
+      center_x_mm: 107.75
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '6':
+      center_x_mm: 126.8
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '7':
+      center_x_mm: 145.85
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '8':
+      center_x_mm: 164.9
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '9':
+      center_x_mm: 183.95
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '0':
+      center_x_mm: 203.0
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '-':
+      center_x_mm: 222.05
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '=':
+      center_x_mm: 241.1
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Backspace:
+      center_x_mm: 279.2
+      center_y_mm: 34.5
+      width_mm: 31.05
+      height_mm: 14.0
+    Insert:
+      center_x_mm: 307.775
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Home:
+      center_x_mm: 326.825
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    PgUp:
+      center_x_mm: 345.875
+      center_y_mm: 34.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Tab:
+      center_x_mm: 17.262
+      center_y_mm: 53.0
+      width_mm: 21.525
+      height_mm: 14.0
+    Q:
+      center_x_mm: 41.075
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    W:
+      center_x_mm: 60.125
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    E:
+      center_x_mm: 79.175
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    R:
+      center_x_mm: 98.225
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    T:
+      center_x_mm: 117.275
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    Y:
+      center_x_mm: 136.325
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    U:
+      center_x_mm: 155.375
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    I:
+      center_x_mm: 174.425
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    O:
+      center_x_mm: 193.475
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    P:
+      center_x_mm: 212.525
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    '[':
+      center_x_mm: 231.575
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    ']':
+      center_x_mm: 250.625
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    \:
+      center_x_mm: 283.963
+      center_y_mm: 53.0
+      width_mm: 21.525
+      height_mm: 14.0
+    Delete:
+      center_x_mm: 307.775
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    End:
+      center_x_mm: 326.825
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    PgDn:
+      center_x_mm: 345.875
+      center_y_mm: 53.0
+      width_mm: 12.0
+      height_mm: 14.0
+    Caps Lock:
+      center_x_mm: 19.644
+      center_y_mm: 71.5
+      width_mm: 26.287
+      height_mm: 14.0
+    A:
+      center_x_mm: 45.837
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    S:
+      center_x_mm: 64.888
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    D:
+      center_x_mm: 83.938
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    F:
+      center_x_mm: 102.987
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    G:
+      center_x_mm: 122.038
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    H:
+      center_x_mm: 141.088
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    J:
+      center_x_mm: 160.138
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    K:
+      center_x_mm: 179.188
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    L:
+      center_x_mm: 198.238
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    ;:
+      center_x_mm: 217.287
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    '''':
+      center_x_mm: 236.338
+      center_y_mm: 71.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Enter:
+      center_x_mm: 276.819
+      center_y_mm: 71.5
+      width_mm: 35.812
+      height_mm: 14.0
+    LShift:
+      center_x_mm: 24.406
+      center_y_mm: 90.0
+      width_mm: 35.812
+      height_mm: 14.0
+    Z:
+      center_x_mm: 55.363
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    X:
+      center_x_mm: 74.412
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    C:
+      center_x_mm: 93.463
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    V:
+      center_x_mm: 112.513
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    B:
+      center_x_mm: 131.562
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    N:
+      center_x_mm: 150.613
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    M:
+      center_x_mm: 169.662
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    ',':
+      center_x_mm: 188.713
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    .:
+      center_x_mm: 207.763
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    /:
+      center_x_mm: 226.812
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    RShift:
+      center_x_mm: 272.056
+      center_y_mm: 90.0
+      width_mm: 45.338
+      height_mm: 14.0
+    Up:
+      center_x_mm: 326.825
+      center_y_mm: 90.0
+      width_mm: 12.0
+      height_mm: 14.0
+    LCtrl:
+      center_x_mm: 14.881
+      center_y_mm: 108.5
+      width_mm: 16.762
+      height_mm: 14.0
+    LWin:
+      center_x_mm: 38.694
+      center_y_mm: 108.5
+      width_mm: 16.762
+      height_mm: 14.0
+    LAlt:
+      center_x_mm: 62.506
+      center_y_mm: 108.5
+      width_mm: 16.762
+      height_mm: 14.0
+    Space:
+      center_x_mm: 133.944
+      center_y_mm: 108.5
+      width_mm: 112.013
+      height_mm: 14.0
+    RAlt:
+      center_x_mm: 205.381
+      center_y_mm: 108.5
+      width_mm: 16.762
+      height_mm: 14.0
+    FN:
+      center_x_mm: 229.194
+      center_y_mm: 108.5
+      width_mm: 16.762
+      height_mm: 14.0
+    Menu:
+      center_x_mm: 253.006
+      center_y_mm: 108.5
+      width_mm: 16.762
+      height_mm: 14.0
+    RCtrl:
+      center_x_mm: 276.819
+      center_y_mm: 108.5
+      width_mm: 16.762
+      height_mm: 14.0
+    Left:
+      center_x_mm: 307.775
+      center_y_mm: 108.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Down:
+      center_x_mm: 326.825
+      center_y_mm: 108.5
+      width_mm: 12.0
+      height_mm: 14.0
+    Right:
+      center_x_mm: 345.875
+      center_y_mm: 108.5
+      width_mm: 12.0
+      height_mm: 14.0
