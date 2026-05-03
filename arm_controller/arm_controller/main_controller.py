@@ -24,6 +24,7 @@ from moveit_msgs.msg import RobotTrajectory
 import math
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+import sys
 
 class Controller(Node):
     """
@@ -132,6 +133,7 @@ class Controller(Node):
             JointState, "joint_states", 10)
         # will fill when a path is given
         self.current_path = []
+        self.path_is_ready = False
         self.joint_target_threshold = 1 # maximum allowed error in degrees to consider joint target reached
 
         # Joint limit tracking
@@ -368,20 +370,32 @@ class Controller(Node):
                             target_pose = self.current_pose
                             # self.target_pose_pub.publish(target_pose)
                             time.sleep(0.2)
-                # case ArmState.PATH_PLANNING:
-                    # break
-                    # if self.path_executor_thread.is_alive():
-                    #     self.get_logger().info("thread alive")
-                    #     if not self.executing_path:
-                    #         self.get_logger().info("joining!")
-                    #         self.path_executor_thread.join()
-                    #     else:
-                    #         pass
-                    # else:
-                    #     #self.get_logger().info("Path executor")
-                    #     self.path_executor_thread = threading.Thread(target=self.path_executor_loop, daemon=True)
-                    #     self.path_executor_thread.start()
-                    #     self.executing_path = True
+                case ArmState.PATH_PLANNING:
+                    # TODO: ROS2 doesn't work with threads outside of its own multithreaded executor, implement the thread using that instead.
+                    # 
+                    if inputs.x:
+                        self.get_logger().warn("Path execution stopped by user input")
+                        self.executing_path = False
+                        if self.path_executor_thread.is_alive():
+                            self.path_executor_thread.join()
+                    if inputs.o:
+                        self.get_logger().warn("Path execution paused by user input")
+                    if self.path_executor_thread.is_alive():
+                        self.get_logger().info("thread alive")
+                        if not self.executing_path:
+                            self.get_logger().info("joining!")
+                            self.path_executor_thread.join()
+                        else:
+                            pass
+                    else:
+                        if self.path_is_ready:
+                        #self.get_logger().info("Path executor")
+                            self.path_executor_thread = threading.Thread(target=self.path_executor_loop, daemon=True)
+                            self.path_executor_thread.start()
+                            self.executing_path = True
+                        else:
+                            # TODO: enter path setup here
+                            self.get_logger().info("Path not ready yet!")
                 case ArmState.AUTO_KEYBOARD:
                     # TODO: actively update the relative location of keyboard targets based on detected keyboard corners
                     for target in self.keyboard_targets:
@@ -563,11 +577,8 @@ class Controller(Node):
 
     def path_executor_loop(self):
         self.executing_path = True
-        #self.get_logger().info("in path executor")
         while len(self.current_path) > 0 and self.shutdown == False:
-            #self.get_logger().info("in while loop")
             for step in self.current_path:
-                #self.get_logger().info("length of list: " + str(len(self.current_path)))
                 error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
                 if all(e < self.joint_target_threshold for e in error):
                     #self.current_path.pop(0)
@@ -607,6 +618,7 @@ class Controller(Node):
         
         for frame in msg.joint_trajectory.points:
             self.path_frames += 1
+            # TODO: this should just add the frames directly to the current path, the joint trajectory points are already the intermediate points we want to increment by
             self.current_path.append(list(frame.positions))
 
         self.get_logger().info("total frames received: " + str(self.path_frames))
@@ -615,12 +627,12 @@ class Controller(Node):
         self.get_logger().info("first frame:")
 
         self.get_logger().info("in path executor")
-        #while len(self.current_path) > 0 and self.shutdown == False:
-            #self.get_logger().info("in while loop")
+
+        # TODO: this shouldn't have path execution, just saving the path. Execution should be triggered by a separate input that confirms the execution
+        # leaving this code here for reference, but most likely will need to be removed and then rewritten in the path executor loop
         for step in self.current_path:
             # TODO: Real implementation commented out for now; the implementation in code is
             # not using safety
-
 
             #self.get_logger().info("length of list: " + str(len(self.current_path)))
             # error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
