@@ -5,7 +5,7 @@ from rclpy.node import Node
 import threading
 import numpy as np
 
-from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Joy, JointState
 from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
 from arm_msgs.msg import ArmInputs, KeyboardCoords, TargetPosition
 from geometry_msgs.msg import Pose, Point, Quaternion
@@ -20,8 +20,11 @@ from pynput import keyboard
 import time
 import math
 import time
+from moveit_msgs.msg import RobotTrajectory
 import math
-
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+import sys
 
 class Controller(Node):
     """
@@ -34,6 +37,9 @@ class Controller(Node):
     def __init__(self, can_update_rate=1000, n_joints=7, virtual=False):
         super().__init__("Arm_Controller")
         self.cfg = load_arm_controller_config_from_node(self)
+
+        # Test to see what we get from the path planning topic
+        self.path_frames = 0
 
         self.n_joints = n_joints
         self.initial_positions = [0., 0., 0., 0., 0., 0., 0.]
@@ -77,6 +83,9 @@ class Controller(Node):
 
         self.gripper_on = False
 
+        # Callback group for path planning thread to run separately (try to avoid dropped poses)
+        self.path_group = MutuallyExclusiveCallbackGroup()
+
         # Publishers
         # Publisher for safe target joints after safety check, used for debugging and data logging
         self.safe_target_joints_pub = self.create_publisher(
@@ -101,6 +110,10 @@ class Controller(Node):
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
             Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
+        
+        self.path_planning_sub = self.create_subscription(
+            RobotTrajectory, "trajectory_joints", self.get_trajectory, 10)
+        
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
             self.cfg["subscriber_depth_queue"])
 
@@ -112,11 +125,15 @@ class Controller(Node):
         self.homing_thread = threading.Thread(target=self.home_arm)
         self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
         self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
-        self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 10)
+        self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 100, callback_group=self.path_group)
         self.path_executor_thread = threading.Thread(
             target=self.path_executor_loop, daemon=True)
+
+        self.safe_rviz_joints_pub = self.create_publisher(
+            JointState, "joint_states", 10)
         # will fill when a path is given
         self.current_path = []
+        self.path_is_ready = False
         self.joint_target_threshold = 1 # maximum allowed error in degrees to consider joint target reached
 
         # Joint limit tracking
@@ -151,11 +168,17 @@ class Controller(Node):
 
         self.arm_update_lock = threading.Lock()
 
-        self.threads = [self.homing_thread, self.can_read_thread, self.path_executor_thread]
+        self.threads = [self.homing_thread, 
+                        self.can_read_thread, 
+                        # self.path_executor_thread
+                        ]
         self.executing_path = False
         
         # Initialization flags for CAN readings (for setting initial joint values)
         self.init = [False]*7
+
+        # Path planning state variable
+        self.executing_path = False
 
         # Keyboard targets to be hard coded at time of challenge
         self.keyboard_targets = []
@@ -242,6 +265,7 @@ class Controller(Node):
         pass
 
     def update_arm(self, update):
+        self.get_logger().info("Path frames:" + str(self.path_frames))
         # TODO: need to update state tracking to consistently unify real world angles with internal state
         # lock to prevent local variables from being modified by CAN threads during execution
         with self.arm_update_lock:
@@ -347,14 +371,31 @@ class Controller(Node):
                             # self.target_pose_pub.publish(target_pose)
                             time.sleep(0.2)
                 case ArmState.PATH_PLANNING:
-                    if self.path_executor_thread.is_alive:
+                    # TODO: ROS2 doesn't work with threads outside of its own multithreaded executor, implement the thread using that instead.
+                    # 
+                    if inputs.x:
+                        self.get_logger().warn("Path execution stopped by user input")
+                        self.executing_path = False
+                        if self.path_executor_thread.is_alive():
+                            self.path_executor_thread.join()
+                    if inputs.o:
+                        self.get_logger().warn("Path execution paused by user input")
+                    if self.path_executor_thread.is_alive():
+                        self.get_logger().info("thread alive")
                         if not self.executing_path:
+                            self.get_logger().info("joining!")
                             self.path_executor_thread.join()
                         else:
                             pass
                     else:
-                        self.path_executor_thread.start()
-                        self.executing_path = True
+                        if self.path_is_ready:
+                        #self.get_logger().info("Path executor")
+                            self.path_executor_thread = threading.Thread(target=self.path_executor_loop, daemon=True)
+                            self.path_executor_thread.start()
+                            self.executing_path = True
+                        else:
+                            # TODO: enter path setup here
+                            self.get_logger().info("Path not ready yet!")
                 case ArmState.AUTO_KEYBOARD:
                     # TODO: actively update the relative location of keyboard targets based on detected keyboard corners
                     for target in self.keyboard_targets:
@@ -531,23 +572,17 @@ class Controller(Node):
             self.key_positions[key] = self.key_positions[key] + np.array([corners[0].x, corners[0].y, corners[0].z], dtype = float)
 
     def update_path_planner_joints(self, msg):
+        self.path_frames += 1
         self.current_path.append(list(msg.data))
 
     def path_executor_loop(self):
-        # while len(self.current_path) > 0 and self.shutdown == False:
-        while self.executing_path:
-            target_pose = self.key_positions[self.current_key]
-            key_target = TargetPosition()
-            key_target.name = self.current_key
-            key_target.position.x, key_target.position.y, key_target.position.z = target_pose[0], target_pose[1], target_pose[2]
-            key_target.distance = 0.0
-            
-            self.keyboard_target_pub.publish(key_target)
-            # for step in self.current_path:
-            #     error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints)]
-            #     if all(e < self.joint_target_threshold for e in error):
-            #         self.current_path.pop(0)
-            #         continue
+        self.executing_path = True
+        while len(self.current_path) > 0 and self.shutdown == False:
+            for step in self.current_path:
+                error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
+                if all(e < self.joint_target_threshold for e in error):
+                    #self.current_path.pop(0)
+                    continue
                     
             #     self.target_joints[0:6] = step
             #     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
@@ -556,12 +591,85 @@ class Controller(Node):
             #     msg.data = self.safe_target_joints
             #     self.safe_target_joints_pub.publish(msg)
 
-            #     self.internal_current_joints = self.safe_target_joints
+                self.internal_current_joints = self.safe_target_joints
+                self.get_logger().info("publishing to rviz")
 
-            #     # DISABLED TEMPORARILY FOR SAFETY
-            #     # self.can_con.send_target_message(self.safe_target_joints)
-            #     time.sleep(0.1)  # wait for some time before next step
-            # self.executing_path = False
+                # 1. Create the JointState message
+                joint_state = JointState()
+
+                # 2. Add the timestamp (essential for robot_state_publisher)
+                joint_state.header.stamp = self.get_clock().now().to_msg()
+                
+                # 3. Map the names and data
+                joint_state.name = ['joint_1','joint_2','joint_3', 'joint_4','joint_5','joint_6']
+                
+                # Float32MultiArray data is stored in .data (which is a list/array)
+                # We convert it to a list of floats for JointState
+                joint_state.position = [float(val) for val in msg.data]
+                joint_state.position.pop(6)
+                self.safe_rviz_joints_pub.publish(joint_state)
+
+                # DISABLED TEMPORARILY FOR SAFETY
+                # self.can_con.send_target_message(self.safe_target_joints)
+                time.sleep(0.1)  # wait for some time before next step
+        self.executing_path = False
+        
+    def get_trajectory(self, msg):
+        
+        for frame in msg.joint_trajectory.points:
+            self.path_frames += 1
+            # TODO: this should just add the frames directly to the current path, the joint trajectory points are already the intermediate points we want to increment by
+            self.current_path.append(list(frame.positions))
+
+        self.get_logger().info("total frames received: " + str(self.path_frames))
+        
+        self.executing_path = True
+        self.get_logger().info("first frame:")
+
+        self.get_logger().info("in path executor")
+
+        # TODO: this shouldn't have path execution, just saving the path. Execution should be triggered by a separate input that confirms the execution
+        # leaving this code here for reference, but most likely will need to be removed and then rewritten in the path executor loop
+        for step in self.current_path:
+            # TODO: Real implementation commented out for now; the implementation in code is
+            # not using safety
+
+            #self.get_logger().info("length of list: " + str(len(self.current_path)))
+            # error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
+            # if all(e < self.joint_target_threshold for e in error):
+            #     #self.current_path.pop(0)
+            #     continue
+                
+            # self.target_joints[0:6] = step
+            # self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
+            #     self.target_joints, self.current_joints)
+            # msg = Float32MultiArray()
+            # msg.data = self.safe_target_joints
+            # self.safe_target_joints_pub.publish(msg)
+
+            # self.internal_current_joints = self.safe_target_joints
+            # self.get_logger().info("publishing to rviz")
+
+            # 1. Create the JointState message
+            joint_state = JointState()
+
+            # 2. Add the timestamp (essential for robot_state_publisher)
+            joint_state.header.stamp = self.get_clock().now().to_msg()
+            
+            # 3. Map the names and data
+            joint_state.name = ['joint_1','joint_2','joint_3', 'joint_4','joint_5','joint_6']
+            
+            # Float32MultiArray data is stored in .data (which is a list/array)
+            # We convert it to a list of floats for JointState
+            joint_state.position = [float(val) for val in step] # Change "step" to "self.target_joints" later to use safety
+            if len(joint_state.position) == 7:
+                joint_state.position.pop(6)
+            self.safe_rviz_joints_pub.publish(joint_state)
+
+            # DISABLED TEMPORARILY FOR SAFETY
+            # self.can_con.send_target_message(self.safe_target_joints)
+            time.sleep(0.1)  # wait for some time before next step
+        self.executing_path = False
 def real_controller(args=None):
     rclpy.init(args=args)
 
@@ -581,11 +689,15 @@ def virtual_controller(args=None):
     rclpy.init(args=args)
 
     arm_controller = Controller(virtual=True)
+    executor = MultiThreadedExecutor() # For the extra thread
 
     try:
-        rclpy.spin(arm_controller)
+        executor.add_node(arm_controller)
+        executor.spin()
     except KeyboardInterrupt:
         arm_controller.get_logger().info("Keyboard interrupt received")
+    except Exception as e:
+        print(e)
     finally:
         arm_controller.shutdown_node()
         arm_controller.destroy_node()
