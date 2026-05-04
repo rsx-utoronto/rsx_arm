@@ -97,6 +97,7 @@ def generate_launch_description():
         config_file_arg,
         config_overrides_arg,
         virtual_arg,
+        gui_arg,
         ik_arg,
         ik_launch,
         joy_node,
