@@ -9,7 +9,7 @@
 
 # It should not be run with ros, but with source instead. It assumes the ROS2 workspace is already created.
 
-cd ~rover_ws && \
+cd ~/rover_ws && \
 source /opt/ros/humble/setup.bash && \
 # Go back to the source directory and install pip requirements 
 cd src/rsx_arm && \
@@ -29,4 +29,4 @@ colcon build --packages-select arm_controller arm_launch arm_moveit_config arm_m
 echo -e "\nalias build_arm='colcon build --packages-select arm_controller arm_launch arm_moveit_config arm_utilities auto_keyboard gui moveit_path_planning --packages-skip arm_msgs" >> ~/.bashrc && \
 
 # Run the two helper commands
-source ~/.bashrc && build_arm && \
+source ~/.bashrc && build_arm
