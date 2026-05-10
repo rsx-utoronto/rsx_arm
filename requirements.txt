@@ -14,4 +14,4 @@ rclpy
 python-can==4.6.0
 autopep8
 pyrealsense2
-PyQt6
+PyQt5
