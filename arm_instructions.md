@@ -10,13 +10,18 @@
 This can be run with the following arguments:
 - ik_on (default true)
 - virtual (default false)
-5. If you want the GUI, open a second terminal and run
+5b. If the launch files are not working:
+Open 3 terminals and run the following:
+```ros2 run arm_controller main_controller```
+```ros2 run joy joy_node```
+```ro2 launch moveit_path_planning planner_server_topic_publisher.py```
+6. If you want the GUI, open a second terminal and run
 ```ros2 run gui arm_gui```
-6. Run the RealSense camera node using 
+7. Run the RealSense camera node using 
 ```ros2 run realsense2_camera realsense2_camera_node```
-7. Run our camera node to publish to GUI
+8. Run our camera node to publish to GUI
 ```ros2 run auto_keyboard camera_node```
-8. Controls:
+9. Controls:
 States (D-Pad): IDLE: down, MANUAL: up, IK: left, PATH PLANNING: right (disabled)
 Joints in manual: 
 Left joystick horizontal: base joint
