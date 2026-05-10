@@ -1,11 +1,9 @@
-# Default initial positions for Arm_URDF_2025's ros2_control fake system
+# Default initial positions for Arm_URDF_2026's ros2_control fake system
 
 initial_positions:
-  finger_joint_1: 0
-  finger_joint_2: 0
-  joint_1: 0
-  joint_2: 0
-  joint_3: 0
-  joint_4: 0
-  joint_5: 0
-  joint_6: 0
+  elbow_joint: 0
+  end_effector_pitch: 0
+  gripper_roll: 0
+  shoulder_joint: 0
+  shoulder_link: 0
+  wrist_link: 0
