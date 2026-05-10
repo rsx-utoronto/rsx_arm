@@ -10,11 +10,12 @@
 This can be run with the following arguments:
 - ik_on (default true)
 - virtual (default false)
+  
 5b. If the launch files are not working:
 Open 3 terminals and run the following:
 ```ros2 run arm_controller main_controller```
 ```ros2 run joy joy_node```
-```ro2 launch moveit_path_planning planner_server_topic_publisher.py```
+```ros2 launch moveit_path_planning planner_server_topic_publisher.py```
 6. If you want the GUI, open a second terminal and run
 ```ros2 run gui arm_gui```
 7. Run the RealSense camera node using 
