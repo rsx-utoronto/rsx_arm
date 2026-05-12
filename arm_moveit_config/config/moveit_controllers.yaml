@@ -16,9 +16,11 @@ moveit_simple_controller_manager:
       - wrist_link
       - end_effector_pitch
       - gripper_roll
+    action_ns: follow_joint_trajectory
+    default: true
   end_effector_controller:
     type: GripperCommand
     joints:
-      - dummy_ee_joint
+      - gripper_roll
     action_ns: gripper_cmd
     default: true
