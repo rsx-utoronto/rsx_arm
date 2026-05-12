@@ -10,15 +10,18 @@ moveit_simple_controller_manager:
   rover_arm_controller:
     type: FollowJointTrajectory
     joints:
-      - shoulder
-      - shoulder_joint
-      - elbow
-      - elbow_roll
-      - ee_pitch
-      - ee_roll
+      - joint_1
+      - joint_2
+      - joint_3
+      - joint_4
+      - joint_5
+      - joint_6
+    action_ns: follow_joint_trajectory
+    default: true
   end_effector_controller:
     type: GripperCommand
     joints:
-      - dummy_ee_joint
+      - finger_joint_1
+      - finger_joint_2
     action_ns: gripper_cmd
     default: true

@@ -1,13 +1,13 @@
 moveit_setup_assistant_config:
   urdf:
     package: simulation
-    relative_path: urdfs/Arm_URDF_2026.urdf
+    relative_path: urdfs/Arm_URDF_2025.urdf
   srdf:
-    relative_path: config/Arm_URDF_2026.srdf
+    relative_path: config/Arm_URDF_2025.srdf
   package_settings:
     author_name: sanjay
     author_email: sanjay.ramnauth@mail.utoronto.ca
-    generated_timestamp: 1778554729
+    generated_timestamp: 1760221541
   control_xacro:
     command:
       - position
