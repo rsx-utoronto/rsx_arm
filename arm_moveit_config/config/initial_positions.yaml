@@ -1,6 +1,7 @@
 # Default initial positions for Arm_URDF_2026's ros2_control fake system
 
 initial_positions:
+  dummy_ee_joint: 0
   elbow_joint: 0
   end_effector_pitch: 0
   gripper_roll: 0

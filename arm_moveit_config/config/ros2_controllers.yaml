@@ -30,4 +30,4 @@ rover_arm_controller:
       - velocity
 end_effector_controller:
   ros__parameters:
-    joint: gripper_roll
+    joint: dummy_ee_joint
