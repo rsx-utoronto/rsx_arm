@@ -2,9 +2,9 @@
 
 initial_positions:
   dummy_ee_joint: 0
-  elbow_joint: 1.5708
+  elbow_joint: 0
   end_effector_pitch: 0
   gripper_roll: 0
   shoulder_joint: 0
-  shoulder_link: -1.5708
+  shoulder_link: 0
   wrist_link: 0
