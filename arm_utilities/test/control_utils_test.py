@@ -4,7 +4,7 @@ import rclpy
 import pytest
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Pose
-from pynput import keyboard
+# from pynput import keyboard
 
 import sys
 sys.path.insert(0, "../arm_utilities")

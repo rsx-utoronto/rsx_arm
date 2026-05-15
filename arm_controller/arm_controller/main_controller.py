@@ -16,7 +16,7 @@ from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
 import copy
 import functools
-from pynput import keyboard
+# from pynput import keyboard
 import time
 import math
 import time
@@ -105,7 +105,7 @@ class Controller(Node):
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
-            Joy, self.cfg["joy_topic"], self.handle_joy, self.cfg["subscriber_depth_queue"])
+            Joy, "/arm/joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
         
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
