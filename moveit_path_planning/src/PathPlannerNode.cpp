@@ -53,9 +53,14 @@ PathPlannerNode::PathPlannerNode(moveit::planning_interface::MoveGroupInterface*
 void PathPlannerNode::receiveTargetPoseCallback(
     const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const
 {
+    // RCLCPP_INFO("hi i am a print statement from planner callback")
     switch (_curr_state) {
-        case ArmState::IK:           calculateIK(target_pose_msg);   break;
-        case ArmState::PATH_PLANNING: calculatePath(target_pose_msg); break;
+        case ArmState::IK:           
+            calculateIK(target_pose_msg);   
+            break;
+        case ArmState::PATH_PLANNING: 
+            calculatePath(target_pose_msg); 
+            break;
         default:
             RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Planning not configured for state");
             break;
@@ -103,11 +108,12 @@ void PathPlannerNode::calculateIK(
         moveit::core::GroupStateValidityCallbackFn(),
         kinematics::KinematicsQueryOptions());
 
+    RCLCPP_INFO(get_logger(), "End effector link: %s", _move_group->getEndEffectorLink().c_str());
     if (!found_ik) {
         RCLCPP_WARN(get_logger(), "IK solution not found for target pose");
         return;
     }
-
+    RCLCPP_INFO(get_logger(), "We made it here");
     std::vector<double> joint_values;
     current_state->copyJointGroupPositions(jmg_ptr, joint_values);
 
@@ -139,7 +145,7 @@ void PathPlannerNode::joint_callback(
     robot_state->setJointGroupPositions(jmg, joint_positions);
     robot_state->update();
 
-    Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("link_6");
+    Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("gripper");
 
     geometry_msgs::msg::Pose pose_msg;
     pose_msg.position.x = tf.translation().x();

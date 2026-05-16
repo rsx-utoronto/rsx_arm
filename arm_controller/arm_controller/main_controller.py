@@ -16,7 +16,7 @@ from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
 import copy
 import functools
-from pynput import keyboard
+# from pynput import keyboard
 import time
 import math
 import time
@@ -105,7 +105,7 @@ class Controller(Node):
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
-            Joy, self.cfg["joy_topic"], self.handle_joy, self.cfg["subscriber_depth_queue"])
+            Joy, "/arm/joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
         
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
@@ -265,7 +265,7 @@ class Controller(Node):
         pass
 
     def update_arm(self, update):
-        self.get_logger().info("Path frames:" + str(self.path_frames))
+        # self.get_logger().info("Path frames:" + str(self.path_frames))
         # TODO: need to update state tracking to consistently unify real world angles with internal state
         # lock to prevent local variables from being modified by CAN threads during execution
         with self.arm_update_lock:
@@ -547,6 +547,7 @@ class Controller(Node):
                 thread.join()
 
     def update_ik_target(self, msg):
+        self.get_logger().info("hello in callback")
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])

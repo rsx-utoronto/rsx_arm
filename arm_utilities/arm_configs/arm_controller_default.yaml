@@ -13,7 +13,7 @@ arm_state_topic: "arm_state"
 target_joint_topic: "arm_target_joints"
 target_pose_topic: "arm_target_pose"
 killswitch_topic: "arm_killswitch"
-joy_topic: "/joy"
+joy_topic: "/arm/joy"
 arm_curr_pos_topic: "arm_curr_pos"
 joint_safety_state_topic: "joint_safety_state"
 allow_ik_without_homing: false
