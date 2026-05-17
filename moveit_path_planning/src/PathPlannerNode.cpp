@@ -128,7 +128,7 @@ void PathPlannerNode::calculateIK(
     double temp = joint_values[5];
     joint_values[5] = -joint_values[4];
     joint_values[4] = -temp;
-    joint_values[3] = -joint_values[3];
+    // joint_values[3] = -joint_values[3];
 
     std_msgs::msg::Float32MultiArray msg;
     msg.data.assign(joint_values.begin(), joint_values.end());
