@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          path: '../../src/rsx_arm'
+          path: 'src/rsx_arm'
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -27,7 +27,7 @@ jobs:
 
       # Install deps from package.xml files
       - name: Install System Dependencies (rosdep)
-        working-directory: ../../src/rsx_arm
+        working-directory: src/rsx_arm
         run: |
           source /opt/ros/humble/setup.bash
           sudo rosdep init || true # Don't crash if already initialized
@@ -36,13 +36,13 @@ jobs:
 
       # Build packages and properly set up the env
       - name: Environment setup
-        working-directory: ../../src/rsx_arm
+        working-directory: src/rsx_arm
         run: |
           source humble-setup.sh
 
       # Step 5: Run tests (Nodes, Catch2, gtest, etc.)
       - name: Run Tests
-        working-directory: ../../src/rsx_arm
+        working-directory: src/rsx_arm
         run: |
           workon_arm
           colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
