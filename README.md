@@ -31,6 +31,22 @@ source humble-setup.sh
 If the script prompts you with any confirmation (Y/n), type 'y' to let it proceed. The script also gives you access to the ```workon_arm``` and ```build_arm``` commands for a convenient way to, well, work on and build the arm. 😊 
 **Note:** If you ever use `colcon build` to build packages, make sure you are in the workspace root (ie. `~/arm_ros2_ws`) first!
 
+## Using IK
+
+As of summer 2026, we utilize the trac_ik package to use IK with MoveIt. To get it set up:
+
+1. Clone the repo below
+```bash
+cd ~/arm_ros2_ws/src
+git clone https://github.com/rsx-utoronto/trac_ik_humble
+```
+
+2. Build and initialize with `rosdep`
+```bash
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --packages-select trac_ik_lib trac_ik_kinematics_plugin
+```
+
 ## Tracking Python Dependencies
 
 The repo root contains a requirements.txt file which looks something like this: 
