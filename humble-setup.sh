@@ -55,7 +55,8 @@ echo -e "\nalias workon_arm='cd $workspace_dir && source /opt/ros/humble/setup.b
 echo -e "\nalias build_arm='workon_arm && colcon build --symlink-install && colcon test --ctest-args tests --packages-skip arm_msgs && colcon test-result --all --verbose'" >> ~/.bashrc 
 echo -e "\nalias format_code='autopep8 --in-place --recursive src/rsx_arm'" >> ~/.bashrc 
 # Build the arm (this also runs workon_arm for us)
-source ~/.bashrc && build_arm  
+source ~/.bashrc 
+build_arm  
 
 # A final message to indicate completion
 echo "" 
