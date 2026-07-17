@@ -51,7 +51,7 @@ colcon build --packages-select arm_msgs
 if [ -n "$GITHUB_ENV" ]; then
     echo -e "\e[32mRunning in CI; not using aliases\e[0m"
     source install/setup.bash
-    colcon build --symlink-install
+    colcon build
 else
     # A helper command to enter the workspace
     echo -e "\nalias workon_arm='cd $workspace_dir && source /opt/ros/humble/setup.bash && source $env_name/bin/activate && source install/setup.bash'" >> ~/.bashrc 
