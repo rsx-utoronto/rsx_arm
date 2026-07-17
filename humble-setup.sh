@@ -50,7 +50,7 @@ colcon build --packages-select arm_msgs
 echo -e "\nalias workon_arm='cd $workspace_dir && source /opt/ros/humble/setup.bash && source $env_name/bin/activate && source install/setup.bash'" >> ~/.bashrc 
 
 # Another helper to build arm code
-echo -e "\nalias build_arm='workon_arm && colcon build && colcon test --ctest-args tests --packages-skip arm_msgs && colcon test-result --all --verbose'" >> ~/.bashrc 
+echo -e "\nalias build_arm='workon_arm && colcon build --symlink-install && colcon test --ctest-args tests --packages-skip arm_msgs && colcon test-result --all --verbose'" >> ~/.bashrc 
 echo -e "\nalias format_code='autopep8 --in-place --recursive src/rsx_arm'" >> ~/.bashrc 
 # Build the arm (this also runs workon_arm for us)
 source ~/.bashrc && build_arm  

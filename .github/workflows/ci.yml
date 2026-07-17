@@ -1,14 +1,14 @@
-name: CI
+name: ROS2 Humble CI
 
 on:
   push:
     branches: [ main, git_ci_setup ]
   pull_request:
-    branches: [ main, git_ci_setup ]
+    branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  ros2-build-test:
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -17,3 +17,27 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.10'
+
+      - name: Setup ROS 2 Environment
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: humble
+
+      # Install deps from package.xml files
+      - name: Install System Dependencies (rosdep)
+        run: |
+          source /opt/ros/humble/setup.bash
+          sudo rosdep init || true # Don't crash if already initialized
+          rosdep update
+          rosdep install --from-paths . --ignore-src -r -y
+
+      # Build packages and properly set up the env
+      - name: Environment setup
+        run: |
+          source humble-setup.sh
+
+      # Step 5: Run tests (Nodes, Catch2, gtest, etc.)
+      - name: Run Tests
+        run: |
+          workon_arm
+          colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
