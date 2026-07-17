@@ -40,6 +40,7 @@ pip install --force-reinstall colcon-core setuptools==$(pip list --no-index --fo
 # Colcon installs empy 4.2 by default, which is incompatible with Humble, so we uninstall it, use 3.3.4 instead
 # Pipe the "Y" to it to autoaccept (useful for CI)
 echo 'Y' | pip uninstall empy==4.2  
+echo 'Y' | pip install empy==3.3.4 
 
 # Go back down to workspace root
 cd $workspace_dir
