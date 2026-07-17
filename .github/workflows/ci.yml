@@ -38,6 +38,7 @@ jobs:
       - name: Environment setup
         working-directory: src/rsx_arm
         run: |
+          python3 -m pip install --upgrade --force-reinstall colcon-common-extensions colcon-package-selection
           source humble-setup.sh
 
       # Step 5: Run tests (Nodes, Catch2, gtest, etc.)
