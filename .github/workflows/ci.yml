@@ -35,9 +35,12 @@ jobs:
           rosdep install --from-paths . --ignore-src -r -y
 
       # Build packages and properly set up the env
+      # For some reason the CI environment has a hard time finding 
+      # the globally installed colcon extensions in the script
       - name: Environment setup
         working-directory: src/rsx_arm
         run: |
+          python3 -m pip install --upgrade --force-reinstall colcon-common-extensions colcon-package-selection
           source humble-setup.sh
 
       # Step 5: Run tests (Nodes, Catch2, gtest, etc.)
