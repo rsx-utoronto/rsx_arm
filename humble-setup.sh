@@ -13,7 +13,7 @@
 cd ../.. 
 workspace_dir=$(pwd)
 
-env_name=arm_env2
+env_name=arm_env
 
 source /opt/ros/humble/setup.bash 
 echo -e "\e[32mSetup requires sudo privileges for installing required packages.\e[0m" 
