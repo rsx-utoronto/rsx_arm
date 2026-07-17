@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Legacy script from when we almost used ROS2 Jazzy. Kept in case we migrate to it. 
+
 # This script sets up the ROS 2 environment correctly for working on code.
 # Because of environment issues with ROS 2, this script is necessary to ensure that colcon
 # is setup up correctly to detect the packages in the virtual environment.
