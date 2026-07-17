@@ -18,7 +18,7 @@ env_name=arm_env
 source /opt/ros/humble/setup.bash 
 echo -e "\e[32mSetup requires sudo privileges for installing required packages.\e[0m" 
 sudo snap install jq 
-sudo apt install python3-colcon-common-extensions python3-rosdep python3-vcstool
+sudo apt install python3-colcon-common-extensions python3-colcon-package-selection python3-rosdep python3-vcstool
 sudo apt install python3-evdev python3-pip
 sudo apt install python3.10-venv  
 python3.10 -m venv $env_name --system-site-packages --symlinks 
@@ -48,15 +48,21 @@ cd $workspace_dir
 # Build the workspace for the first time, but build arm_msgs first as the rest of packages depend on it!
 colcon build --packages-select arm_msgs
 
-# A helper command to enter the workspace
-echo -e "\nalias workon_arm='cd $workspace_dir && source /opt/ros/humble/setup.bash && source $env_name/bin/activate && source install/setup.bash'" >> ~/.bashrc 
+if [ -n "$GITHUB_ENV" ]; then
+    echo -e "\e[32mRunning in CI; not using aliases\e[0m"
+    source install/setup.bash
+    colcon build --symlink-install
+else
+    # A helper command to enter the workspace
+    echo -e "\nalias workon_arm='cd $workspace_dir && source /opt/ros/humble/setup.bash && source $env_name/bin/activate && source install/setup.bash'" >> ~/.bashrc 
 
-# Another helper to build arm code
-echo -e "\nalias build_arm='workon_arm && colcon build --symlink-install && colcon test --ctest-args tests --packages-skip arm_msgs && colcon test-result --all --verbose'" >> ~/.bashrc 
-echo -e "\nalias format_code='autopep8 --in-place --recursive src/rsx_arm'" >> ~/.bashrc 
-# Build the arm (this also runs workon_arm for us)
-source ~/.bashrc 
-build_arm  
+    # Another helper to build arm code
+    echo -e "\nalias build_arm='workon_arm && colcon build --symlink-install && colcon test --ctest-args tests --packages-skip arm_msgs && colcon test-result --all --verbose'" >> ~/.bashrc 
+    echo -e "\nalias format_code='autopep8 --in-place --recursive src/rsx_arm'" >> ~/.bashrc 
+    # Build the arm (this also runs workon_arm for us)
+    source ~/.bashrc 
+    build_arm  
+fi
 
 # A final message to indicate completion
 echo "" 
