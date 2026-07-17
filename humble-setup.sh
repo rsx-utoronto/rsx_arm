@@ -28,7 +28,7 @@ source $workspace_dir/$env_name/bin/activate
 touch $workspace_dir/$env_name/COLCON_IGNORE
 
 # Initialize + update using rosdep
-sudo rosdep init
+sudo rosdep init || true # Would crash the script if already initialized; do this to avoid it
 rosdep update
 
 # Go back to the source directory and install pip requirements 
