@@ -46,7 +46,7 @@ echo 'Y' | pip install empy==3.3.4
 cd $workspace_dir
 
 # Build the workspace for the first time, but build arm_msgs first as the rest of packages depend on it!
-colcon build --packages-select arm_msgs
+colcon build --packages-select arm_msgs --symlink-install
 
 if [ -n "$GITHUB_ENV" ]; then
     echo -e "\e[32mRunning in CI; not using aliases\e[0m"
