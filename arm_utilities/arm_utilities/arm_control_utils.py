@@ -42,13 +42,13 @@ def handle_joy_input(msg: Joy):
 
 def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_joints: list):
     manual_commands = {
-        'base_rotation': arm_inputs.l_horizontal,
-        'shoulder': arm_inputs.l_vertical,
-        'elbow': arm_inputs.r_vertical,
+        'base_rotation': -arm_inputs.l_horizontal,
+        'shoulder': -arm_inputs.l_vertical,
+        'elbow': -arm_inputs.r_vertical,
         'elbow_roll': arm_inputs.r_horizontal,
         'wrist_pitch': arm_inputs.r1 - arm_inputs.l1,
         # R1 for clockwise, L1 for counterclockwise
-        'wrist_roll': arm_inputs.r_trigger - arm_inputs.l_trigger,
+        'wrist_roll': (arm_inputs.r_trigger - arm_inputs.l_trigger),
         'gripper': arm_inputs.x - arm_inputs.circle  # R2 to open, L2 to close
     }
     target_joints = current_joints

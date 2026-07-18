@@ -43,6 +43,7 @@ class Controller(Node):
 
         self.n_joints = n_joints
         self.initial_positions = [0., 0., 0., 0., 0., 0., 0.]
+        self.encoder_values = [0]*n_joints
 
         # Initialize CAN connection
         if virtual:
@@ -102,6 +103,7 @@ class Controller(Node):
             Pose, self.cfg["target_pose_topic"], self.cfg["publisher_depth_queue"])
         self.killswitch_pub = self.create_publisher(
             UInt8, self.cfg["killswitch_topic"], self.cfg["publisher_depth_queue"])
+        self.encoder_value_pub = self.create_publisher(Float32MultiArray, "arm_encoder_val", 10)
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
@@ -237,6 +239,7 @@ class Controller(Node):
             # Joint angle value
             elif api == CANAPI.CMD_API_STAT2.value:
                 # Check if we updated wrist motors and apply the conversions
+                self.encoder_values[index] = value
                 if index == 4:
                     wrist1_angle = value
                     wrist2_angle = self.current_joints[5]
@@ -259,7 +262,6 @@ class Controller(Node):
                 if self.init[index] == False:
                     self.arm_internal_current_joints[index] = self.current_joints[index]
                     self.init[index] = True
-                
             threading.Event().wait(1/self.can_rate)
     def process_safety(self, msg):
         pass
@@ -534,6 +536,8 @@ class Controller(Node):
             joints[i] = np.pi * joints[i] / 180.0
         angles = Float32MultiArray(data=joints[0:6])
         self.arm_curr_joints_pub.publish(angles)
+        data = Float32MultiArray(data=self.encoder_values)
+        self.encoder_value_pub.publish(data)
         # Pose will be returned in a subscription, should update elsewhere
 
     def update_fk_pose_callback(self, msg):
