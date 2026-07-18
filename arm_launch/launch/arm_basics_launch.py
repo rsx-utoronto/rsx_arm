@@ -83,27 +83,51 @@ def generate_launch_description():
         condition=IfCondition(gui_on)
     )
 
-    ik_launch = IncludeLaunchDescription(
+    ik_controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([
                 FindPackageShare('moveit_path_planning'),
                 'launch',
-                'planner_server_topic_publisher.py'
+                'planner_server_topic_publisher.launch.py'
             ])
         ),
         condition=IfCondition(ik_on)
     )
+
+    # Rviz (if we are launching virtually we probably want it)
+    rviz_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('moveit_path_planning'),
+                'launch',
+                'rviz_planning_demo.launch.py'
+            ])
+        ),
+        condition=IfCondition(virtual)
+    )
+
+    # The node that feeds the arm's joints to rviz in virtual mode
+    rviz_tunnel = Node(
+        package='moveit_path_planning',
+        executable='rviz_sim',
+        name='Rviz_Tunnel',
+        output='screen',
+        condition=IfCondition(virtual)
+    )
+
     return LaunchDescription([
         config_file_arg,
         config_overrides_arg,
         virtual_arg,
         gui_arg,
         ik_arg,
-        ik_launch,
+        ik_controller_launch,
         joy_node,
         virtual_arm_controller_node,
         arm_controller_node,
-        gui_node
+        gui_node,
+        rviz_launch,
+        rviz_tunnel
     ])
 
 
