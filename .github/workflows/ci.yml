@@ -2,7 +2,7 @@ name: unit-tests
 
 on:
   push:
-    branches: [ main, git_ci_setup ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
