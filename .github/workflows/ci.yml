@@ -1,0 +1,42 @@
+name: unit-tests
+
+on:
+  push:
+    branches: [ main, git_ci_setup ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ros2-build-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          path: 'src/rsx_arm'
+
+      - name: Setup ROS 2 Environment
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: humble
+
+      # Build packages and properly set up the env
+      # For some reason the CI environment has a hard time finding 
+      # the globally installed colcon extensions in the script
+      - name: Environment setup
+        working-directory: src/rsx_arm
+        run: |
+          python3 -m pip install --upgrade --force-reinstall colcon-common-extensions colcon-package-selection
+          source humble-setup.sh
+
+      - name: Run unit tests
+        run: |
+          echo -e "\e[32mEnvironment successfully built. Running unit tests...\e[0m"
+          source arm_env/bin/activate
+          source /opt/ros/humble/setup.bash
+          source install/setup.bash
+          colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
+
+      - name: Display test summary
+        if: always()
+        run: colcon test-result --all --verbose

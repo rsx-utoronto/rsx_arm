@@ -1,4 +1,5 @@
 # RSX's ARM Repository, now on ROS2!
+[![.github/workflows/ci.yml](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/ci.yml/badge.svg)](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/ci.yml)
 
 Welcome to `rsx_arm`! This repository will host the ROS 2 (Humble) version of the RSX arm control software, migrated from the `arm/` folder in the old ROS 1 `rsx-rover` repo all the way back in the summer of '25. Proceed with caution. The following are computer setup instructions. For guidance on setting up and running the arm, see [arm_instructions.md](arm_instructions.md)
 
@@ -35,13 +36,18 @@ If the script prompts you with any confirmation (Y/n), type 'y' to let it procee
 
 As of summer 2026, we utilize the trac_ik package to use IK with MoveIt. To get it set up:
 
-1. Clone the repo below
+1. Install packages
+```bash
+sudo apt install ros-humble-ros2-controllers ros-humble-moveit
+```
+
+2. Clone the repo below
 ```bash
 cd ~/arm_ros2_ws/src
 git clone https://github.com/rsx-utoronto/trac_ik_humble
 ```
 
-2. Build and initialize with `rosdep`
+3. Build and initialize with `rosdep`
 ```bash
 rosdep install --from-paths src --ignore-src -r -y
 colcon build --packages-select trac_ik_lib trac_ik_kinematics_plugin
