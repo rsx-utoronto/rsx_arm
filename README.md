@@ -36,13 +36,18 @@ If the script prompts you with any confirmation (Y/n), type 'y' to let it procee
 
 As of summer 2026, we utilize the trac_ik package to use IK with MoveIt. To get it set up:
 
-1. Clone the repo below
+1. Install packages
+```bash
+sudo apt install ros-humble-ros2-controllers ros-humble-moveit
+```
+
+2. Clone the repo below
 ```bash
 cd ~/arm_ros2_ws/src
 git clone https://github.com/rsx-utoronto/trac_ik_humble
 ```
 
-2. Build and initialize with `rosdep`
+3. Build and initialize with `rosdep`
 ```bash
 rosdep install --from-paths src --ignore-src -r -y
 colcon build --packages-select trac_ik_lib trac_ik_kinematics_plugin

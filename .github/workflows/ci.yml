@@ -15,32 +15,96 @@ jobs:
         with:
           path: 'src/rsx_arm'
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.10'
+      # - name: Set up Python
+      #   uses: actions/setup-python@v6
+      #   with:
+      #     python-version: '3.10'
 
       - name: Setup ROS 2 Environment
         uses: ros-tooling/setup-ros@v0.7
         with:
           required-ros-distributions: humble
 
-      # Install deps from package.xml files
-      - name: Install System Dependencies (rosdep)
-        working-directory: src/rsx_arm
-        run: |
-          source /opt/ros/humble/setup.bash
-          sudo rosdep init || true # Don't crash if already initialized
-          rosdep update
-          rosdep install --from-paths . --ignore-src -r -y
+      # # Install deps from package.xml files
+      # - name: Install System Dependencies (rosdep)
+      #   working-directory: src/rsx_arm
+      #   run: |
+      #     source /opt/ros/humble/setup.bash
+      #     sudo rosdep init || true # Don't crash if already initialized
+      #     rosdep update
+      #     rosdep install --from-paths . --ignore-src -r -y
 
       # Build packages and properly set up the env
       # For some reason the CI environment has a hard time finding 
       # the globally installed colcon extensions in the script
-      - name: Environment setup + tests
+      - name: Rosdep, environment setup + tests
         working-directory: src/rsx_arm
         run: |
           python3 -m pip install --upgrade --force-reinstall colcon-common-extensions colcon-package-selection
           source humble-setup.sh
-          echo -e "\e[32mEnvironment successfully built. Running unit tests...\e[0m"
-          colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
+          rosdep install --from-paths . --ignore-src -r -y
+
+        # echo -e "\e[32mEnvironment successfully built. Running unit tests...\e[0m"
+        # colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
+
+
+name: ROS2 CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  ROS_DISTRO: humble
+
+jobs:
+  build-and-test:
+    # Humble targets Ubuntu 22.04 (Jammy)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ROS2 ${{ env.ROS_DISTRO }}
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: ${{ env.ROS_DISTRO }}
+
+      - name: Run environment setup script
+        shell: bash
+        run: |
+          chmod +x ./setup.sh
+          ./setup.sh
+        env:
+          DEBIAN_FRONTEND: noninteractive
+
+      # setup.sh writes aliases/env vars into ~/.bashrc, which only take
+      # effect in *new* interactive shells. Every step below therefore
+      # explicitly sources /opt/ros/$ROS_DISTRO/setup.bash (and the local
+      # install/setup.bash once it exists) rather than relying on bashrc.
+
+      - name: Install rosdep dependencies
+        shell: bash
+        run: |
+          source /opt/ros/$ROS_DISTRO/setup.bash
+          sudo rosdep init 2>/dev/null || true
+          rosdep update
+          rosdep install --from-paths . --ignore-src -r -y
+
+      - name: Build (colcon build)
+        shell: bash
+        run: |
+          source /opt/ros/$ROS_DISTRO/setup.bash
+          colcon build --symlink-install
+
+      - name: Test (colcon test)
+        shell: bash
+        run: |
+          source /opt/ros/$ROS_DISTRO/setup.bash
+          source install/setup.bash
+          colcon test
+          colcon test-result --verbose
