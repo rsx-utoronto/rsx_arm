@@ -35,7 +35,6 @@ jobs:
           source humble-setup.sh
 
       - name: Run unit tests
-        working-directory: src/rsx_arm
         run: |
           echo -e "\e[32mEnvironment successfully built. Running unit tests...\e[0m"
           colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
