@@ -41,3 +41,7 @@ jobs:
           source /opt/ros/humble/setup.bash
           source install/setup.bash
           colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
+
+      - name: Show Test Results Summary
+        if: always()
+        run: colcon test-result --verbose
