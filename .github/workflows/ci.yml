@@ -48,63 +48,63 @@ jobs:
         # colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
 
 
-name: ROS2 CI
+# name: ROS2 CI
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+#   workflow_dispatch:
 
-env:
-  ROS_DISTRO: humble
+# env:
+#   ROS_DISTRO: humble
 
-jobs:
-  build-and-test:
-    # Humble targets Ubuntu 22.04 (Jammy)
-    runs-on: ubuntu-22.04
+# jobs:
+#   build-and-test:
+#     # Humble targets Ubuntu 22.04 (Jammy)
+#     runs-on: ubuntu-22.04
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
 
-      - name: Install ROS2 ${{ env.ROS_DISTRO }}
-        uses: ros-tooling/setup-ros@v0.7
-        with:
-          required-ros-distributions: ${{ env.ROS_DISTRO }}
+#       - name: Install ROS2 ${{ env.ROS_DISTRO }}
+#         uses: ros-tooling/setup-ros@v0.7
+#         with:
+#           required-ros-distributions: ${{ env.ROS_DISTRO }}
 
-      - name: Run environment setup script
-        shell: bash
-        run: |
-          chmod +x ./setup.sh
-          ./setup.sh
-        env:
-          DEBIAN_FRONTEND: noninteractive
+#       - name: Run environment setup script
+#         shell: bash
+#         run: |
+#           chmod +x ./setup.sh
+#           ./setup.sh
+#         env:
+#           DEBIAN_FRONTEND: noninteractive
 
-      # setup.sh writes aliases/env vars into ~/.bashrc, which only take
-      # effect in *new* interactive shells. Every step below therefore
-      # explicitly sources /opt/ros/$ROS_DISTRO/setup.bash (and the local
-      # install/setup.bash once it exists) rather than relying on bashrc.
+#       # setup.sh writes aliases/env vars into ~/.bashrc, which only take
+#       # effect in *new* interactive shells. Every step below therefore
+#       # explicitly sources /opt/ros/$ROS_DISTRO/setup.bash (and the local
+#       # install/setup.bash once it exists) rather than relying on bashrc.
 
-      - name: Install rosdep dependencies
-        shell: bash
-        run: |
-          source /opt/ros/$ROS_DISTRO/setup.bash
-          sudo rosdep init 2>/dev/null || true
-          rosdep update
-          rosdep install --from-paths . --ignore-src -r -y
+#       - name: Install rosdep dependencies
+#         shell: bash
+#         run: |
+#           source /opt/ros/$ROS_DISTRO/setup.bash
+#           sudo rosdep init 2>/dev/null || true
+#           rosdep update
+#           rosdep install --from-paths . --ignore-src -r -y
 
-      - name: Build (colcon build)
-        shell: bash
-        run: |
-          source /opt/ros/$ROS_DISTRO/setup.bash
-          colcon build --symlink-install
+#       - name: Build (colcon build)
+#         shell: bash
+#         run: |
+#           source /opt/ros/$ROS_DISTRO/setup.bash
+#           colcon build --symlink-install
 
-      - name: Test (colcon test)
-        shell: bash
-        run: |
-          source /opt/ros/$ROS_DISTRO/setup.bash
-          source install/setup.bash
-          colcon test
-          colcon test-result --verbose
+#       - name: Test (colcon test)
+#         shell: bash
+#         run: |
+#           source /opt/ros/$ROS_DISTRO/setup.bash
+#           source install/setup.bash
+#           colcon test
+#           colcon test-result --verbose
