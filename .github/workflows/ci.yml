@@ -42,6 +42,6 @@ jobs:
           source install/setup.bash
           colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
 
-      - name: Show Test Results Summary
+      - name: Display test summary
         if: always()
-        run: colcon test-result --verbose
+        run: colcon test-result --all --verbose
