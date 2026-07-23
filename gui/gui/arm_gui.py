@@ -13,7 +13,7 @@ from rclpy.node import Node
 import cv2
 from cv_bridge import CvBridge
 import numpy as np
-
+import PyQt5
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
@@ -28,6 +28,8 @@ from sensor_msgs.msg import Image
 from arm_msgs.msg import TargetPositionArray, TargetPosition, ArmStatuses  # Custom message type for target positions of keyboard
 
 from arm_utilities.arm_enum_utils import ArmState, SafetyErrors
+
+import os
 
 
 class CyberpunkLabel(QLabel):
@@ -669,6 +671,10 @@ class ArmGUI(Node, QWidget):
 
 
 def main():
+    os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = os.path.join(
+        os.path.dirname(PyQt5.__file__), "Qt5", "plugins"
+    )
+
     """Main entry point"""
     rclpy.init()
     app = QApplication(sys.argv)
