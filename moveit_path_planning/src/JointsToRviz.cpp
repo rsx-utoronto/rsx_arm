@@ -50,6 +50,12 @@ private:
       js.position[i] = static_cast<double>(msg->data[i])*3.14/180.0;  // Convert degrees to radians
     }
 
+    // Need to swap joints 5 and 6 and invert 4-6
+    double temp = js.position[5];
+    js.position[5] = -js.position[4];
+    js.position[4] = -temp;
+    js.position[3] = -js.position[3];
+
     joint_pub_->publish(js);
   }
 
