@@ -6,7 +6,7 @@
 
 3. Run 
 ```bash
-bash setup-can.sh
+bash setup_can.sh
 ``` 
 in the rsx-arm package to initialize the CAN network.
 
