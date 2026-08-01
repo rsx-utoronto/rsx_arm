@@ -10,7 +10,16 @@ bash setup-can.sh
 ``` 
 in the rsx-arm package to initialize the CAN network.
 
-4. Turn on the power supply output 
+4. Turn on the power supply output
+   
+**4.5. Folllow ONLY IF you are on the arm laptop**
+
+Open a terminal and run:
+```bash
+ros2 run rmw_zenoh_cpp rmw_zenohd
+```
+This command emulates some of the ROS1 behaviour the rover still uses. Append an & to the command to run it in the background. 
+   
 5. Open a terminal and run:
 ```bash
 ros2 launch arm_launch arm_basics_launch.py
