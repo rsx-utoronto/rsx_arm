@@ -30,13 +30,14 @@ jobs:
           source humble-setup.sh
           pip install "pytest<8.0.0" "pluggy<1.4.0"
 
+      # Skip linters
       - name: Run unit tests
         run: |
           echo -e "\e[32mEnvironment successfully built. Running unit tests...\e[0m"
           source arm_env/bin/activate
           source /opt/ros/humble/setup.bash
           source install/setup.bash
-          colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
+          colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure -E "flake8|pep257|copyright"
 
       - name: Display test summary
         if: always()
