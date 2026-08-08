@@ -37,7 +37,7 @@ jobs:
           source arm_env/bin/activate
           source /opt/ros/humble/setup.bash
           source install/setup.bash
-          colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure -E "flake8|pep257|copyright"
+          colcon test --ctest-args tests -E "flake8|pep257|copyright" --packages-skip arm_msgs --return-code-on-test-failure 
 
       - name: Display test summary
         if: always()
