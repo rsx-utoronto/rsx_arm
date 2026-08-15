@@ -30,6 +30,12 @@ cd rsx_arm
 source humble-setup.sh
 ```
 If the script prompts you with any confirmation (Y/n), type 'y' to let it proceed. The script also gives you access to the ```workon_arm``` and ```build_arm``` commands for a convenient way to, well, work on and build the arm. 😊 
+
+**DEBUGGING NOTE:** If everything seems to fail in the script (ie. you see a lot of `: command not found`), run the following command:
+```bash
+sed -i 's/\r$//' humble-setup.sh
+```
+This is due to carriage returns (`\r`) not registering as "enter."
 **Note:** If you ever use `colcon build` to build packages, make sure you are in the workspace root (ie. `~/arm_ros2_ws`) first!
 
 ## Using IK
