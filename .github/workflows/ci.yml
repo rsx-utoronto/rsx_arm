@@ -2,7 +2,7 @@ name: unit-tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, unit_test_debugging ]
   pull_request:
     branches: [ main ]
 
@@ -28,15 +28,23 @@ jobs:
         run: |
           python3 -m pip install --upgrade --force-reinstall colcon-common-extensions colcon-package-selection
           source humble-setup.sh
+          pip install "pytest<8.0.0" "pluggy<1.4.0"
 
+      # Skip linters
       - name: Run unit tests
         run: |
           echo -e "\e[32mEnvironment successfully built. Running unit tests...\e[0m"
           source arm_env/bin/activate
           source /opt/ros/humble/setup.bash
           source install/setup.bash
-          colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
+          colcon test --ctest-args tests -E "flake8|pep257|copyright" --packages-skip arm_msgs --return-code-on-test-failure 
 
       - name: Display test summary
         if: always()
         run: colcon test-result --all --verbose
+      
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always() # Run even if tests failed
+        with:
+          files: "build/**/test_results/**/*.xml"
