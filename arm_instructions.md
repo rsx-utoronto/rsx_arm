@@ -174,3 +174,7 @@ KERNEL=="event0", SUBSYSTEM=="input", ENV{ID_INPUT_JOYSTICK}="1"
 ### Note on multiple joysticks
 
 If you have more than one joystick/gamepad attached, each will need its own pair of rules (one `jsN`, one matching `eventN`), identified the same way.
+
+### IK testing on WSL
+
+Current state: works with replay at 0.6 speed (higher rates lead to collisions immediately), seems like messages are dropped on some topic (updated queue depth but still facing the same issue)
