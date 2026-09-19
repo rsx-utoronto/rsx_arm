@@ -85,15 +85,17 @@ class Controller(Node):
 
         # Callback group for path planning thread to run separately (try to avoid dropped poses)
         self.path_group = MutuallyExclusiveCallbackGroup()
+        # Separate group so IK target updates aren't starved by /joy callbacks sharing the default group
+        self.ik_target_group = MutuallyExclusiveCallbackGroup()
 
         # Publishers
         # Publisher for safe target joints after safety check, used for debugging and data logging
         self.safe_target_joints_pub = self.create_publisher(
-            Float32MultiArray, "safe_arm_target_joints", 10)
+            Float32MultiArray, "safe_arm_target_joints",self.cfg["publisher_depth_queue"])
 
         # Used for publishing current joint angles, used in forward kinematics calculations
         self.arm_curr_joints_pub = self.create_publisher(
-            Float32MultiArray, "arm_curr_angles", 10)
+            Float32MultiArray, "arm_curr_angles", self.cfg["publisher_depth_queue"])
         self.state_pub = self.create_publisher(
             String, self.cfg["arm_state_topic"], self.cfg["publisher_depth_queue"])
         self.target_joint_pub = self.create_publisher(
@@ -105,17 +107,21 @@ class Controller(Node):
 
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
-            Joy, "/arm/joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
+            Joy, "/joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
         
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
-            Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
+            Pose, "arm_fk_pose", self.update_fk_pose_callback, self.cfg["subscriber_depth_queue"])
         
         self.path_planning_sub = self.create_subscription(
-            RobotTrajectory, "trajectory_joints", self.get_trajectory, 10)
-        
+            RobotTrajectory, "trajectory_joints", self.get_trajectory, self.cfg["subscriber_depth_queue"], callback_group=self.path_group)
+
+        # updated call group (exclusive) for IK target updates to avoid starvation from /joy callbacks
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
-            self.cfg["subscriber_depth_queue"])
+            self.cfg["subscriber_depth_queue"], callback_group=self.ik_target_group)
+
+        # self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
+                    # self.cfg["subscriber_depth_queue"])
 
         # Safety subscribers
         self.joint_safety_sub = self.create_subscription(
@@ -265,7 +271,7 @@ class Controller(Node):
         pass
 
     def update_arm(self, update):
-        self.get_logger().info("Path frames:" + str(self.path_frames))
+        # self.get_logger().info("Path frames:" + str(self.path_frames))
         # TODO: need to update state tracking to consistently unify real world angles with internal state
         # lock to prevent local variables from being modified by CAN threads during execution
         with self.arm_update_lock:
@@ -280,7 +286,7 @@ class Controller(Node):
                 self.get_logger().error("KILLSWITCH PRESSED, LOCKING ARM AND EXITING")
                 for i in range(10):
                     self.safe_target_joints_pub(self.safe_target_joints)
-                    time.sleep(0.05)
+                    # time.sleep(0.05)
                     
                 self.shutdown_node()
                 sys.exit()
@@ -329,6 +335,16 @@ class Controller(Node):
                     # use internal current joints to prevent joint slippage when no input is given
                     self.target_joints = map_inputs_to_manual(
                         inputs, self.speed_limits, self.arm_internal_current_joints)
+
+                    self.get_logger().info(
+                        f"L-Stick: ({inputs.l_horizontal:.2f}, {inputs.l_vertical:.2f}) | "
+                        f"R-Stick: ({inputs.r_horizontal:.2f}, {inputs.r_vertical:.2f}) | "
+                        f"Triggers: (L:{inputs.l_trigger:.2f}, R:{inputs.r_trigger:.2f}) | "
+                        f"Buttons: [L1:{inputs.l1} R1:{inputs.r1} L3:{inputs.l3} R3:{inputs.r3} "
+                        f"X:{inputs.x} O:{inputs.circle} Tri:{inputs.triangle} Sq:{inputs.square} "
+                        f"Share:{inputs.share} Opt:{inputs.options}] | "
+                        f"DPad: [U:{inputs.dpad_up} D:{inputs.dpad_down} L:{inputs.dpad_left} R:{inputs.dpad_right}]"
+                    )
                     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints)
 
@@ -547,18 +563,21 @@ class Controller(Node):
                 thread.join()
 
     def update_ik_target(self, msg):
+        self.get_logger().info("update_ik_target")
+
+        # convert to degrees for safety checker
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
+
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints) 
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
+        # msg.data = self.target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
         self.can_con.send_target_message(self.safe_target_joints)
-
-        time.sleep(0.05)  # wait for some time before next update
 
     def handle_keyboard_coords(self, msg):
         corners = [msg.tl, msg.tr, msg.bl, msg.br]

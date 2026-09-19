@@ -7,8 +7,8 @@ speed_limits:
   - 0.5
   - 0.5
   - 50
-publisher_depth_queue: 10
-subscriber_depth_queue: 10
+publisher_depth_queue: 100 # update queue size to avoid dropping messages 
+subscriber_depth_queue: 100
 arm_state_topic: "arm_state"
 target_joint_topic: "arm_target_joints"
 target_pose_topic: "arm_target_pose"
