@@ -293,7 +293,7 @@ class Controller(Node):
                 self.get_logger().error("KILLSWITCH PRESSED, LOCKING ARM AND EXITING")
                 for i in range(10):
                     self.safe_target_joints_pub(self.safe_target_joints)
-                    time.sleep(0.05)
+                 #time.sleep(0.05)
 
                 self.shutdown_node()
                 sys.exit()
