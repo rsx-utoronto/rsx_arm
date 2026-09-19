@@ -84,15 +84,17 @@ class Controller(Node):
 
         # Callback group for path planning thread to run separately (try to avoid dropped poses)
         self.path_group = MutuallyExclusiveCallbackGroup()
+        # Separate group so IK target updates aren't starved by /joy callbacks sharing the default group
+        self.ik_target_group = MutuallyExclusiveCallbackGroup()
 
         # Publishers
         # Publisher for safe target joints after safety check, used for debugging and data logging
         self.safe_target_joints_pub = self.create_publisher(
-            Float32MultiArray, "safe_arm_target_joints", 10)
+            Float32MultiArray, "safe_arm_target_joints",self.cfg["publisher_depth_queue"])
 
         # Used for publishing current joint angles, used in forward kinematics calculations
         self.arm_curr_joints_pub = self.create_publisher(
-            Float32MultiArray, "arm_curr_angles", 10)
+            Float32MultiArray, "arm_curr_angles", self.cfg["publisher_depth_queue"])
         self.state_pub = self.create_publisher(
             String, self.cfg["arm_state_topic"], self.cfg["publisher_depth_queue"])
         self.target_joint_pub = self.create_publisher(
@@ -337,6 +339,16 @@ class Controller(Node):
                     # use internal current joints to prevent joint slippage when no input is given
                     self.target_joints = map_inputs_to_manual(
                         inputs, self.speed_limits, self.arm_internal_current_joints)
+
+                    self.get_logger().info(
+                        f"L-Stick: ({inputs.l_horizontal:.2f}, {inputs.l_vertical:.2f}) | "
+                        f"R-Stick: ({inputs.r_horizontal:.2f}, {inputs.r_vertical:.2f}) | "
+                        f"Triggers: (L:{inputs.l_trigger:.2f}, R:{inputs.r_trigger:.2f}) | "
+                        f"Buttons: [L1:{inputs.l1} R1:{inputs.r1} L3:{inputs.l3} R3:{inputs.r3} "
+                        f"X:{inputs.x} O:{inputs.circle} Tri:{inputs.triangle} Sq:{inputs.square} "
+                        f"Share:{inputs.share} Opt:{inputs.options}] | "
+                        f"DPad: [U:{inputs.dpad_up} D:{inputs.dpad_down} L:{inputs.dpad_left} R:{inputs.dpad_right}]"
+                    )
                     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints)
 
@@ -562,7 +574,11 @@ class Controller(Node):
                 thread.join()
 
     def update_ik_target(self, msg):
+        self.get_logger().info("update_ik_target")
+
+        # convert to degrees for safety checker
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
+
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
         start_time = time.time()
@@ -572,6 +588,7 @@ class Controller(Node):
         self.get_logger().info(f"Safety check took {end_time-start_time}")
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
+        # msg.data = self.target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
         self.can_con.send_target_message(self.safe_target_joints)
