@@ -51,6 +51,7 @@ sudo apt install ros-humble-ros2-controllers ros-humble-moveit
 ```bash
 cd ~/arm_ros2_ws/src
 git clone https://github.com/rsx-utoronto/trac_ik_humble
+cd ..
 ```
 
 3. Build and initialize with `rosdep`
