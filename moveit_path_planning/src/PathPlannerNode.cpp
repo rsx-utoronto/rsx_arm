@@ -25,26 +25,22 @@ PathPlannerNode::PathPlannerNode(
 : Node("path_planner_node"),
   _move_group(move_group)
 {
-  _target_pose_sub = this->create_subscription<geometry_msgs::msg::Pose>(
-    "arm_target_pose", 1,
-    std::bind(&PathPlannerNode::receiveTargetPoseCallback, this, std::placeholders::_1));
+    _target_pose_sub = this->create_subscription<geometry_msgs::msg::Pose>(
+        "arm_target_pose", 20,
+        std::bind(&PathPlannerNode::receiveTargetPoseCallback, this, std::placeholders::_1));
 
-  _arm_state_sub = this->create_subscription<std_msgs::msg::String>(
-    "arm_state", 1,
-    std::bind(&PathPlannerNode::updateStateCallback, this, std::placeholders::_1));
+    _arm_state_sub = this->create_subscription<std_msgs::msg::String>(
+        "arm_state", 20,
+        std::bind(&PathPlannerNode::updateStateCallback, this, std::placeholders::_1));
 
-  _joint_sub = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-    "arm_curr_angles", 1,
-    std::bind(&PathPlannerNode::joint_callback, this, std::placeholders::_1));
+    _joint_sub = this->create_subscription<std_msgs::msg::Float32MultiArray>(
+        "arm_curr_angles", 20,
+        std::bind(&PathPlannerNode::joint_callback, this, std::placeholders::_1));
 
-  _joint_pose_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>(
-    "arm_ik_target_joints",
-    1);
-  // _rviz_joint_pose_pub = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 1);
-  _pose_pub = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 1);
-  _joint_path_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_path_joints", 1);
-  _trajectory_pub =
-    this->create_publisher<moveit_msgs::msg::RobotTrajectory>("trajectory_joints", 1);
+    _joint_pose_pub  = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_ik_target_joints", 100);
+    _pose_pub        = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 100);
+    _joint_path_pub  = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_path_joints", 100);
+    _trajectory_pub  = this->create_publisher<moveit_msgs::msg::RobotTrajectory>("trajectory_joints", 100);
 
   moveit::core::RobotModelConstPtr robot_model_ = _move_group->getRobotModel();
   jmg = robot_model_->getJointModelGroup(_move_group->getName());
@@ -99,18 +95,22 @@ void PathPlannerNode::calculateIK(
 
   Eigen::Isometry3d target_pose_eigen = poseMsgToEigen(*target_pose_msg);
 
-  bool found_ik = current_state->setFromIK(
-    jmg_ptr,
-    target_pose_eigen,
-    _move_group->getEndEffectorLink(),
-    0.1,
-    moveit::core::GroupStateValidityCallbackFn(),
-    kinematics::KinematicsQueryOptions());
+    auto t0 = std::chrono::steady_clock::now();
+    bool found_ik = current_state->setFromIK(
+        jmg_ptr,
+        target_pose_eigen,
+        _move_group->getEndEffectorLink(),
+        0.1,
+        moveit::core::GroupStateValidityCallbackFn(),
+        kinematics::KinematicsQueryOptions());
 
-  if (!found_ik) {
-    RCLCPP_WARN(get_logger(), "IK solution not found for target pose");
-    return;
-  }
+    auto ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+    RCLCPP_INFO(get_logger(), "IK solve: %.1f ms, found=%d", ms, found_ik);
+
+    if (!found_ik) {
+        RCLCPP_WARN(get_logger(), "IK solution not found for target pose");
+        return;
+    }
 
   std::vector<double> joint_values;
   current_state->copyJointGroupPositions(jmg_ptr, joint_values);

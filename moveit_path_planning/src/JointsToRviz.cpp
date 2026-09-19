@@ -19,12 +19,12 @@ public:
 
     // Subscriber to IK target joints topic
     ik_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-      "safe_arm_target_joints", 10,
+      "safe_arm_target_joints", 100,
       std::bind(&IkToRvizJointState::to_rviz_cb, this, std::placeholders::_1));
 
     // Subscriber to path planning target joints topic
     path_planning_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-      "arm_path_joints", 10,
+      "arm_path_joints", 100,
       std::bind(&IkToRvizJointState::to_rviz_cb, this, std::placeholders::_1));
 
     joint_names_ = {"shoulder", "shoulder_joint", "elbow", "elbow_roll", "ee_pitch", "ee_roll", "dummy_ee_joint"};
