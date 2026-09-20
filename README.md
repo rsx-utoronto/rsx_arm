@@ -172,6 +172,13 @@ usbipd wsl list
 usbipd wsl attach --busid <BUSID> --distribution <YourWSLDistroName>
 ```
 
+## Potentially useful code formatting commands
+If you feel like it, run these to make your code look nice:
+```bash
+git ls-files '*.cpp' '*.hpp' '*.cc' '*.hh' '*.c' '*.h' | xargs ament_uncrustify --reformat
+git ls-files '*.py' | xargs docformatter --in-place --wrap-summaries 80 --wrap-descriptions 80
+```
+
 # Resources 
 Feel free to add any resources here: 
 
