@@ -6,6 +6,7 @@ on:
     paths:
       - 'Dockerfile.CI'
       - 'requirements-ci.txt'
+      - '.github/workflows/docker-build.yml' # <--- Include the workflow file itself
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
@@ -32,4 +33,3 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/ros2-ci-environment:latest
-          no-cache: true
