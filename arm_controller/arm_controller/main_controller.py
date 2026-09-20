@@ -345,8 +345,7 @@ class Controller(Node):
                     self.arm_internal_current_joints = self.safe_target_joints
                     for i in range(self.n_joints):
                         if type(self.safe_target_joints[i]) == np.float32:
-                            self.safe_target_joints[i] = self.safe_target_joints[i].item(
-                            )
+                            self.safe_target_joints[i] = self.safe_target_joints[i].item()
                     msg = Float32MultiArray()
                     msg.data = self.safe_target_joints
                     self.safe_target_joints_pub.publish(msg)
