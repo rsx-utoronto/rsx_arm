@@ -33,6 +33,10 @@ jobs:
           repository: rsx-utoronto/trac_ik_humble # Replace with your target repo (e.g., my-org/other-pkg)
           path: arm_ros2_ws/src/trac_ik_humble
 
+      # Step 2.5: apt-get update so we see ROS 2 packages
+      - name: Update apt
+        run: apt-get update
+
       # Step 3: Build the ROS 2 Workspace
       - name: Build Workspace
         run: |
