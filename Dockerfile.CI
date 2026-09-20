@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     snapd \
     curl \
+    jq \
     # Add any extra APT packages here:
     ros-humble-ros2-controllers \
     ros-humble-moveit \
@@ -25,8 +26,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements-ci.txt /tmp/requirements-ci.txt
 
 RUN pip install --no-cache-dir -r /tmp/requirements-ci.txt && rm /tmp/requirements-ci.txt
-
-RUN sudo snap install jq
 
 RUN pip install --force-reinstall colcon-core setuptools==$(pip list --no-index --format=json |  jq -r '.[] | select(.name=="setuptools").version') 
 
