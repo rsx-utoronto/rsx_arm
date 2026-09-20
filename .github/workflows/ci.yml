@@ -38,6 +38,10 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           cd arm_ros2_ws
+          rosdep init || true 
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
+          colcon build --packages-select arm_msgs --symlink-install
           colcon build --symlink-install
 
       # Step 4: Run specified unit tests & enforce pass/fail criteria
