@@ -23,8 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy and install Python dependencies
 COPY requirements-ci.txt /tmp/requirements-ci.txt
-RUN cat /tmp/requirements-ci.txt  # Prints exact contents to the Docker build log for debugging
-
 
 RUN pip install --no-cache-dir -r /tmp/requirements-ci.txt && rm /tmp/requirements-ci.txt
 

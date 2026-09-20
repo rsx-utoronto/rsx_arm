@@ -5,7 +5,7 @@ on:
     branches: [ main, unit_test_debugging ]
     paths:
       - 'Dockerfile.CI'
-      - 'requirements.txt'
+      - 'requirements-ci.txt'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
