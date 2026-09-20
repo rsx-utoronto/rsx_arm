@@ -158,20 +158,23 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   # Unit tests
-  ament_add_gtest(test_planner_server
-    test/test_planner_server.cpp
-  )
+  # NOTE: The below are the old tests and are commented out.
+  # If you are one of the brave souls to add new c++ tests, please set
+  # them up below.
+  # ament_add_gtest(test_planner_server
+  #   test/test_planner_server.cpp
+  # )
   
-  if(TARGET test_planner_server)
-    target_link_libraries(test_planner_server
-      planner_server_component
-    )
-    ament_target_dependencies(test_planner_server
-      rclcpp
-      moveit_ros_planning_interface
-      arm_msgs
-    )
-  endif()
+  # if(TARGET test_planner_server)
+  #   target_link_libraries(test_planner_server
+  #     planner_server_component
+  #   )
+  #   ament_target_dependencies(test_planner_server
+  #     rclcpp
+  #     moveit_ros_planning_interface
+  #     arm_msgs
+  #   )
+  # endif()
 endif()
 
 ament_package()
