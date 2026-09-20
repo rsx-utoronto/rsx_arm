@@ -15,104 +15,115 @@
 #include <tf2_ros/message_filter.h>
 
 
-class PointCloudAssembler{
-	private:
-		ros::Timer fiveSecTimer;
-		ros::NodeHandle node;
-		ros::Subscriber pointCloudInSub;
-		ros::Publisher pointCloudOutPub;
-		ros::Publisher otherCloudPub;
-		ros::Publisher filteredCloudPub;
+class PointCloudAssembler
+{
+private:
+  ros::Timer fiveSecTimer;
+  ros::NodeHandle node;
+  ros::Subscriber pointCloudInSub;
+  ros::Publisher pointCloudOutPub;
+  ros::Publisher otherCloudPub;
+  ros::Publisher filteredCloudPub;
 
-		// pcl::PCLPointCloud2 currentPointCloud;
-		pcl::PointCloud<pcl::PointXYZ> currentPointCloud;
-		sensor_msgs::PointCloud2 currentPCMes;
+  // pcl::PCLPointCloud2 currentPointCloud;
+  pcl::PointCloud<pcl::PointXYZ> currentPointCloud;
+  sensor_msgs::PointCloud2 currentPCMes;
 
-		tf2_ros::Buffer tfBuffer;
-		tf2_ros::TransformListener tfListener;
+  tf2_ros::Buffer tfBuffer;
+  tf2_ros::TransformListener tfListener;
 
-		bool isFirstTime = true;
-		bool isAllowedToUpdate = true;
-    
-	public: 
-		PointCloudAssembler(): tfListener(tfBuffer){
-			pointCloudOutPub = node.advertise<sensor_msgs::PointCloud2>("/arm/assembled_point_cloud", 1);
-			otherCloudPub = node.advertise<sensor_msgs::PointCloud2>("/arm/other_cloud", 1);
-			filteredCloudPub = node.advertise<sensor_msgs::PointCloud2>("/arm/filtered_cloud", 1);
-			pointCloudInSub = node.subscribe("/cloud_input", 1, &PointCloudAssembler::onCloudInput, this);
+  bool isFirstTime = true;
+  bool isAllowedToUpdate = true;
 
-			fiveSecTimer = node.createTimer(ros::Duration(2,0), &PointCloudAssembler::fiveSecTimerCallback, this);
-		}
+public:
+  PointCloudAssembler()
+  : tfListener(tfBuffer)
+  {
+    pointCloudOutPub = node.advertise<sensor_msgs::PointCloud2>("/arm/assembled_point_cloud", 1);
+    otherCloudPub = node.advertise<sensor_msgs::PointCloud2>("/arm/other_cloud", 1);
+    filteredCloudPub = node.advertise<sensor_msgs::PointCloud2>("/arm/filtered_cloud", 1);
+    pointCloudInSub = node.subscribe("/cloud_input", 1, &PointCloudAssembler::onCloudInput, this);
 
-		void fiveSecTimerCallback(const ros::TimerEvent& e){
-			isAllowedToUpdate = true;
-		}
+    fiveSecTimer = node.createTimer(
+      ros::Duration(
+        2,
+        0), &PointCloudAssembler::fiveSecTimerCallback,
+      this);
+  }
 
-   		void onCloudInput(const sensor_msgs::PointCloud2ConstPtr& input){
-			// pcl::PCLPointCloud2 cloudIn;
-			// pcl_conversions::toPCL(*input, cloudIn);
-			pcl::PointCloud<pcl::PointXYZ>::Ptr pclInPtr(new pcl::PointCloud<pcl::PointXYZ>);
-			pcl::fromROSMsg(*input, *pclInPtr);
+  void fiveSecTimerCallback(const ros::TimerEvent & e)
+  {
+    isAllowedToUpdate = true;
+  }
 
-			pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCloud(new pcl::PointCloud<pcl::PointXYZ>);
-			pcl::VoxelGrid<pcl::PointXYZ> voxelFilter;
-			voxelFilter.setInputCloud(pclInPtr);
-			voxelFilter.setLeafSize(0.2, 0.2, 0.2);
-			voxelFilter.filter(*filteredCloud);
+  void onCloudInput(const sensor_msgs::PointCloud2ConstPtr & input)
+  {
+    // pcl::PCLPointCloud2 cloudIn;
+    // pcl_conversions::toPCL(*input, cloudIn);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pclInPtr(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromROSMsg(*input, *pclInPtr);
 
-			std::string targetFrame = "base_link";
-			sensor_msgs::PointCloud2 output, filteredOutput;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::VoxelGrid<pcl::PointXYZ> voxelFilter;
+    voxelFilter.setInputCloud(pclInPtr);
+    voxelFilter.setLeafSize(0.2, 0.2, 0.2);
+    voxelFilter.filter(*filteredCloud);
 
-			try{
-				// ROS_INFO("I made it here pt1");
-				// std::cout << "cout works" << std::endl;
-				geometry_msgs::TransformStamped tfStamped = tfBuffer.lookupTransform(targetFrame, input->header.frame_id, ros::Time(0));
-				// ROS_INFO("I made it here pt2");
+    std::string targetFrame = "base_link";
+    sensor_msgs::PointCloud2 output, filteredOutput;
 
-				pcl::PointCloud<pcl::PointXYZ> baseLinkCloud;
-				pcl_ros::transformPointCloud(*filteredCloud, baseLinkCloud, tfStamped.transform);
-				if(isFirstTime){
-					currentPointCloud = baseLinkCloud;
-			  		isFirstTime = false;
-					ROS_INFO("First time!");
-				}
-				else currentPointCloud += baseLinkCloud;
-				pcl::toROSMsg(currentPointCloud, output);
-				output.header.frame_id = targetFrame;
-				pointCloudOutPub.publish(output);
-				// ROS_INFO("filtered cloud published at base");
-			}	
-			catch (tf2::TransformException &e){
-				// ROS_WARN("%s", e.what());
-			}
+    try {
+      // ROS_INFO("I made it here pt1");
+      // std::cout << "cout works" << std::endl;
+      geometry_msgs::TransformStamped tfStamped = tfBuffer.lookupTransform(
+        targetFrame,
+        input->header.frame_id, ros::Time(
+          0));
+      // ROS_INFO("I made it here pt2");
 
-			pcl::toROSMsg(*filteredCloud, filteredOutput);
-			filteredCloudPub.publish(filteredOutput);
+      pcl::PointCloud<pcl::PointXYZ> baseLinkCloud;
+      pcl_ros::transformPointCloud(*filteredCloud, baseLinkCloud, tfStamped.transform);
+      if (isFirstTime) {
+        currentPointCloud = baseLinkCloud;
+        isFirstTime = false;
+        ROS_INFO("First time!");
+      } else {currentPointCloud += baseLinkCloud;}
+      pcl::toROSMsg(currentPointCloud, output);
+      output.header.frame_id = targetFrame;
+      pointCloudOutPub.publish(output);
+      // ROS_INFO("filtered cloud published at base");
+    } catch (tf2::TransformException & e) {
+      // ROS_WARN("%s", e.what());
+    }
 
-			// ROS_INFO("I WAS ALLOWED TO UPDATE");
-		}
+    pcl::toROSMsg(*filteredCloud, filteredOutput);
+    filteredCloudPub.publish(filteredOutput);
 
-		void combinePointCloud(const sensor_msgs::PointCloud2Ptr& pc2){
-			if(isAllowedToUpdate){
-				if(!currentPCMes.data.empty()){
-					currentPCMes.data.insert(currentPCMes.data.end(), pc2->data.begin(), pc2->data.end());
-					currentPCMes.width += pc2->width;
-				}
-				else{
-					currentPCMes = *pc2;
-				}
+    // ROS_INFO("I WAS ALLOWED TO UPDATE");
+  }
 
-				pointCloudOutPub.publish(currentPCMes);
-			}
-		}
+  void combinePointCloud(const sensor_msgs::PointCloud2Ptr & pc2)
+  {
+    if (isAllowedToUpdate) {
+      if (!currentPCMes.data.empty()) {
+        currentPCMes.data.insert(currentPCMes.data.end(), pc2->data.begin(), pc2->data.end());
+        currentPCMes.width += pc2->width;
+      } else {
+        currentPCMes = *pc2;
+      }
+
+      pointCloudOutPub.publish(currentPCMes);
+    }
+  }
 };
 
-int main (int argc, char** argv) {
-	ros::init(argc, argv, "arm_point_cloud_assembler"); // start node
-	ROS_INFO("node started");
-	PointCloudAssembler pointCloudAssembler;
+int main(int argc, char ** argv)
+{
+  ros::init(argc, argv, "arm_point_cloud_assembler");       // start node
+  ROS_INFO("node started");
+  PointCloudAssembler pointCloudAssembler;
 
-	// Spin
-	ros::spin ();
-	return 0;
+  // Spin
+  ros::spin();
+  return 0;
 }

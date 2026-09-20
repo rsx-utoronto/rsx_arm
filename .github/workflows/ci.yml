@@ -1,4 +1,4 @@
-name: unit-tests
+name: Unit Tests
 
 on:
   push:
@@ -7,36 +7,59 @@ on:
     branches: [ main ]
 
 jobs:
-  ros2-build-test:
-    runs-on: ubuntu-22.04
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    # Run the job inside your pre-built container image
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/ros2-ci-environment:latest
+      options: --user root
+
+    defaults:
+      run:
+        shell: bash -e {0}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      # Step 1: Clone current (primary) repository into ros_ws/src/primary_repo
+      - name: Checkout primary repo
+        uses: actions/checkout@v4
         with:
-          path: 'src/rsx_arm'
+          path: arm_ros2_ws/src/rsx_arm
 
-      - name: Setup ROS 2 Environment
-        uses: ros-tooling/setup-ros@v0.7
+      # Step 2: Clone second repository into ros_ws/src/second_repo
+      - name: Checkout secondary repo
+        uses: actions/checkout@v4
         with:
-          required-ros-distributions: humble
+          repository: rsx-utoronto/trac_ik_humble # Replace with your target repo (e.g., my-org/other-pkg)
+          path: arm_ros2_ws/src/trac_ik_humble
 
-      # Build packages and properly set up the env
-      # For some reason the CI environment has a hard time finding 
-      # the globally installed colcon extensions in the script
-      - name: Environment setup
-        working-directory: src/rsx_arm
-        run: |
-          python3 -m pip install --upgrade --force-reinstall colcon-common-extensions colcon-package-selection
-          source humble-setup.sh
+      # Step 2.5: apt-get update so we see ROS 2 packages
+      - name: Update apt
+        run: apt-get update
 
-      - name: Run unit tests
+      # Step 3: Build the ROS 2 Workspace
+      - name: Build Workspace
         run: |
-          echo -e "\e[32mEnvironment successfully built. Running unit tests...\e[0m"
-          source arm_env/bin/activate
+          pip install --force-reinstall "pytest>=7.0.0,<8.0.0" "pluggy<1.4.0" "pytest-rerunfailures<14.0"
+          pytest --version
           source /opt/ros/humble/setup.bash
+          cd arm_ros2_ws
+          rosdep init || true 
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
+          colcon build --packages-select arm_msgs --symlink-install
           source install/setup.bash
-          colcon test --ctest-args tests --packages-skip arm_msgs --return-code-on-test-failure
+          colcon build --symlink-install
 
-      - name: Display test summary
-        if: always()
-        run: colcon test-result --all --verbose
+      # Step 4: Run specified unit tests & enforce pass/fail criteria
+      - name: Run Unit Tests
+        run: |
+          source /opt/ros/humble/setup.bash
+          cd arm_ros2_ws
+          source install/setup.bash
+
+          # Run colcon test
+          colcon test --ctest-args tests --packages-skip arm_msgs 
+
+          # Fail the job if any unit test failed
+          colcon test-result --all --verbose

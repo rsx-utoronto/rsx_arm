@@ -22,40 +22,42 @@ PlannerServer::PlannerServer(const rclcpp::NodeOptions & options)
   declareParameters();
   loadParameters();
 
-  RCLCPP_INFO(this->get_logger(), "Creating MoveGroupInterface for group: %s", 
+  RCLCPP_INFO(
+    this->get_logger(), "Creating MoveGroupInterface for group: %s",
     planning_group_.c_str());
 
-  RCLCPP_INFO(this->get_logger(), "Creating MoveGroupInterface for group: %s", 
+  RCLCPP_INFO(
+    this->get_logger(), "Creating MoveGroupInterface for group: %s",
     planning_group_.c_str());
 
   // Initialize MoveIt components
   try {
     // Create MoveGroupInterface using static shared_ptr
-    auto node_ptr = std::shared_ptr<rclcpp::Node>(this, [](rclcpp::Node*){});
-    
+    auto node_ptr = std::shared_ptr<rclcpp::Node>(this, [](rclcpp::Node *) {});
+
     // Create MoveGroupInterface
     move_group_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(
       node_ptr, planning_group_);
-    
+
     // Set default parameters
     move_group_->setPlanningTime(default_planning_time_);
     move_group_->setNumPlanningAttempts(default_num_attempts_);
     move_group_->setMaxVelocityScalingFactor(default_velocity_scaling_);
     move_group_->setMaxAccelerationScalingFactor(default_acceleration_scaling_);
-    
+
     if (!default_planner_id_.empty()) {
       move_group_->setPlannerId(default_planner_id_);
     }
 
     // Create PlanningSceneInterface
-    planning_scene_interface_ = 
+    planning_scene_interface_ =
       std::make_shared<moveit::planning_interface::PlanningSceneInterface>();
 
     // Initialize PlanningSceneMonitor
-    planning_scene_monitor_ = 
+    planning_scene_monitor_ =
       std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(
-        node_ptr, "robot_description");
-    
+      node_ptr, "robot_description");
+
     if (planning_scene_monitor_->getPlanningScene()) {
       planning_scene_monitor_->startSceneMonitor();
       planning_scene_monitor_->startStateMonitor();
@@ -65,10 +67,12 @@ PlannerServer::PlannerServer(const rclcpp::NodeOptions & options)
       RCLCPP_WARN(this->get_logger(), "PlanningSceneMonitor could not load planning scene");
     }
 
-    RCLCPP_INFO(this->get_logger(), 
+    RCLCPP_INFO(
+      this->get_logger(),
       "MoveGroupInterface initialized for group: %s", planning_group_.c_str());
-    RCLCPP_INFO(this->get_logger(), 
-      "End effector frame: %s, Base frame: %s", 
+    RCLCPP_INFO(
+      this->get_logger(),
+      "End effector frame: %s, Base frame: %s",
       ee_frame_.c_str(), base_frame_.c_str());
 
   } catch (const std::exception & e) {
@@ -126,19 +130,19 @@ void PlannerServer::loadParameters()
   planning_group_ = this->get_parameter("planning_group").as_string();
   base_frame_ = this->get_parameter("base_frame").as_string();
   ee_frame_ = this->get_parameter("ee_frame").as_string();
-  
+
   default_planner_id_ = this->get_parameter("default_planner_id").as_string();
   default_planning_time_ = this->get_parameter("default_planning_time").as_double();
   default_num_attempts_ = this->get_parameter("default_num_attempts").as_int();
   default_velocity_scaling_ = this->get_parameter("default_velocity_scaling").as_double();
   default_acceleration_scaling_ = this->get_parameter("default_acceleration_scaling").as_double();
-  
+
   default_cartesian_step_ = this->get_parameter("default_cartesian_step").as_double();
-  default_cartesian_jump_threshold_ = 
+  default_cartesian_jump_threshold_ =
     this->get_parameter("default_cartesian_jump_threshold").as_double();
-  
+
   default_allow_replanning_ = this->get_parameter("default_allow_replanning").as_bool();
-  use_time_optimal_parameterization_ = 
+  use_time_optimal_parameterization_ =
     this->get_parameter("use_time_optimal_parameterization").as_bool();
 
 }
@@ -147,7 +151,8 @@ void PlannerServer::handlePlanMotion(
   const std::shared_ptr<PlanMotion::Request> request,
   std::shared_ptr<PlanMotion::Response> response)
 {
-  RCLCPP_INFO(this->get_logger(), "Received planning request (target_type: %d)", 
+  RCLCPP_INFO(
+    this->get_logger(), "Received planning request (target_type: %d)",
     request->target_type);
 
   auto start_time = std::chrono::steady_clock::now();
@@ -158,20 +163,20 @@ void PlannerServer::handlePlanMotion(
   }
 
   // Apply velocity and acceleration scaling
-  double vel_scaling = request->velocity_scaling_factor > 0.0 ? 
+  double vel_scaling = request->velocity_scaling_factor > 0.0 ?
     request->velocity_scaling_factor : default_velocity_scaling_;
-  double acc_scaling = request->acceleration_scaling_factor > 0.0 ? 
+  double acc_scaling = request->acceleration_scaling_factor > 0.0 ?
     request->acceleration_scaling_factor : default_acceleration_scaling_;
-  
+
   move_group_->setMaxVelocityScalingFactor(vel_scaling);
   move_group_->setMaxAccelerationScalingFactor(acc_scaling);
 
   // Set planner configuration
-  std::string planner_id = request->planner_id.empty() ? 
+  std::string planner_id = request->planner_id.empty() ?
     default_planner_id_ : request->planner_id;
-  double planning_time = request->planning_time > 0.0 ? 
+  double planning_time = request->planning_time > 0.0 ?
     request->planning_time : default_planning_time_;
-  int num_attempts = request->num_planning_attempts > 0 ? 
+  int num_attempts = request->num_planning_attempts > 0 ?
     request->num_planning_attempts : default_num_attempts_;
 
   move_group_->setPlannerId(planner_id);
@@ -206,16 +211,18 @@ void PlannerServer::handlePlanMotion(
       break;
 
     case PlanMotion::Request::TARGET_TYPE_CARTESIAN:
-      RCLCPP_INFO(this->get_logger(), "Planning Cartesian path with %zu waypoints", 
+      RCLCPP_INFO(
+        this->get_logger(), "Planning Cartesian path with %zu waypoints",
         request->waypoints.size());
-      double max_step = request->cartesian_max_step > 0.0 ? 
+      double max_step = request->cartesian_max_step > 0.0 ?
         request->cartesian_max_step : default_cartesian_step_;
       double jump_threshold = request->cartesian_jump_threshold;
       success = planCartesianPath(
         request->waypoints, max_step, jump_threshold, plan, fraction_achieved, error_msg);
-      
+
       if (success && fraction_achieved < 0.95) {
-        RCLCPP_WARN(this->get_logger(), 
+        RCLCPP_WARN(
+          this->get_logger(),
           "Cartesian path only achieved %.1f%% of the path", fraction_achieved * 100.0);
       }
       break;
@@ -229,12 +236,13 @@ void PlannerServer::handlePlanMotion(
     response->planner_used = planner_id;
     response->error_code = moveit_msgs::msg::MoveItErrorCodes::SUCCESS;
     response->message = "Planning succeeded";
-    
+
     auto end_time = std::chrono::steady_clock::now();
-    response->planning_time = 
+    response->planning_time =
       std::chrono::duration<double>(end_time - start_time).count();
-    
-    RCLCPP_INFO(this->get_logger(), 
+
+    RCLCPP_INFO(
+      this->get_logger(),
       "Planning succeeded in %.3f seconds with %u waypoints",
       response->planning_time, response->waypoints_count);
   } else {
@@ -242,21 +250,21 @@ void PlannerServer::handlePlanMotion(
     response->message = error_msg.empty() ? "Planning failed" : error_msg;
     response->planning_time = 0.0;
     response->waypoints_count = 0;
-    
+
     RCLCPP_ERROR(this->get_logger(), "Planning failed: %s", response->message.c_str());
   }
 }
 
 rclcpp_action::GoalResponse PlannerServer::handlePlanAndExecuteGoal(
   const rclcpp_action::GoalUUID & /*uuid*/,
-  std::shared_ptr<const PlanAndExecute::Goal> /*goal*/)
+  std::shared_ptr<const PlanAndExecute::Goal>/*goal*/)
 {
   RCLCPP_INFO(this->get_logger(), "Received plan and execute goal");
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse PlannerServer::handlePlanAndExecuteCancel(
-  const std::shared_ptr<GoalHandlePlanAndExecute> /*goal_handle*/)
+  const std::shared_ptr<GoalHandlePlanAndExecute>/*goal_handle*/)
 {
   RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
   return rclcpp_action::CancelResponse::ACCEPT;
@@ -353,14 +361,14 @@ void PlannerServer::executePlanAndExecute(
 
     std::string execution_error;
     result->execution_success = executeTrajectory(result->trajectory, execution_error);
-    
+
     if (result->execution_success) {
       result->execution_error_code = 0;
       result->execution_message = "Execution completed successfully";
       feedback->percent_complete = 100.0;
       feedback->status_message = "Execution complete";
       goal_handle->publish_feedback(feedback);
-      
+
       RCLCPP_INFO(this->get_logger(), "Action completed successfully");
       goal_handle->succeed(result);
     } else {
@@ -377,7 +385,7 @@ void PlannerServer::executePlanAndExecute(
     feedback->percent_complete = 100.0;
     feedback->status_message = "Planning complete (no execution)";
     goal_handle->publish_feedback(feedback);
-    
+
     RCLCPP_INFO(this->get_logger(), "Action completed (planning only)");
     goal_handle->succeed(result);
   }
@@ -403,14 +411,14 @@ bool PlannerServer::planToJointTarget(
     for (size_t i = 0; i < joint_names.size(); ++i) {
       target_joints[joint_names[i]] = joint_values[i];
     }
-    
+
     move_group_->setJointValueTarget(target_joints);
 
     // Plan
     moveit::core::MoveItErrorCode result = move_group_->plan(plan);
-    
+
     if (result != moveit::core::MoveItErrorCode::SUCCESS) {
-      error_msg = "MoveIt planning failed with error code: " + 
+      error_msg = "MoveIt planning failed with error code: " +
         std::to_string(result.val);
       return false;
     }
@@ -437,9 +445,9 @@ bool PlannerServer::planToPoseTarget(
 
     // Plan
     moveit::core::MoveItErrorCode result = move_group_->plan(plan);
-    
+
     if (result != moveit::core::MoveItErrorCode::SUCCESS) {
-      error_msg = "MoveIt planning failed with error code: " + 
+      error_msg = "MoveIt planning failed with error code: " +
         std::to_string(result.val);
       return false;
     }
@@ -486,7 +494,7 @@ bool PlannerServer::planCartesianPath(
     // Time parameterize the trajectory
     robot_trajectory::RobotTrajectory rt(
       move_group_->getRobotModel(), planning_group_);
-    
+
     // Get current state safely
     moveit::core::RobotStatePtr current_state = move_group_->getCurrentState();
     if (!current_state) {
@@ -500,8 +508,7 @@ bool PlannerServer::planCartesianPath(
     double vel_scaling = default_velocity_scaling_;
     double acc_scaling = default_acceleration_scaling_;
 
-    if (!timeParameterizeTrajectory(rt, vel_scaling, acc_scaling))
-    {
+    if (!timeParameterizeTrajectory(rt, vel_scaling, acc_scaling)) {
       error_msg = "Failed to time-parameterize Cartesian trajectory";
       return false;
     }
@@ -532,7 +539,8 @@ bool PlannerServer::timeParameterizeTrajectory(
       return iptp.computeTimeStamps(trajectory, velocity_scaling, acceleration_scaling);
     }
   } catch (const std::exception & e) {
-    RCLCPP_ERROR(this->get_logger(), 
+    RCLCPP_ERROR(
+      this->get_logger(),
       "Exception during time parameterization: %s", e.what());
     return false;
   }
@@ -558,9 +566,9 @@ bool PlannerServer::validateTrajectory(
   const size_t num_joints = trajectory.joint_trajectory.joint_names.size();
   for (size_t i = 0; i < trajectory.joint_trajectory.points.size(); ++i) {
     const auto & point = trajectory.joint_trajectory.points[i];
-    
+
     if (point.positions.size() != num_joints) {
-      error_msg = "Point " + std::to_string(i) + 
+      error_msg = "Point " + std::to_string(i) +
         " has incorrect number of joint positions";
       return false;
     }
@@ -568,7 +576,7 @@ bool PlannerServer::validateTrajectory(
     // Check for NaN or infinite values
     for (const auto & pos : point.positions) {
       if (!std::isfinite(pos)) {
-        error_msg = "Point " + std::to_string(i) + 
+        error_msg = "Point " + std::to_string(i) +
           " contains invalid joint position (NaN or Inf)";
         return false;
       }
@@ -604,8 +612,8 @@ bool PlannerServer::executeTrajectory(
   RCLCPP_INFO(this->get_logger(), "Sending trajectory for execution...");
 
   auto send_goal_options = rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions();
-  
-  send_goal_options.result_callback = 
+
+  send_goal_options.result_callback =
     [this](const rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult & result) {
       if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
         RCLCPP_INFO(this->get_logger(), "Trajectory execution succeeded");
@@ -630,17 +638,17 @@ bool PlannerServer::executeTrajectory(
 
   // Wait for execution to complete
   auto result_future = execute_client_->async_get_result(goal_handle);
-  
+
   // Use trajectory duration plus buffer for timeout
   double trajectory_duration = 0.0;
   if (!trajectory.joint_trajectory.points.empty()) {
     const auto & last_point = trajectory.joint_trajectory.points.back();
-    trajectory_duration = last_point.time_from_start.sec + 
+    trajectory_duration = last_point.time_from_start.sec +
       last_point.time_from_start.nanosec * 1e-9;
   }
-  
+
   auto timeout = std::chrono::duration<double>(trajectory_duration + 10.0);
-  
+
   if (result_future.wait_for(timeout) != std::future_status::ready) {
     error_msg = "Execution did not complete within expected time";
     return false;
@@ -648,7 +656,7 @@ bool PlannerServer::executeTrajectory(
 
   auto result = result_future.get();
   if (result.code != rclcpp_action::ResultCode::SUCCEEDED) {
-    error_msg = "Execution failed with result code: " + 
+    error_msg = "Execution failed with result code: " +
       std::to_string(static_cast<int>(result.code));
     return false;
   }
@@ -666,11 +674,12 @@ void PlannerServer::applyConstraints(
 void PlannerServer::setupDeterministicPlanning(uint64_t seed)
 {
   rng_.seed(seed);
-  
+
   // Set OMPL random seed via move_group
   // Note: This requires setting the ompl random seed parameter
   // The actual implementation depends on MoveIt version
-  RCLCPP_INFO(this->get_logger(), 
+  RCLCPP_INFO(
+    this->get_logger(),
     "Deterministic planning enabled with seed: %lu", seed);
 }
 

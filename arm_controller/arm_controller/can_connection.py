@@ -20,16 +20,14 @@ class CAN_connection():
         self.num_joints = num_joints
 
     def read_message(self):
-        """
-        (can.Message) -> (None)
+        """(can.Message) -> (None)
 
-        Function that reads status message regarding position, limit switch and current 
-        from all motors and updates the global variable CURR_POS, LIMIT_SWITCH and MOTOR_CURR
-        to store the values
+        Function that reads status message regarding position, limit switch and
+        current from all motors and updates the global variable CURR_POS,
+        LIMIT_SWITCH and MOTOR_CURR to store the values
         """
-
         msg = self.bus.recv(timeout=0.1)
-        
+
         if msg == None:
             return None
         # Checking if SparkMAXes are powered on and sending status messages
@@ -64,17 +62,15 @@ class CAN_connection():
                 joint_val = read_can_message(
                     msg.data, CANAPI.CMD_API_STAT2, index)
                 return (index, api, joint_val)
-                
-
 
     def send_target_message(self, goal_position):
+        """Timer callback function for sending CAN messages at regular
+        intervals.
         """
-        Timer callback function for sending CAN messages at regular intervals
-        """
-
         # Convert SparkMAX angles to SparkMAX data packets
-        spark_input = generate_data_packet(goal_position)  # assuming data is safe
-    
+        spark_input = generate_data_packet(
+            goal_position)  # assuming data is safe
+
         # Send data packets
         for i in range(1, len(spark_input)+1):
 
@@ -93,4 +89,3 @@ class CAN_connection():
             self.bus.send(message)
         except:
             print("Error encountered while sending CAN message!")
-            pass

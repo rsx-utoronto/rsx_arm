@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Launch file for the planner_server node.
+"""
+Launch file for the planner_server node.
 
 Starts the MoveIt move_group and the planner_server with configuration.
 """

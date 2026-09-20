@@ -1,18 +1,14 @@
 from rclpy.logging import LoggingSeverity
-from arm_utilities.arm_enum_utils import ArmState, CANAPI
+from arm_utilities.arm_enum_utils import ArmState
 from arm_utilities.arm_test_utils import test_node, MESSAGE_WAIT, spin_n
 import arm_controller.main_controller as main_controller
-from std_msgs.msg import Float32MultiArray, Bool, Int16
-from array import array
-import numpy as np
-from arm_msgs.msg import ArmInputs
+from std_msgs.msg import Float32MultiArray
 import time
-from std_msgs.msg import String, Float32MultiArray
+from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Joy
 
-from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus
+from arm_utilities.arm_enum_utils import ArmState
 
-from rclpy.node import Node
 import rclpy
 import sys
 sys.path.insert(0, "..")
@@ -133,7 +129,7 @@ def test_arm_input_sub():
     received = test.subscriber_data["safe_arm_target_joints"]
     assert len(received) == 7
     for n, item in enumerate(list(received)):
-        assert item - \
+        assert item -\
             expected[n] < 1e-3, "Difference %f was greater than 1e-3" % item-expected[n]
 
     joy_msg = Joy()
@@ -171,7 +167,7 @@ def test_arm_input_sub():
     for n, item in enumerate(list(received)):
         assert type(item) == float
         assert type(expected[n]) == float
-        assert item - \
+        assert item -\
             expected[n] < 1e-3, "Difference %f was greater than 1e-3" % (
                 item-expected[n])
 
@@ -180,29 +176,40 @@ def test_arm_input_sub():
 
 
 def test_homing():
-    ''' test homing algorithm, test joint by joint first, then full, then cancelling the homing process'''
+    """Test homing algorithm, test joint by joint first, then full, then
+    cancelling the homing process.
+    """
 
 
 def test_can_init():
-    '''initialize main controller, confirm that heartbeat is received. 
-    The virtual CAN network receives its own messages, so you should be 
-    able to receive the heartbeat message and isolate it from the others. 
+    """Initialize main controller, confirm that heartbeat is received.
+
+    The virtual CAN network receives its own messages, so you should be
+    able to receive the heartbeat message and isolate it from the others.
     You can set up the virtual CAN network on your computer by searching up
     "set up vcan0 ubuntu" on Google and the AI overview answer should be sufficient.
     Call read_message from the CAN Connection object inside main_controller directly
-    multiple times and you should be able to detect the heartbeat message.'''
+    multiple times and you should be able to detect the heartbeat message.
+    """
 
 
 def test_can_comm():
-    '''Confirm that you can both send and receive CAN messages manually. This should be
-    possible entirely isolated from ROS and just using the can_connection class'''
+    """Confirm that you can both send and receive CAN messages manually.
+
+    This should be possible entirely isolated from ROS and just using the
+    can_connection class
+    """
 
 
 def test_can_joints_comm():
-    '''Confirm that the target joints are being sent and received correctly via
-    vcan0 by introducing some non-zero target joint, which should update via CAN automatically 
-    in main_controller code at a given interval.'''
+    """Confirm that the target joints are being sent and received correctly via
+    vcan0 by introducing some non-zero target joint, which should update via CAN
+    automatically in main_controller code at a given interval.
+    """
 
 
 def test_safety():
-    '''Confirm that safety constrains values as expected. Be careful with this.'''
+    """Confirm that safety constrains values as expected.
+
+    Be careful with this.
+    """

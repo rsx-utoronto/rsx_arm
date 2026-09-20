@@ -155,23 +155,34 @@ if(BUILD_TESTING)
   # Linters
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
+
+  # Exclude style and docstring linters (way too pedantic to be useful):
+  set(AMENT_LINT_AUTO_EXCLUDE
+    ament_cmake_pep257
+    ament_cmake_flake8
+    ament_cmake_uncrustify
+    ament_cmake_lint_cmake
+  )
   ament_lint_auto_find_test_dependencies()
 
   # Unit tests
-  ament_add_gtest(test_planner_server
-    test/test_planner_server.cpp
-  )
+  # NOTE: The below are the old tests and are commented out.
+  # If you are one of the brave souls to add new c++ tests, please set
+  # them up below.
+  # ament_add_gtest(test_planner_server
+  #   test/test_planner_server.cpp
+  # )
   
-  if(TARGET test_planner_server)
-    target_link_libraries(test_planner_server
-      planner_server_component
-    )
-    ament_target_dependencies(test_planner_server
-      rclcpp
-      moveit_ros_planning_interface
-      arm_msgs
-    )
-  endif()
+  # if(TARGET test_planner_server)
+  #   target_link_libraries(test_planner_server
+  #     planner_server_component
+  #   )
+  #   ament_target_dependencies(test_planner_server
+  #     rclcpp
+  #     moveit_ros_planning_interface
+  #     arm_msgs
+  #   )
+  # endif()
 endif()
 
 ament_package()

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""
-ArUco Tag Position Tester
-Detects any ArUco tags in view and overlays their 3D positions on the live stream.
+"""ArUco Tag Position Tester Detects any ArUco tags in view and overlays their
+3D positions on the live stream.
 """
 
 from sensor_msgs.msg import Image, CameraInfo
@@ -46,9 +45,11 @@ class ArucoTester(Node):
         self.depth_scale = 0.001  # RealSense: mm -> metres
 
         # ArUco detector
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(
+            cv2.aruco.DICT_6X6_50)
         self.aruco_params = cv2.aruco.DetectorParameters()
-        self.detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
+        self.detector = cv2.aruco.ArucoDetector(
+            self.aruco_dict, self.aruco_params)
 
         self.get_logger().info('ArUco tester ready.')
 
@@ -60,19 +61,19 @@ class ArucoTester(Node):
         if self.intrinsics_ready:
             return
 
-        self.fx   = msg.k[0]
-        self.fy   = msg.k[4]
-        self.ppx  = msg.k[2]
-        self.ppy  = msg.k[5]
+        self.fx = msg.k[0]
+        self.fy = msg.k[4]
+        self.ppx = msg.k[2]
+        self.ppy = msg.k[5]
 
         self.rs_intrinsics = rs.intrinsics()
-        self.rs_intrinsics.width  = msg.width
+        self.rs_intrinsics.width = msg.width
         self.rs_intrinsics.height = msg.height
-        self.rs_intrinsics.fx     = self.fx
-        self.rs_intrinsics.fy     = self.fy
-        self.rs_intrinsics.ppx    = self.ppx
-        self.rs_intrinsics.ppy    = self.ppy
-        self.rs_intrinsics.model  = rs.distortion.none
+        self.rs_intrinsics.fx = self.fx
+        self.rs_intrinsics.fy = self.fy
+        self.rs_intrinsics.ppx = self.ppx
+        self.rs_intrinsics.ppy = self.ppy
+        self.rs_intrinsics.model = rs.distortion.none
         self.rs_intrinsics.coeffs = [0, 0, 0, 0, 0]
 
         self.intrinsics_ready = True
@@ -103,17 +104,18 @@ class ArucoTester(Node):
 
             for i, marker_id in enumerate(ids.flatten()):
                 center = np.mean(corners[i][0], axis=0).astype(int)
-                pos3d  = self.deproject(center)
+                pos3d = self.deproject(center)
                 self.draw_overlay(frame, center, marker_id, pos3d)
 
         # Status bar at the bottom
         n = len(ids) if ids is not None else 0
         status_color = (0, 200, 0) if self.intrinsics_ready else (0, 100, 255)
-        status_text  = (
+        status_text = (
             f'Markers: {n}  |  Depth: {"OK" if self.last_depth_frame is not None else "waiting"}'
             f'  |  Intrinsics: {"OK" if self.intrinsics_ready else "waiting"}'
         )
-        cv2.rectangle(frame, (0, frame.shape[0] - 28), (frame.shape[1], frame.shape[0]), (30, 30, 30), -1)
+        cv2.rectangle(
+            frame, (0, frame.shape[0] - 28), (frame.shape[1], frame.shape[0]), (30, 30, 30), -1)
         cv2.putText(frame, status_text, (8, frame.shape[0] - 8),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, status_color, 1, cv2.LINE_AA)
 
@@ -125,8 +127,9 @@ class ArucoTester(Node):
     # ------------------------------------------------------------------
 
     def deproject(self, pixel):
-        """
-        Return (X, Y, Z) in metres for a pixel centre, or None if unavailable.
+        """Return (X, Y, Z) in metres for a pixel centre, or None if
+        unavailable.
+
         Uses median depth over a small window to reduce noise.
         """
         if not self.intrinsics_ready or self.last_depth_frame is None:
@@ -179,12 +182,12 @@ class ArucoTester(Node):
             lines = [f'ID: {marker_id}', 'depth: N/A']
 
         # Pill background then text
-        line_h   = 18
-        padding  = 4
-        box_w    = 90
-        box_h    = len(lines) * line_h + padding * 2
-        box_x    = cx - box_w // 2
-        box_y    = cy - box_h - 14  # sit just above the marker
+        line_h = 18
+        padding = 4
+        box_w = 90
+        box_h = len(lines) * line_h + padding * 2
+        box_x = cx - box_w // 2
+        box_y = cy - box_h - 14  # sit just above the marker
 
         cv2.rectangle(frame,
                       (box_x, box_y),

@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import UInt8MultiArray, Float32MultiArray, String, UInt8
-from arm_utilities.arm_enum_utils import ArmState, SafetyErrors
-from arm_utilities.arm_control_utils import clamp
-import time
-import os
+from std_msgs.msg import Float32MultiArray
+from arm_utilities.arm_enum_utils import SafetyErrors
 import math
 
 
@@ -42,7 +37,7 @@ class SafetyChecker():
         safety_status = [0] * len(self.goal_pos)
         for i in range(len(self.goal_pos)):
             # TODO: the typing here is hardcoded, it shouldn't be
-            safety_status[i] = int(pos_safety_status[i]) + \
+            safety_status[i] = int(pos_safety_status[i]) +\
                 int(curr_safety_status[i])
         return self.goal_pos, safety_status
 
@@ -62,7 +57,7 @@ class SafetyChecker():
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
                 print("Exceeded max position change for joint ", i)
                 print("Requested: ", pos[i], " Current: ", self.curr_pos[i],
-                    " Max Change: ", self.max_d_theta[i])
+                      " Max Change: ", self.max_d_theta[i])
                 return safe_goal_pos, joint_pos_safety_status
 
             elif pos[i] <= self.joint_limits[i][0] or pos[i] >= self.joint_limits[i][1]:
@@ -75,13 +70,12 @@ class SafetyChecker():
         return safe_goal_pos, joint_pos_safety_status
 
     def current_check(self, pos: list = None) -> None:
-        '''
+        """Checks the maximum current being consumed by a motor.
 
-        Checks the maximum current being consumed by a motor. If the current is higher than
-        the expected max, sets the error for the particular motor as SafetyErrors.EXCEEDING_CURR.
-        Helps us to know when too much torque is being applied
-
-        '''
+        If the current is higher than the expected max, sets the error for the
+        particular motor as SafetyErrors.EXCEEDING_CURR. Helps us to know when
+        too much torque is being applied
+        """
         # TODO: move to config file
         # Max current values for each motor
         max_current = [40, 40, 40, 20, 20, 20, 20]

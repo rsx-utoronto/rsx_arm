@@ -22,7 +22,7 @@ This command emulates some of the ROS1 behaviour the rover still uses. Append an
    
 5. Open a terminal and run:
 ```bash
-ros2 launch arm_launch arm_basics_launch.py
+ros2 launch arm_launch arm_basics.launch.py
 ```
 This can be run with the following arguments (appended to command as `argument:=value`):
 - ik_on (default true)

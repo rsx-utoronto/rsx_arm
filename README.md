@@ -1,6 +1,8 @@
 # RSX's ARM Repository, now on ROS2!
 [![.github/workflows/ci.yml](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/ci.yml/badge.svg)](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/ci.yml)
 
+[![.github/workflows/docker-build.yml](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/docker-build.yml/badge.svg)](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/docker-build.yml)
+
 Welcome to `rsx_arm`! This repository will host the ROS 2 (Humble) version of the RSX arm control software, migrated from the `arm/` folder in the old ROS 1 `rsx-rover` repo all the way back in the summer of '25. Proceed with caution. The following are computer setup instructions. For guidance on setting up and running the arm, see [arm_instructions.md](arm_instructions.md)
 
 ## Prerequisites
@@ -177,6 +179,13 @@ On the Windows host, attach the camera to WSL with usbipd
 ```bash
 usbipd wsl list
 usbipd wsl attach --busid <BUSID> --distribution <YourWSLDistroName>
+```
+
+## Potentially useful code formatting commands
+If you feel like it, run these to make your code look nice:
+```bash
+git ls-files '*.cpp' '*.hpp' '*.cc' '*.hh' '*.c' '*.h' | xargs ament_uncrustify --reformat
+git ls-files '*.py' | xargs docformatter --in-place --wrap-summaries 80 --wrap-descriptions 80
 ```
 
 # Resources 

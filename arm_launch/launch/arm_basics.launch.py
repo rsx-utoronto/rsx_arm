@@ -6,6 +6,7 @@ from launch_ros.substitutions import FindPackageShare
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
+
 def generate_launch_description():
     config_file_arg = DeclareLaunchArgument(
         "config_file",
@@ -29,7 +30,7 @@ def generate_launch_description():
         default_value="false",
         description="Comma-separated list of controller config overrides",
     )
-    
+
     ik_on = LaunchConfiguration('ik_on')
     ik_arg = DeclareLaunchArgument(
         "ik_on",
@@ -43,12 +44,15 @@ def generate_launch_description():
         default_value="false",
         description="Comma-separated list of controller config overrides",
     )
-    
+
     joy_node = Node(
         package='joy',
         executable='joy_node',
         name='joy_node',
-        output='screen'
+        output='screen',
+        remappings=[
+            ('/joy', '/arm/joy')
+        ]
     )
     # Arm_Controller node
     virtual_arm_controller_node = Node(
@@ -129,10 +133,8 @@ def generate_launch_description():
         rviz_launch,
         rviz_tunnel
     ])
-
-
-'''
-Need to convert the following to Python (it was commented out in XML
+\
+"""Need to convert the following to Python (it was commented out in XML.
 
 <!--node name="repub_wrist_cam" pkg="rover" type="repub_wrist_cam.py" output="screen"/-->
 
@@ -156,4 +158,4 @@ Need to convert the following to Python (it was commented out in XML
 <!--node name="CAN_send" pkg="rover" type="CAN_send.py" output="screen"/>
 
 <node name="CAN_recv" pkg="rover" type="CAN_send.py" output="screen"/-->):
-'''
+"""

@@ -1,8 +1,10 @@
-"""
-    Launches the planner server node, along with the move_group and transforms necessary to run it.
-    Will additionally launch a second node that makes requests to the server based on the informaiton 
-    in the arm_target_pose topic. It will then take the service's response and publish it to arm_goal_pos
-    which can then be read by safety before being published to the arm.
+"""Launches the planner server node, along with the move_group and transforms
+necessary to run it.
+
+Will additionally launch a second node that makes requests to the server based
+on the informaiton in the arm_target_pose topic. It will then take the service's
+response and publish it to arm_goal_pos which can then be read by safety before
+being published to the arm.
 """
 
 import os
@@ -15,6 +17,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from moveit_configs_utils import MoveItConfigsBuilder
 from ament_index_python.packages import get_package_share_directory
+
 
 def launch_setup(context, *args, **kwargs):
     # Build MoveIt configuration
@@ -125,22 +128,20 @@ def launch_setup(context, *args, **kwargs):
         executable="spawner",
         arguments=["end_effector_controller", "-c", "/controller_manager"],
     )
-
-    """
-        We may need to call "execute" on planning to get the joint states to update!!!    
-    """
-
+    """We may need to call "execute" on planning to get the joint states to
+    update!!!"""
     return [
-            # planner_server_node,
-            move_group_launch,
-            path_planner_publisher_node,
-            # static_tf_node,
-            robot_state_publisher,
-            ros2_control_node,
-            # joint_state_broadcaster_spawner,
-            arm_controller_spawner,
-            ee_controller_spawner,
-            ]
+        # planner_server_node,
+        move_group_launch,
+        path_planner_publisher_node,
+        # static_tf_node,
+        robot_state_publisher,
+        ros2_control_node,
+        # joint_state_broadcaster_spawner,
+        arm_controller_spawner,
+        ee_controller_spawner,
+    ]
+
 
 def generate_launch_description():
     declared_arguments = []
