@@ -31,8 +31,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: rsx-utoronto/trac_ik_humble # Replace with your target repo (e.g., my-org/other-pkg)
-          token: ${{ secrets.EXTRA_REPO_PAT }} # GitHub Personal Access Token if repo is private
-          path: arm_ros2_ws/src/second_repo
+          path: arm_ros2_ws/src/trac_ik_humble
 
       # Step 3: Build the ROS 2 Workspace
       - name: Build Workspace
