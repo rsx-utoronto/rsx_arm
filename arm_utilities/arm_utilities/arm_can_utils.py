@@ -17,8 +17,7 @@ WRIST_RATIO = 5/4
 
 def generate_can_id(dev_id: int, api: int,
                     man_id=0x05, dev_type=0x2) -> int:
-    """
-    (int, int, int, int, int) -> (int)
+    """(int, int, int, int, int) -> (int)
 
     Generates a valid extended CAN ID for a Rev object (SparkMAX by default) 
     with id "dev_id" and API call "api"
@@ -32,7 +31,6 @@ def generate_can_id(dev_id: int, api: int,
 
     Note: The complete CAN ID should never be larger than 29 bits
     """
-
     # Forming the CAN ID
     can_id = 0 << 5
     can_id = (can_id | dev_type) << 8
@@ -43,11 +41,10 @@ def generate_can_id(dev_id: int, api: int,
 
 
 def pos_to_sparkdata(f: float) -> list:
-    """
-    float -> list(int)
+    """Float -> list(int)
 
-    Takes in a float position value (number of rotations) and returns the data packet in the form that
-    SparkMAX requires
+    Takes in a float position value (number of rotations) and returns the data
+    packet in the form that SparkMAX requires
 
     @parameters:
 
@@ -63,11 +60,10 @@ def pos_to_sparkdata(f: float) -> list:
 
 
 def power_to_sparkdata(f: float) -> list:
-    """
-    float -> list(int)
+    """Float -> list(int)
 
     Takes in a float duty cycle value (power percentage) and returns the data packet in the form that
-    SparkMAX requires: 8-byte CAN payload consists of the converted value in a 4-byte IEEE 754 float 
+    SparkMAX requires: 8-byte CAN payload consists of the converted value in a 4-byte IEEE 754 float
     and 4 zero bytes appended at the end.
 
     @parameters:
@@ -87,14 +83,11 @@ def power_to_sparkdata(f: float) -> list:
 
 
 def sparkfixed_to_float(fixed: int, frac: int = 5) -> float:
-    """
-    (int, int) -> (float)
-    Returns floating point representation of the fixed point represenation of 
-    data received from SparkMAX
+    """(int, int) -> (float) Returns floating point representation of the fixed
+    point represenation of data received from SparkMAX.
 
-    @parameters:
-    fixed (int): Input fixed point number from SparkMAX
-    frac (int) (optional): Number of fractional bits
+    @parameters: fixed (int): Input fixed point number from SparkMAX frac (int)
+    (optional): Number of fractional bits
     """
     # Divide the received value by 2^(number of fractional bits)
     f = fixed / (2 ** frac)
@@ -102,8 +95,7 @@ def sparkfixed_to_float(fixed: int, frac: int = 5) -> float:
 
 
 def initialize_bus(channel='can0', interface='socketcan', receive_own_messages=False):
-    """
-    (str, str) -> (None)
+    """(str, str) -> (None)
 
     Creates an instance of the CAN bus for sending and receiving
     CAN messages. By defaul, the network it searches for is named 'can0'
@@ -127,8 +119,7 @@ def initialize_bus(channel='can0', interface='socketcan', receive_own_messages=F
 
 
 def send_can_message(bus, can_id: int, data=None, ext=True, err=False, rtr=False) -> None:
-    """
-    (int, list(float), bool, bool, bool) -> (None)
+    """(int, list(float), bool, bool, bool) -> (None)
 
     Forms and sends the complete CAN packet with the given data and can_id
 
@@ -143,7 +134,6 @@ def send_can_message(bus, can_id: int, data=None, ext=True, err=False, rtr=False
     rtr (bool) (optional) = True if it is remote frame, False otherwise.
         False by default
     """
-
     # Converting list data to byte
     if data:
         data = bytes(data)
@@ -169,8 +159,7 @@ def send_can_message(bus, can_id: int, data=None, ext=True, err=False, rtr=False
 
 
 def read_can_message(data, api, motor_num: int = 0) -> float:
-    """
-    (bytearray, int, int) -> (float)
+    """(bytearray, int, int) -> (float)
 
     Converts CAN data packets from hex to float decimal values based on which API is 
     called
@@ -240,8 +229,7 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
 
 # NEEDS CALIBRATION
 def calc_differential(roll: float, pitch: float) -> tuple:
-    """
-    (float, (float) --> tuple(float)
+    """(float, (float) --> tuple(float)
 
     Calculates the motor angle (in degrees) for wrist motors based on the provided roll and
     pitch angles (in degrees)
@@ -251,7 +239,6 @@ def calc_differential(roll: float, pitch: float) -> tuple:
     roll (float): roll angle for the gripper (in degrees)
     pitch (float): pitch angle for the gripper (in degrees)
     """
-
     # Motor movement required to produce roll
     wrist_motor1 = roll * WRIST_RATIO + pitch
     wrist_motor2 = roll * WRIST_RATIO - pitch
@@ -264,8 +251,7 @@ def calc_differential(roll: float, pitch: float) -> tuple:
 
 
 def generate_data_packet(data_list: list) -> list:
-    """
-    list(float) -> list(list(int))
+    """List(float) -> list(list(int))
 
     Takes in the goal position angles for each motor and converts them to bytearrays specific for
     each motor
@@ -274,7 +260,6 @@ def generate_data_packet(data_list: list) -> list:
 
     data_list (list(float)): List containing the anglular positions (in degrees) for each motor in the order
     """
-
     # Angle conversion for differential system
     # Assuming the last two angles specify the angle of the differential system,
     # convert those two values to the required angles for motors 5 and 6

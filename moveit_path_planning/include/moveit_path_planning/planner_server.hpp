@@ -44,7 +44,7 @@ private:
   std::shared_ptr<moveit::planning_interface::MoveGroupInterface> move_group_;
   std::shared_ptr<moveit::planning_interface::PlanningSceneInterface> planning_scene_interface_;
   planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor_;
-  
+
   // ROS interfaces
   rclcpp::Service<PlanMotion>::SharedPtr plan_service_;
   rclcpp_action::Server<PlanAndExecute>::SharedPtr plan_execute_action_;
@@ -63,7 +63,7 @@ private:
   double default_cartesian_jump_threshold_;
   bool default_allow_replanning_;
   bool use_time_optimal_parameterization_;
-  
+
   // Random number generator for deterministic mode
   std::mt19937_64 rng_;
 
@@ -76,10 +76,10 @@ private:
   rclcpp_action::GoalResponse handlePlanAndExecuteGoal(
     const rclcpp_action::GoalUUID & uuid,
     std::shared_ptr<const PlanAndExecute::Goal> goal);
-  
+
   rclcpp_action::CancelResponse handlePlanAndExecuteCancel(
     const std::shared_ptr<GoalHandlePlanAndExecute> goal_handle);
-  
+
   void handlePlanAndExecuteAccepted(
     const std::shared_ptr<GoalHandlePlanAndExecute> goal_handle);
 

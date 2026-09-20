@@ -1,7 +1,6 @@
 from sensor_msgs.msg import Joy
 from arm_msgs.msg import ArmInputs
 from geometry_msgs.msg import Pose
-from std_msgs.msg import Float32MultiArray
 # from pynput import keyboard
 from scipy.spatial.transform import Rotation as R
 
@@ -54,7 +53,7 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
     }
     target_joints = current_joints
     for n, key in enumerate(manual_commands.keys()):
-        target_joints[n] = manual_commands[key] * \
+        target_joints[n] = manual_commands[key] *\
             speed_limits[n] + current_joints[n]
 
     return target_joints
@@ -67,7 +66,7 @@ def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
     new_pose = Pose()
     new_pose.position.x = curr_pose.position.x + arm_inputs.l_horizontal * delta
     new_pose.position.y = curr_pose.position.y + arm_inputs.l_vertical * delta
-    new_pose.position.z = curr_pose.position.z + \
+    new_pose.position.z = curr_pose.position.z +\
         (arm_inputs.r_trigger - arm_inputs.l_trigger) * delta
 
     delta_r = R.from_euler('XYZ', [

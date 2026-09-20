@@ -47,7 +47,7 @@ private:
     js.position.resize(NUM_JOINTS);
 
     for (size_t i = 0; i < NUM_JOINTS; ++i) {
-      js.position[i] = static_cast<double>(msg->data[i])*3.14/180.0;  // Convert degrees to radians
+      js.position[i] = static_cast<double>(msg->data[i]) * 3.14 / 180.0;  // Convert degrees to radians
     }
 
     joint_pub_->publish(js);
@@ -59,7 +59,7 @@ private:
   std::vector<std::string> joint_names_;
 };
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<IkToRvizJointState>());

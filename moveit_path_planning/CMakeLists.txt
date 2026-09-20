@@ -155,6 +155,14 @@ if(BUILD_TESTING)
   # Linters
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
+
+  # Exclude style and docstring linters (way too pedantic to be useful):
+  set(AMENT_LINT_AUTO_EXCLUDE
+    ament_cmake_pep257
+    ament_cmake_flake8
+    ament_cmake_uncrustify
+    ament_cmake_lint_cmake
+  )
   ament_lint_auto_find_test_dependencies()
 
   # Unit tests

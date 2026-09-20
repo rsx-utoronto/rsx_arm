@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""
-Camera Node for ArUco-based Keyboard Detection
-Uses OpenCV's native ArUco detection instead of YOLO for better accuracy
-Calculates 3D positions using RealSense depth data and camera intrinsics
+"""Camera Node for ArUco-based Keyboard Detection Uses OpenCV's native ArUco
+detection instead of YOLO for better accuracy Calculates 3D positions using
+RealSense depth data and camera intrinsics.
 """
 
 from sensor_msgs.msg import Image, CameraInfo
-from std_msgs.msg import Float32MultiArray
 from arm_msgs.msg import KeyboardCoords
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
@@ -18,8 +16,8 @@ import time
 
 
 class CameraNode(Node):
-    """
-    Camera node for detecting ArUco markers and computing keyboard corner positions
+    """Camera node for detecting ArUco markers and computing keyboard corner
+    positions.
     """
 
     def __init__(self):
@@ -88,7 +86,7 @@ class CameraNode(Node):
         # self.get_logger().info(f"Expected ArUco marker IDs: {self.marker_ids}")
 
     def setup_aruco_detector(self):
-        """Setup OpenCV ArUco detector with appropriate dictionary"""
+        """Setup OpenCV ArUco detector with appropriate dictionary."""
         # Choose ArUco dictionary - adjust based on your markers
         # Common options:
         # - cv2.aruco.DICT_4X4_50: 4x4 bits, 50 markers
@@ -118,8 +116,7 @@ class CameraNode(Node):
         self.get_logger().info("ArUco detector initialized with DICT_4X4_50")
 
     def camera_info_callback(self, data):
-        """
-        Parse camera intrinsics from ROS CameraInfo message
+        """Parse camera intrinsics from ROS CameraInfo message
         K matrix layout: [fx, 0, cx, 0, fy, cy, 0, 0, 1]
         """
         if not self.intrinsics_ready:
@@ -148,7 +145,7 @@ class CameraNode(Node):
             )
 
     def update_depth_map(self, data):
-        """Update the depth frame from ROS message"""
+        """Update the depth frame from ROS message."""
         try:
             # Depth is typically uint16 in millimeters
             self.last_depth_frame = self.bridge.imgmsg_to_cv2(
@@ -158,7 +155,7 @@ class CameraNode(Node):
             self.get_logger().error(f"Depth conversion error: {e}")
 
     def image_callback(self, data):
-        """Main callback for processing RGB images"""
+        """Main callback for processing RGB images."""
         try:
             # Convert ROS Image to OpenCV format
             cv_image = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
@@ -201,8 +198,7 @@ class CameraNode(Node):
             self.get_logger().error(f"Error in image callback: {e}")
 
     def process_aruco_markers(self, corners, ids, image):
-        """
-        Process detected ArUco markers to compute keyboard corner positions
+        """Process detected ArUco markers to compute keyboard corner positions
         Identifies corners by spatial position (top-left, top-right, etc.)
 
         Args:
@@ -212,6 +208,7 @@ class CameraNode(Node):
 
         Returns:
             KeyboardCorners message with 3D positions, or None if failed
+
         """
         if not self.intrinsics_ready:
             self.get_logger().warn(
@@ -341,14 +338,14 @@ class CameraNode(Node):
             return None
 
     def validate_corner_geometry(self, corners_3d):
-        """
-        Validate that the detected corners form a reasonable quadrilateral
+        """Validate that the detected corners form a reasonable quadrilateral.
 
         Args:
             corners_3d: List of 4 corners [TL, TR, BR, BL] as [x, y, z]
 
         Returns:
             True if geometry is valid, False otherwise
+
         """
         if len(corners_3d) != 4:
             return False
@@ -358,7 +355,7 @@ class CameraNode(Node):
         # Check 1: All corners should have similar Z depth (planar object)
         z_values = [c[2] for c in corners_3d]
         z_std = np.std(z_values)
-        z_mean = np.mean(z_values)
+        np.mean(z_values)
 
         if z_std > 0.1:  # More than 10cm variation in depth
             self.get_logger().warn(
@@ -369,7 +366,7 @@ class CameraNode(Node):
 
         # Check 2: Width should be reasonable (typical keyboard is 0.3-0.5m wide)
         width_top = np.linalg.norm(tr - tl)
-        width_bottom = np.linalg.norm(br - bl)
+        np.linalg.norm(br - bl)
 
         if width_top < 0.1 or width_top > 1.0:
             self.get_logger().warn(
@@ -380,7 +377,7 @@ class CameraNode(Node):
 
         # Check 3: Height should be reasonable (typical keyboard is 0.1-0.2m tall)
         height_left = np.linalg.norm(bl - tl)
-        height_right = np.linalg.norm(br - tr)
+        np.linalg.norm(br - tr)
 
         if height_left < 0.05 or height_left > 0.5:
             self.get_logger().warn(
@@ -401,14 +398,14 @@ class CameraNode(Node):
         return True
 
     def get_3d_positions(self, pixel_coords):
-        """
-        Convert list of 2D pixel coordinates to 3D positions
+        """Convert list of 2D pixel coordinates to 3D positions.
 
         Args:
             pixel_coords: List of (x, y) pixel coordinates
 
         Returns:
             List of (x, y, z) 3D positions in meters, or None if any failed
+
         """
         positions_3d = []
 
@@ -427,14 +424,15 @@ class CameraNode(Node):
         return positions_3d
 
     def deproject_pixel_to_point(self, pixel):
-        """
-        Deproject 2D pixel coordinate to 3D point using depth and camera intrinsics
+        """Deproject 2D pixel coordinate to 3D point using depth and camera
+        intrinsics.
 
         Args:
             pixel: (x, y) pixel coordinate
 
         Returns:
             (x, y, z) 3D point in meters, or None if depth invalid
+
         """
         # Ensure pixel coordinates are within bounds
         x, y = int(pixel[0]), int(pixel[1])
@@ -483,8 +481,7 @@ class CameraNode(Node):
         return [X, Y, Z]
 
     def get_average_depth(self, pixel, window_size=5):
-        """
-        Get average depth in a window around the pixel to reduce noise
+        """Get average depth in a window around the pixel to reduce noise.
 
         Args:
             pixel: (x, y) pixel coordinate
@@ -492,6 +489,7 @@ class CameraNode(Node):
 
         Returns:
             Average depth value in raw units, or 0 if invalid
+
         """
         x, y = int(pixel[0]), int(pixel[1])
         half_window = window_size // 2

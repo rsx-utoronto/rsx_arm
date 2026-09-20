@@ -63,12 +63,14 @@ for i in range(7):
 
 
 class quinticPolynomial:
-    ''' Creates a quintic polynomial that determines the path of a joint angle.
+    """Creates a quintic polynomial that determines the path of a joint angle.
+
     initialized with the following parameters:
     qI / qF - initial / final joint angle
     vI / vF - initial / final joint angular velocity
     aI / aF - initial / final joint angular acceleration
-    tF - final time (time it takes to reach qF)'''
+    tF - final time (time it takes to reach qF)
+    """
 
     def __init__(self, qI, qF, vI, vF, aI, aF, tF):
         if (qF - qI > 0):
@@ -104,9 +106,9 @@ class quinticPolynomial:
             self.a5 = x[2]
 
     def calculatePoint(self, time):
-        ''' Uses polynomial to calculate desired angle at specified time'''
-        q = self.a0 + self.compFactor*self.a1*time + (self.compFactor**2)*self.a2*time**2 + \
-            (self.compFactor**3)*self.a3*time**3 + (self.compFactor**4) * \
+        """Uses polynomial to calculate desired angle at specified time."""
+        q = self.a0 + self.compFactor*self.a1*time + (self.compFactor**2)*self.a2*time**2 +\
+            (self.compFactor**3)*self.a3*time**3 + (self.compFactor**4) *\
             self.a4*time**4 + (self.compFactor**5)*self.a5*time**5
         return q
 
@@ -120,8 +122,12 @@ class quinticPolynomial:
 
 
 def moveToPosition(posI, posF, endTime):
-    ''' Uses class quinticPolynomial to calculate quintic trajectory for each joint angle.
-    Updates arm_goal_pos at 10hz (which can be changed with the frequency variable)'''
+    """Uses class quinticPolynomial to calculate quintic trajectory for each
+    joint angle.
+
+    Updates arm_goal_pos at 10hz (which can be changed with the frequency
+    variable)
+    """
     global pubArmAngles
     global rate
     global simAngles

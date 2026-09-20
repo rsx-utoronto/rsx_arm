@@ -1,38 +1,36 @@
 #!/usr/bin/env python3
+"""Cyberpunk-themed ROS2 GUI for robotic arm monitoring Supports custom
+TargetPositionArray message type.
 """
-Cyberpunk-themed ROS2 GUI for robotic arm monitoring
-Supports custom TargetPositionArray message type
-"""
+
 import sys
 import time
 import math
-from typing import List, Dict, Optional
+from typing import Dict
 
 import rclpy
 from rclpy.node import Node
-import cv2
 from cv_bridge import CvBridge
 import numpy as np
 
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QFrame, QScrollArea, QGridLayout, QCheckBox,
-    QGroupBox
+    QFrame, QScrollArea, QGridLayout, QCheckBox, QGroupBox
 )
 from PyQt5.QtGui import QFont, QColor, QPalette, QImage, QPixmap
 
-from std_msgs.msg import String, Float32MultiArray, Bool
+from std_msgs.msg import String, Float32MultiArray
 from sensor_msgs.msg import Image
 
 # Custom message type for target positions of keyboard
-from arm_msgs.msg import TargetPositionArray, TargetPosition, ArmStatuses
+from arm_msgs.msg import TargetPosition, ArmStatuses
 
-from arm_utilities.arm_enum_utils import ArmState, SafetyErrors
+from arm_utilities.arm_enum_utils import ArmState
 
 
 class CyberpunkLabel(QLabel):
-    """Custom label with cyberpunk styling"""
+    """Custom label with cyberpunk styling."""
 
     def __init__(self, text="", glow_color="#00ff00"):
         super().__init__(text)
@@ -52,7 +50,7 @@ class CyberpunkLabel(QLabel):
 
 
 class StatusIndicator(QFrame):
-    """Cyberpunk-style status indicator with glow effect"""
+    """Cyberpunk-style status indicator with glow effect."""
 
     def __init__(self, title: str, color: str = "#00ff00"):
         super().__init__()
@@ -109,14 +107,14 @@ class StatusIndicator(QFrame):
 
 
 class TargetDisplay(QFrame):
-    """Display for individual target with distance information"""
+    """Display for individual target with distance information."""
 
     def __init__(self, name: str):
         super().__init__()
         self.name = name
-
         self.setFrameStyle(QFrame.Box)
-        self.setStyleSheet("""
+        self.setStyleSheet(\
+                           """
             QFrame {
                 border: 1px solid #00ddff;
                 border-radius: 3px;
@@ -124,7 +122,8 @@ class TargetDisplay(QFrame):
                 margin: 2px;
                 padding: 5px;
             }
-        """)
+        """
+           )
 
         layout = QGridLayout(self)
         layout.setSpacing(5)
@@ -132,7 +131,8 @@ class TargetDisplay(QFrame):
 
         # Target name
         name_label = QLabel(f"◆ {name}")
-        name_label.setStyleSheet("""
+        name_label.setStyleSheet(\
+                                 """
             QLabel {
                 color: #00ddff;
                 font-family: 'Courier New', monospace;
@@ -140,7 +140,8 @@ class TargetDisplay(QFrame):
                 font-weight: bold;
                 border: none;
             }
-        """)
+        """
+           )
         layout.addWidget(name_label, 0, 0, 1, 4)
 
         # Distance labels
@@ -150,14 +151,16 @@ class TargetDisplay(QFrame):
         self.z_label = QLabel("Z: ---")
 
         for lbl in [self.dist_label, self.x_label, self.y_label, self.z_label]:
-            lbl.setStyleSheet("""
+            lbl.setStyleSheet(\
+                              """
                 QLabel {
                     color: #00ffaa;
                     font-family: 'Courier New', monospace;
                     font-size: 9pt;
                     border: none;
                 }
-            """)
+            """
+               )
 
         layout.addWidget(self.dist_label, 1, 0)
         layout.addWidget(self.x_label, 1, 1)
@@ -172,20 +175,22 @@ class TargetDisplay(QFrame):
 
 
 class CameraFeed(QLabel):
-    """Camera feed display with cyberpunk border"""
+    """Camera feed display with cyberpunk border."""
 
     def __init__(self):
         super().__init__()
         self.setMinimumSize(640, 480)
         self.setMaximumSize(800, 600)
         self.setScaledContents(True)
-        self.setStyleSheet("""
+        self.setStyleSheet(\
+                           """
             QLabel {
                 border: 3px solid #ff00ff;
                 background-color: #000000;
                 border-radius: 5px;
             }
-        """)
+        """
+           )
         self.setText("CAMERA FEED\n(waiting...)")
         self.setAlignment(Qt.AlignCenter)
         self.setFont(QFont('Courier New', 14, QFont.Bold))
@@ -196,7 +201,7 @@ class CameraFeed(QLabel):
         self.setPalette(palette)
 
     def update_image(self, cv_image):
-        """Convert OpenCV image to QPixmap and display"""
+        """Convert OpenCV image to QPixmap and display."""
         try:
             height, width, channel = cv_image.shape
             bytes_per_line = 3 * width
@@ -217,7 +222,7 @@ class CameraFeed(QLabel):
 
 
 class ArmGUI(Node, QWidget):
-    """Main GUI class for arm monitoring interface"""
+    """Main GUI class for arm monitoring interface."""
 
     # Signals for thread-safe GUI updates
     image_signal = pyqtSignal(object)
@@ -274,12 +279,12 @@ class ArmGUI(Node, QWidget):
         self.target_displays = {}
 
     def setup_ui(self):
-        """Setup the main UI with cyberpunk theme"""
+        """Setup the main UI with cyberpunk theme."""
         self.setWindowTitle("◢ ARM CONTROL INTERFACE ◣")
         self.setGeometry(100, 100, 1400, 900)
-
         # Main dark background with neon accents
-        self.setStyleSheet("""
+        self.setStyleSheet(\
+                           """
             QWidget {
                 background-color: #0a0a0a;
                 color: #00ff00;
@@ -307,7 +312,8 @@ class ArmGUI(Node, QWidget):
             QCheckBox::indicator:hover {
                 border-color: #00ffff;
             }
-        """)
+        """
+           )
 
         main_layout = QHBoxLayout(self)
         main_layout.setSpacing(10)
@@ -426,7 +432,7 @@ class ArmGUI(Node, QWidget):
         main_layout.addLayout(right_panel, 1)
 
     def create_group_box(self, title: str, color: str) -> QGroupBox:
-        """Create a styled group box with cyberpunk aesthetics"""
+        """Create a styled group box with cyberpunk aesthetics."""
         group = QGroupBox(title)
         group.setStyleSheet(f"""
             QGroupBox {{
@@ -450,8 +456,7 @@ class ArmGUI(Node, QWidget):
         return group
 
     def setup_ros_subscriptions(self):
-        """
-        Setup ROS2 topic subscriptions
+        """Setup ROS2 topic subscriptions
         TODO: Update topic names to match your system
         """
         # Existing subscriptions from original code
@@ -493,28 +498,27 @@ class ArmGUI(Node, QWidget):
     # ========== ROS Callback Methods ==========
 
     def on_state(self, msg: String):
-        """Handle arm state updates"""
+        """Handle arm state updates."""
         self.state = ArmState[msg.data]
         self.last_update_time["state"] = time.time()
         self.state_indicator.update_status(msg.data)
 
     def on_curr_joints(self, msg: Float32MultiArray):
-        """Handle current joint angles update"""
+        """Handle current joint angles update."""
         self.curr_joints = list(msg.data)
         self.last_update_time["curr_joints"] = time.time()
         self.curr_joints_indicator.update_status(
             self._fmt_joints(list(msg.data)))
 
     def on_target_joints(self, msg: Float32MultiArray):
-        """Handle target joint angles update"""
+        """Handle target joint angles update."""
         self.target_joints = list(msg.data)
         self.last_update_time["target_joints"] = time.time()
         self.target_joints_indicator.update_status(
             self._fmt_joints(list(msg.data)))
 
     def on_curr_pose(self, msg: Float32MultiArray):
-        """
-        Handle current pose update (x, y, z, roll, pitch, yaw)
+        """Handle current pose update (x, y, z, roll, pitch, yaw)
         Expected array: [x, y, z, roll, pitch, yaw]
         """
         self.curr_pose = list(msg.data)
@@ -529,10 +533,7 @@ class ArmGUI(Node, QWidget):
             self.pose_indicator.update_status(pose_str)
 
     def on_camera(self, msg: Image):
-        """
-        Handle camera image messages
-        Converts ROS Image to OpenCV format
-        """
+        """Handle camera image messages Converts ROS Image to OpenCV format."""
         try:
             # Convert ROS Image message to OpenCV image
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
@@ -543,8 +544,7 @@ class ArmGUI(Node, QWidget):
             self.get_logger().error(f"Camera conversion error: {e}")
 
     def on_targets(self, msg: TargetPosition):
-        """
-        Handle target positions (String placeholder version)
+        """Handle target positions (String placeholder version)
         TODO: Replace with on_targets_custom when using TargetPositionArray
 
         Expected format: "name1,x,y,z,dist;name2,x,y,z,dist;..."
@@ -569,24 +569,24 @@ class ArmGUI(Node, QWidget):
         #     self.get_logger().error(f"Target parsing error: {e}")
 
     def on_limit_switches(self, msg: String):
-        """Handle limit switch status update"""
+        """Handle limit switch status update."""
         self.last_update_time["limit_switches"] = time.time()
         self.limit_switches_indicator.update_status(msg.data)
 
     def on_safety_status(self, msg: String):
-        """Handle safety status update"""
+        """Handle safety status update."""
         self.safety_status = msg.data
         self.last_update_time["safety"] = time.time()
         self.safety_indicator.update_status(msg.data)
 
     def on_homing_status(self, msg: String):
-        """Handle homing status update"""
+        """Handle homing status update."""
         self.homing_status = msg.data
         self.last_update_time["homing"] = time.time()
         self.homing_indicator.update_status(msg.data)
 
     def on_path_planning_status(self, msg: String):
-        """Handle path planning execution status update"""
+        """Handle path planning execution status update."""
         self.path_planning_status = msg.data
         self.last_update_time["path_planning"] = time.time()
         self.path_indicator.update_status(msg.data)
@@ -594,13 +594,12 @@ class ArmGUI(Node, QWidget):
     # ========== Helper Methods ==========
 
     def _update_camera_display(self, cv_image):
-        """Thread-safe camera display update"""
+        """Thread-safe camera display update."""
         self.camera_feed.update_image(cv_image)
 
     def _update_target_displays(self):
-        """
-        Update target display widgets
-        Sorts targets by distance (closest to furthest)
+        """Update target display widgets Sorts targets by distance (closest to
+        furthest)
         """
         # Clear existing target displays
         # while self.targets_layout.count() > 1:  # Keep the stretch at the end
@@ -636,7 +635,7 @@ class ArmGUI(Node, QWidget):
             # Insert before the stretch
 
     def toggle_target_display(self):
-        """Toggle visibility of target data fields based on checkboxes"""
+        """Toggle visibility of target data fields based on checkboxes."""
         for i in range(self.targets_layout.count()):
             item = self.targets_layout.itemAt(i)
             if item and item.widget() and isinstance(item.widget(), TargetDisplay):
@@ -647,10 +646,7 @@ class ArmGUI(Node, QWidget):
                 display.z_label.setVisible(self.z_check.isChecked())
 
     def _fmt_joints(self, joints: list) -> str:
-        """
-        Format joint angles for display
-        Converts radians to degrees
-        """
+        """Format joint angles for display Converts radians to degrees."""
         if not joints:
             return "(no data)"
         parts = []
@@ -665,9 +661,8 @@ class ArmGUI(Node, QWidget):
         return " | ".join(parts)
 
     def _mark_stale_if_needed(self):
-        """
-        Check if any data streams have gone stale
-        Updates displays to show "(waiting...)" for stale data
+        """Check if any data streams have gone stale Updates displays to show
+        "(waiting...)" for stale data.
         """
         now = time.time()
         t = self.stale_after_s
@@ -693,7 +688,7 @@ class ArmGUI(Node, QWidget):
 
 
 def main():
-    """Main entry point"""
+    """Main entry point."""
     rclpy.init()
     app = QApplication(sys.argv)
 

@@ -6,16 +6,15 @@ import threading
 import numpy as np
 
 from sensor_msgs.msg import Joy, JointState
-from std_msgs.msg import Int16, String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
-from arm_msgs.msg import ArmInputs, KeyboardCoords, TargetPosition
-from geometry_msgs.msg import Pose, Point, Quaternion
+from std_msgs.msg import String, UInt8, Float32MultiArray, UInt8MultiArray
+from arm_msgs.msg import ArmInputs, KeyboardCoords
+from geometry_msgs.msg import Pose
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, map_inputs_to_manual, map_inputs_to_ik
 from arm_configs.loader import load_arm_controller_config_from_node, load_keyboard_config_from_node
 from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
 import copy
-import functools
 # from pynput import keyboard
 import time
 import math
@@ -28,11 +27,10 @@ import sys
 
 
 class Controller(Node):
-    """
-    (None)
+    """(None)
 
-    This class represents an instance of controller node and connects the node to 
-    its publishing and subscribing topics
+    This class represents an instance of controller node and connects the node
+    to its publishing and subscribing topics
     """
 
     def __init__(self, can_update_rate=1000, n_joints=7, virtual=False):
@@ -143,9 +141,9 @@ class Controller(Node):
 
         # Joint limit tracking
         self.at_limit = [False] * self.n_joints
-
         # Homing state/params
-        """joint index is numbered 0 to 5 in order of base rotation, shoulder, elbow, wrist_pitch, wrist_roll, gripper"""
+        """Joint index is numbered 0 to 5 in order of base rotation, shoulder,
+        elbow, wrist_pitch, wrist_roll, gripper."""
         self.homed = [False] * self.n_joints
         self.homing = HomingStatus.IDLE
         self.homing_pid = {"P": 0.2, "I": 0.1, "D": 0}
@@ -261,7 +259,7 @@ class Controller(Node):
                         (wrist1_angle - wrist2_angle) / 2)
 
                 else:
-                    self.current_joints[index] = value + \
+                    self.current_joints[index] = value +\
                         self.joint_offsets[index]
 
                 # Check if angle has ben calibrated to encoder measured initial angles
@@ -429,7 +427,6 @@ class Controller(Node):
                             # self.target_pose_pub.publish(target_pose)
                             self.executing_path = True
                             self.path_executor_thread.start()
-                    pass
         # TODO: arm pose should update with the arm's movement, this can be done with internal state that's checked with against the real state but requires testing for jitter
         if self.state != ArmState.IK:
             # TODO: need to be updating internal pose state using FK pose updates, need to resolve discrepancies from IK solutions
@@ -450,12 +447,12 @@ class Controller(Node):
     def home_arm(self, joint_indices=[0, 1, 2, 3, 4, 5, 6],  hz: float = 50.0):
         # endpoint refers to positive-direction endpoint
         # TODO: handle homing in parallel either using the multithreaded executor provided by ROS2 or moving it to a different node altogether
-        """joint index is numbered 0 to 6 in order of base rotation, shoulder, elbow, elbow roll, wrist_pitch, wrist_roll, gripper"""
+        """Joint index is numbered 0 to 6 in order of base rotation, shoulder,
+        elbow, elbow roll, wrist_pitch, wrist_roll, gripper.
+        """
         period = 1.0 / hz
         target_joints = copy.deepcopy(self.current_joints)
         joint_offsets = [0.0] * self.n_joints
-        base_joint_status = 0
-        wrist_roll_status = 0
         while self.homing == HomingStatus.ACTIVE and self.shutdown == False:
             for joint_index in joint_indices():
                 # make sure current_joints isn't modified by CAN thread while updating step
@@ -472,20 +469,20 @@ class Controller(Node):
                             if joint_index == 0 or joint_index == 6:
                                 if joint_index == 0:
                                     joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
-                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 +\
                                         self.initial_positions[joint_index]
                                     if self.last_quadrant[0] == 1:
                                         joint_offsets[joint_index] += 360
 
                                 elif joint_index == 6:
                                     joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
-                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 +\
                                         self.initial_positions[joint_index]
                                     if self.last_quadrant[0] == 1:
                                         joint_offsets[joint_index] += 360
                             else:
                                 joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
-                                    self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                    self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 +\
                                     self.initial_positions[joint_index]
                             self.has_reached_endpoint[joint_index] = True
 
@@ -584,7 +581,7 @@ class Controller(Node):
         # zero_r = Rotation.identity()
         # tl_corner_tf = RigidTransform.from_components(np.array([corners[0].x, corners[0].y, corners[0].z]), zero_r)
         for key in self.keyboard_targets:
-            self.key_positions[key] = self.key_positions[key] + \
+            self.key_positions[key] = self.key_positions[key] +\
                 np.array([corners[0].x, corners[0].y,
                          corners[0].z], dtype=float)
 

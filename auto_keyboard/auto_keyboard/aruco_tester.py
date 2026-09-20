@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""
-ArUco Tag Position Tester
-Detects any ArUco tags in view and overlays their 3D positions on the live stream.
+"""ArUco Tag Position Tester Detects any ArUco tags in view and overlays their
+3D positions on the live stream.
 """
 
 from sensor_msgs.msg import Image, CameraInfo
@@ -128,8 +127,9 @@ class ArucoTester(Node):
     # ------------------------------------------------------------------
 
     def deproject(self, pixel):
-        """
-        Return (X, Y, Z) in metres for a pixel centre, or None if unavailable.
+        """Return (X, Y, Z) in metres for a pixel centre, or None if
+        unavailable.
+
         Uses median depth over a small window to reduce noise.
         """
         if not self.intrinsics_ready or self.last_depth_frame is None:

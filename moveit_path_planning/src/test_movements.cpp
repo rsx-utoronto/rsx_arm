@@ -21,26 +21,26 @@ int main(int argc, char * argv[])
   auto move_group_interface = MoveGroupInterface(node, "rover_arm");
 
   // Set a target Pose
-  auto const target_pose = []{
-    geometry_msgs::msg::Pose msg;
-    msg.orientation.w = 1.0;
-    msg.position.x = 0.05;
-    msg.position.y = 0.35;
-    msg.position.z = 0.6;
-    return msg;
-  }();
+  auto const target_pose = [] {
+      geometry_msgs::msg::Pose msg;
+      msg.orientation.w = 1.0;
+      msg.position.x = 0.05;
+      msg.position.y = 0.35;
+      msg.position.z = 0.6;
+      return msg;
+    }();
 
   move_group_interface.setPoseTarget(target_pose);
 
   // Create a plan to that target pose
-  auto const [success, plan] = [&move_group_interface]{
-    moveit::planning_interface::MoveGroupInterface::Plan msg;
-    auto const ok = static_cast<bool>(move_group_interface.plan(msg));
-    return std::make_pair(ok, msg);
-  }();
+  auto const [success, plan] = [&move_group_interface] {
+      moveit::planning_interface::MoveGroupInterface::Plan msg;
+      auto const ok = static_cast<bool>(move_group_interface.plan(msg));
+      return std::make_pair(ok, msg);
+    }();
 
   // Execute the plan
-  if(success) {
+  if (success) {
     move_group_interface.execute(plan);
   } else {
     RCLCPP_ERROR(logger, "Planning failed!");

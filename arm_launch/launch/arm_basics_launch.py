@@ -106,10 +106,8 @@ def generate_launch_description():
         arm_controller_node,
         gui_node
     ])
-
-
-'''
-Need to convert the following to Python (it was commented out in XML
+\
+"""Need to convert the following to Python (it was commented out in XML.
 
 <!--node name="repub_wrist_cam" pkg="rover" type="repub_wrist_cam.py" output="screen"/-->
 
@@ -133,4 +131,4 @@ Need to convert the following to Python (it was commented out in XML
 <!--node name="CAN_send" pkg="rover" type="CAN_send.py" output="screen"/>
 
 <node name="CAN_recv" pkg="rover" type="CAN_send.py" output="screen"/-->):
-'''
+"""

@@ -54,6 +54,7 @@ def load_config(
     Args:
         default_path: Path to the base YAML file.
         override_paths: One or more override YAML files deep-merged on top of the base.
+
     """
     merged = read_yaml(Path(default_path))
     for path in normalize_override_paths(override_paths):
@@ -71,8 +72,10 @@ def load_config_from_node(
 
     Declares and reads two node parameters (optionally prefixed to avoid
     collisions when loading multiple configs from the same node):
-        {param_prefix}_config_file:      override for the base YAML path (optional).
-        {param_prefix}_config_overrides: comma-separated override YAML paths (optional).
+    {param_prefix}_config_
+    file:
+    override for the base YAML path (optional).
+    {param_prefix}_config_overrides: comma-separated override YAML paths (optional).
     """
     p = f"{param_prefix}_" if param_prefix else ""
     file_param = f"{p}config_file"
