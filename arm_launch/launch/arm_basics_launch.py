@@ -6,6 +6,7 @@ from launch_ros.substitutions import FindPackageShare
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
+
 def generate_launch_description():
     config_file_arg = DeclareLaunchArgument(
         "config_file",
@@ -29,7 +30,7 @@ def generate_launch_description():
         default_value="false",
         description="Comma-separated list of controller config overrides",
     )
-    
+
     ik_on = LaunchConfiguration('ik_on')
     ik_arg = DeclareLaunchArgument(
         "ik_on",
@@ -43,7 +44,7 @@ def generate_launch_description():
         default_value="false",
         description="Comma-separated list of controller config overrides",
     )
-    
+
     joy_node = Node(
         package='joy',
         executable='joy_node',

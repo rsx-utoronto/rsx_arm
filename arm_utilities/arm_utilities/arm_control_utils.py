@@ -40,6 +40,7 @@ def handle_joy_input(msg: Joy):
 
     return arm_inputs
 
+
 def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_joints: list):
     manual_commands = {
         'base_rotation': arm_inputs.l_horizontal,
@@ -61,7 +62,7 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
 
 def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
     delta = 0.005  # Incremental change for position
-    delta_rot = 0.02 # Incremental change for orientation (radians)
+    delta_rot = 0.02  # Incremental change for orientation (radians)
 
     new_pose = Pose()
     new_pose.position.x = curr_pose.position.x + arm_inputs.l_horizontal * delta
@@ -69,15 +70,14 @@ def map_inputs_to_ik(arm_inputs: ArmInputs, curr_pose: Pose):
     new_pose.position.z = curr_pose.position.z + \
         (arm_inputs.r_trigger - arm_inputs.l_trigger) * delta
 
-
     delta_r = R.from_euler('XYZ', [
-    arm_inputs.r_vertical * delta_rot,
-    (arm_inputs.r1 - arm_inputs.l1) * delta_rot,
-    arm_inputs.r_horizontal * delta_rot
+        arm_inputs.r_vertical * delta_rot,
+        (arm_inputs.r1 - arm_inputs.l1) * delta_rot,
+        arm_inputs.r_horizontal * delta_rot
     ], degrees=False)
     r = R.from_quat([curr_pose.orientation.x, curr_pose.orientation.y,
                     curr_pose.orientation.z, curr_pose.orientation.w])
-    
+
     # TODO: needs testing
     new_r = delta_r * r  # Apply incremental rotation to current orientation
     new_quat = new_r.as_quat()

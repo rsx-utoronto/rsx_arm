@@ -226,7 +226,7 @@ def read_can_message(data, api, motor_num: int = 0) -> float:
             # Check if we have 8 hex characters in pos_hex, if not then pad it with zeros
             if len(pos_hex) != 10:
                 pos_hex = format(pos_float, '#010x')
-            
+
             # Converting the hex representation to floating point decimal value
             pos_float = struct.unpack('!f', bytes.fromhex(pos_hex[2:]))[0]
             # Returning the shaft angle in degrees
@@ -257,7 +257,8 @@ def calc_differential(roll: float, pitch: float) -> tuple:
     wrist_motor2 = roll * WRIST_RATIO - pitch
 
     # correction through the gripper motor to stop the gripper from opening and closing
-    gripper_correction = roll # rotate the nut in the opposite direction same amount (no gear ratios)
+    # rotate the nut in the opposite direction same amount (no gear ratios)
+    gripper_correction = roll
 
     return wrist_motor1, wrist_motor2, gripper_correction  # gripper_correction
 

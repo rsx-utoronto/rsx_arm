@@ -26,6 +26,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 import sys
 
+
 class Controller(Node):
     """
     (None)
@@ -106,16 +107,16 @@ class Controller(Node):
         # Joynode subscriber
         self.joy_sub = self.create_subscription(
             Joy, "/arm/joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
-        
+
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
             Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
-        
+
         self.path_planning_sub = self.create_subscription(
             RobotTrajectory, "trajectory_joints", self.get_trajectory, 10)
-        
+
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
-            self.cfg["subscriber_depth_queue"])
+                                                      self.cfg["subscriber_depth_queue"])
 
         # Safety subscribers
         self.joint_safety_sub = self.create_subscription(
@@ -123,9 +124,12 @@ class Controller(Node):
             self.cfg["subscriber_depth_queue"])
 
         self.homing_thread = threading.Thread(target=self.home_arm)
-        self.keyboard_coord_sub = self.create_subscription(KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)  
-        self.path_planner_target_pub = self.create_publisher(Float32MultiArray, "arm_path_planner_target_joints", 10)
-        self.path_planner_joint_sub = self.create_subscription(Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 100, callback_group=self.path_group)
+        self.keyboard_coord_sub = self.create_subscription(
+            KeyboardCoords, "keyboard_corners", self.handle_keyboard_coords, 10)
+        self.path_planner_target_pub = self.create_publisher(
+            Float32MultiArray, "arm_path_planner_target_joints", 10)
+        self.path_planner_joint_sub = self.create_subscription(
+            Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 100, callback_group=self.path_group)
         self.path_executor_thread = threading.Thread(
             target=self.path_executor_loop, daemon=True)
 
@@ -134,7 +138,8 @@ class Controller(Node):
         # will fill when a path is given
         self.current_path = []
         self.path_is_ready = False
-        self.joint_target_threshold = 1 # maximum allowed error in degrees to consider joint target reached
+        # maximum allowed error in degrees to consider joint target reached
+        self.joint_target_threshold = 1
 
         # Joint limit tracking
         self.at_limit = [False] * self.n_joints
@@ -168,12 +173,12 @@ class Controller(Node):
 
         self.arm_update_lock = threading.Lock()
 
-        self.threads = [self.homing_thread, 
-                        self.can_read_thread, 
+        self.threads = [self.homing_thread,
+                        self.can_read_thread,
                         # self.path_executor_thread
                         ]
         self.executing_path = False
-        
+
         # Initialization flags for CAN readings (for setting initial joint values)
         self.init = [False]*7
 
@@ -193,7 +198,8 @@ class Controller(Node):
         self.current_key = None
 
         # TODO: potentially remove
-        self.last_quadrant = [0, 0] # for tracking which side of the joint base and wrist are in
+        # for tracking which side of the joint base and wrist are in
+        self.last_quadrant = [0, 0]
         try:
             with open("limit_log.txt") as f:
                 data = f.read().split('\n')
@@ -203,8 +209,7 @@ class Controller(Node):
                     else:
                         self.last_quadrant[1] = int(line[-2:])
         except:
-            self.get_logger().warn ("error logging limits!")
-
+            self.get_logger().warn("error logging limits!")
 
     def read_can_callback(self):
         while self.shutdown == False:
@@ -222,18 +227,21 @@ class Controller(Node):
                     if index == 0 or index == 6:
                         # TODO: this should be cleaner, log if joint is on positive or negative side of limit
                         with open("limit_log.txt", "w") as f:
-                            f.write("Joint %d hit limit going: %f\n" % (index, math.copysign(1, self.current_joints[index])))
+                            f.write("Joint %d hit limit going: %f\n" % (
+                                index, math.copysign(1, self.current_joints[index])))
                             if index == 0:
-                                f.write("Joint 6 hit limit going %d\n" % self.current_joints[1])
+                                f.write("Joint 6 hit limit going %d\n" %
+                                        self.current_joints[1])
                             else:
-                                f.write("Joint 0 hit limit going %d\n" % self.current_joints[0])
+                                f.write("Joint 0 hit limit going %d\n" %
+                                        self.current_joints[0])
                     else:
                         pass
-            
+
             # Motor current value
             elif api == CANAPI.CMD_API_STAT1.value:
                 self.motor_curr[index] = value
-            
+
             # Joint angle value
             elif api == CANAPI.CMD_API_STAT2.value:
                 # Check if we updated wrist motors and apply the conversions
@@ -251,16 +259,18 @@ class Controller(Node):
                         (wrist1_angle + wrist2_angle) / 2)
                     self.current_joints[5] = float(
                         (wrist1_angle - wrist2_angle) / 2)
-                
+
                 else:
-                    self.current_joints[index] = value + self.joint_offsets[index]
-                
+                    self.current_joints[index] = value + \
+                        self.joint_offsets[index]
+
                 # Check if angle has ben calibrated to encoder measured initial angles
                 if self.init[index] == False:
                     self.arm_internal_current_joints[index] = self.current_joints[index]
                     self.init[index] = True
-                
+
             threading.Event().wait(1/self.can_rate)
+
     def process_safety(self, msg):
         pass
 
@@ -281,7 +291,7 @@ class Controller(Node):
                 for i in range(10):
                     self.safe_target_joints_pub(self.safe_target_joints)
                     time.sleep(0.05)
-                    
+
                 self.shutdown_node()
                 sys.exit()
 
@@ -337,7 +347,8 @@ class Controller(Node):
                     self.arm_internal_current_joints = self.safe_target_joints
                     for i in range(self.n_joints):
                         if type(self.safe_target_joints[i]) == np.float32:
-                            self.safe_target_joints[i] = self.safe_target_joints[i].item()
+                            self.safe_target_joints[i] = self.safe_target_joints[i].item(
+                            )
                     msg = Float32MultiArray()
                     msg.data = self.safe_target_joints
                     self.safe_target_joints_pub.publish(msg)
@@ -372,7 +383,7 @@ class Controller(Node):
                             time.sleep(0.2)
                 case ArmState.PATH_PLANNING:
                     # TODO: ROS2 doesn't work with threads outside of its own multithreaded executor, implement the thread using that instead.
-                    # 
+                    #
                     if inputs.x:
                         self.get_logger().warn("Path execution stopped by user input")
                         self.executing_path = False
@@ -389,8 +400,9 @@ class Controller(Node):
                             pass
                     else:
                         if self.path_is_ready:
-                        #self.get_logger().info("Path executor")
-                            self.path_executor_thread = threading.Thread(target=self.path_executor_loop, daemon=True)
+                            # self.get_logger().info("Path executor")
+                            self.path_executor_thread = threading.Thread(
+                                target=self.path_executor_loop, daemon=True)
                             self.path_executor_thread.start()
                             self.executing_path = True
                         else:
@@ -407,12 +419,12 @@ class Controller(Node):
                             else:
                                 pass
                         else:
-                            
+
                             if self.path_executor_thread.is_alive():
                                 self.path_executor_thread.join()
                             self.get_logger().info("Moving to key: %s" % target)
                             self.current_key = target
-                            
+
                             # TODO: path plan should publish to an intermediate pose offset from the keyboard prior to publishing the actual key press
                             # self.target_pose_pub.publish(target_pose)
                             self.executing_path = True
@@ -426,8 +438,10 @@ class Controller(Node):
 
     def handle_joy(self, msg):
         self.update_arm(msg)
+
     def on_press(self, key):
         pass
+
     def on_release(self, key):
         # On key release, send zeroed inputs to stop movement
         zero_inputs = ArmInputs()
@@ -454,19 +468,19 @@ class Controller(Node):
                             # relative endpoint position measures the distance between the initial joint position and the relative position of the limit switch
                             self.relative_endpoint_pos[joint_index] = self.current_joints[joint_index]
 
-                            #TODO: make this cleaner
+                            # TODO: make this cleaner
                             if joint_index == 0 or joint_index == 6:
                                 if joint_index == 0:
                                     joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
-                                    self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
-                                    self.initial_positions[joint_index]
+                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                        self.initial_positions[joint_index]
                                     if self.last_quadrant[0] == 1:
                                         joint_offsets[joint_index] += 360
 
                                 elif joint_index == 6:
                                     joint_offsets[joint_index] = self.relative_endpoint_pos[joint_index] - (
-                                    self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
-                                    self.initial_positions[joint_index]
+                                        self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
+                                        self.initial_positions[joint_index]
                                     if self.last_quadrant[0] == 1:
                                         joint_offsets[joint_index] += 360
                             else:
@@ -474,7 +488,7 @@ class Controller(Node):
                                     self.safety_checker.joint_limits[joint_index][1]-self.safety_checker.joint_limits[joint_index][0])/2 + \
                                     self.initial_positions[joint_index]
                             self.has_reached_endpoint[joint_index] = True
-                        
+
                         # if a limit has not been hit and the we have not reached the limit prior to this, go towards the endpoint (positive direction)
                         elif not self.has_reached_endpoint[joint_index]:
                             # move towards forward limit switch
@@ -490,7 +504,8 @@ class Controller(Node):
                                 self.homed[joint_index] = True
                             else:
                                 # TODO: factor of 1/30 is arbitrary, can be changed later
-                                target_joints[joint_index] = min(error*self.rotation_step/30, math.copysign(error)*self.rotation_step[joint_index])
+                                target_joints[joint_index] = min(
+                                    error*self.rotation_step/30, math.copysign(error)*self.rotation_step[joint_index])
 
                         # if we are not actively homing for this joint anymore, maintain the current joint position
                         else:
@@ -498,14 +513,14 @@ class Controller(Node):
             # double check that we are not finished yet
             if all(homed == True for homed in self.homed):
                 self.homing = HomingStatus.COMPLETE
-            
+
             # once a step has been calculated for each joint, publish the targets and then wait
             self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                 target_joints, self.current_joints)
             msg = Float32MultiArray()
             msg.data = self.safe_target_joints
             self.safe_target_joints_pub.publish(msg)
-            
+
             # update internal state
             self.internal_current_joints = self.safe_target_joints
 
@@ -551,7 +566,7 @@ class Controller(Node):
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-                        self.target_joints, self.arm_internal_current_joints) 
+            self.target_joints, self.arm_internal_current_joints)
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
@@ -569,7 +584,9 @@ class Controller(Node):
         # zero_r = Rotation.identity()
         # tl_corner_tf = RigidTransform.from_components(np.array([corners[0].x, corners[0].y, corners[0].z]), zero_r)
         for key in self.keyboard_targets:
-            self.key_positions[key] = self.key_positions[key] + np.array([corners[0].x, corners[0].y, corners[0].z], dtype = float)
+            self.key_positions[key] = self.key_positions[key] + \
+                np.array([corners[0].x, corners[0].y,
+                         corners[0].z], dtype=float)
 
     def update_path_planner_joints(self, msg):
         self.path_frames += 1
@@ -579,11 +596,12 @@ class Controller(Node):
         self.executing_path = True
         while len(self.current_path) > 0 and self.shutdown == False:
             for step in self.current_path:
-                error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
+                error = [abs(step[i] - self.current_joints[i])
+                         for i in range(self.n_joints-1)]
                 if all(e < self.joint_target_threshold for e in error):
-                    #self.current_path.pop(0)
+                    # self.current_path.pop(0)
                     continue
-                    
+
             #     self.target_joints[0:6] = step
             #     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
             #         self.target_joints, self.current_joints)
@@ -599,10 +617,11 @@ class Controller(Node):
 
                 # 2. Add the timestamp (essential for robot_state_publisher)
                 joint_state.header.stamp = self.get_clock().now().to_msg()
-                
+
                 # 3. Map the names and data
-                joint_state.name = ['joint_1','joint_2','joint_3', 'joint_4','joint_5','joint_6']
-                
+                joint_state.name = ['joint_1', 'joint_2',
+                                    'joint_3', 'joint_4', 'joint_5', 'joint_6']
+
                 # Float32MultiArray data is stored in .data (which is a list/array)
                 # We convert it to a list of floats for JointState
                 joint_state.position = [float(val) for val in msg.data]
@@ -613,16 +632,16 @@ class Controller(Node):
                 # self.can_con.send_target_message(self.safe_target_joints)
                 time.sleep(0.1)  # wait for some time before next step
         self.executing_path = False
-        
+
     def get_trajectory(self, msg):
-        
+
         for frame in msg.joint_trajectory.points:
             self.path_frames += 1
             # TODO: this should just add the frames directly to the current path, the joint trajectory points are already the intermediate points we want to increment by
             self.current_path.append(list(frame.positions))
 
         self.get_logger().info("total frames received: " + str(self.path_frames))
-        
+
         self.executing_path = True
         self.get_logger().info("first frame:")
 
@@ -634,12 +653,12 @@ class Controller(Node):
             # TODO: Real implementation commented out for now; the implementation in code is
             # not using safety
 
-            #self.get_logger().info("length of list: " + str(len(self.current_path)))
+            # self.get_logger().info("length of list: " + str(len(self.current_path)))
             # error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
             # if all(e < self.joint_target_threshold for e in error):
             #     #self.current_path.pop(0)
             #     continue
-                
+
             # self.target_joints[0:6] = step
             # self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
             #     self.target_joints, self.current_joints)
@@ -655,13 +674,15 @@ class Controller(Node):
 
             # 2. Add the timestamp (essential for robot_state_publisher)
             joint_state.header.stamp = self.get_clock().now().to_msg()
-            
+
             # 3. Map the names and data
-            joint_state.name = ['joint_1','joint_2','joint_3', 'joint_4','joint_5','joint_6']
-            
+            joint_state.name = ['joint_1', 'joint_2',
+                                'joint_3', 'joint_4', 'joint_5', 'joint_6']
+
             # Float32MultiArray data is stored in .data (which is a list/array)
             # We convert it to a list of floats for JointState
-            joint_state.position = [float(val) for val in step] # Change "step" to "self.target_joints" later to use safety
+            # Change "step" to "self.target_joints" later to use safety
+            joint_state.position = [float(val) for val in step]
             if len(joint_state.position) == 7:
                 joint_state.position.pop(6)
             self.safe_rviz_joints_pub.publish(joint_state)
@@ -670,6 +691,8 @@ class Controller(Node):
             # self.can_con.send_target_message(self.safe_target_joints)
             time.sleep(0.1)  # wait for some time before next step
         self.executing_path = False
+
+
 def real_controller(args=None):
     rclpy.init(args=args)
 
@@ -689,7 +712,7 @@ def virtual_controller(args=None):
     rclpy.init(args=args)
 
     arm_controller = Controller(virtual=True)
-    executor = MultiThreadedExecutor() # For the extra thread
+    executor = MultiThreadedExecutor()  # For the extra thread
 
     try:
         executor.add_node(arm_controller)

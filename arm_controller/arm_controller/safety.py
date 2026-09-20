@@ -62,7 +62,7 @@ class SafetyChecker():
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
                 print("Exceeded max position change for joint ", i)
                 print("Requested: ", pos[i], " Current: ", self.curr_pos[i],
-                    " Max Change: ", self.max_d_theta[i])
+                      " Max Change: ", self.max_d_theta[i])
                 return safe_goal_pos, joint_pos_safety_status
 
             elif pos[i] <= self.joint_limits[i][0] or pos[i] >= self.joint_limits[i][1]:

@@ -29,7 +29,7 @@ class CAN_connection():
         """
 
         msg = self.bus.recv(timeout=0.1)
-        
+
         if msg == None:
             return None
         # Checking if SparkMAXes are powered on and sending status messages
@@ -64,8 +64,6 @@ class CAN_connection():
                 joint_val = read_can_message(
                     msg.data, CANAPI.CMD_API_STAT2, index)
                 return (index, api, joint_val)
-                
-
 
     def send_target_message(self, goal_position):
         """
@@ -73,8 +71,9 @@ class CAN_connection():
         """
 
         # Convert SparkMAX angles to SparkMAX data packets
-        spark_input = generate_data_packet(goal_position)  # assuming data is safe
-    
+        spark_input = generate_data_packet(
+            goal_position)  # assuming data is safe
+
         # Send data packets
         for i in range(1, len(spark_input)+1):
 

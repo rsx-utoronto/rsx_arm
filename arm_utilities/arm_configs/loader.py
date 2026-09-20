@@ -16,7 +16,8 @@ def read_yaml(path: Path) -> dict[str, Any]:
     if data is None:
         return {}
     if not isinstance(data, dict):
-        raise ValueError(f"Expected mapping at {path}, got {type(data).__name__}")
+        raise ValueError(
+            f"Expected mapping at {path}, got {type(data).__name__}")
     return data
 
 
@@ -74,7 +75,7 @@ def load_config_from_node(
         {param_prefix}_config_overrides: comma-separated override YAML paths (optional).
     """
     p = f"{param_prefix}_" if param_prefix else ""
-    file_param      = f"{p}config_file"
+    file_param = f"{p}config_file"
     overrides_param = f"{p}config_overrides"
 
     if not node.has_parameter(file_param):
@@ -82,7 +83,7 @@ def load_config_from_node(
     if not node.has_parameter(overrides_param):
         node.declare_parameter(overrides_param, "")
 
-    config_file    = node.get_parameter(file_param).value or None
+    config_file = node.get_parameter(file_param).value or None
     override_paths = node.get_parameter(overrides_param).value
 
     return load_config(
