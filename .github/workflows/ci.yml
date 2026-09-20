@@ -46,6 +46,7 @@ jobs:
           rosdep update
           rosdep install --from-paths src --ignore-src -r -y
           colcon build --packages-select arm_msgs --symlink-install
+          source install/setup.bash
           colcon build --symlink-install
 
       # Step 4: Run specified unit tests & enforce pass/fail criteria
