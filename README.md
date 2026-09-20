@@ -1,6 +1,8 @@
 # RSX's ARM Repository, now on ROS2!
 [![.github/workflows/ci.yml](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/ci.yml/badge.svg)](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/ci.yml)
 
+[![.github/workflows/docker-build.yml](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/docker-build.yml/badge.svg)](https://github.com/rsx-utoronto/rsx_arm/actions/workflows/docker-build.yml)
+
 Welcome to `rsx_arm`! This repository will host the ROS 2 (Humble) version of the RSX arm control software, migrated from the `arm/` folder in the old ROS 1 `rsx-rover` repo all the way back in the summer of '25. Proceed with caution. The following are computer setup instructions. For guidance on setting up and running the arm, see [arm_instructions.md](arm_instructions.md)
 
 ## Prerequisites
