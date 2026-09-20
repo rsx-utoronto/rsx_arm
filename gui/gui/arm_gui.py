@@ -12,7 +12,7 @@ import rclpy
 from rclpy.node import Node
 from cv_bridge import CvBridge
 import numpy as np
-
+import PyQt5
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -27,6 +27,8 @@ from sensor_msgs.msg import Image
 from arm_msgs.msg import TargetPosition, ArmStatuses
 
 from arm_utilities.arm_enum_utils import ArmState
+
+import os
 
 
 class CyberpunkLabel(QLabel):
@@ -688,7 +690,11 @@ class ArmGUI(Node, QWidget):
 
 
 def main():
-    """Main entry point."""
+    os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = os.path.join(
+        os.path.dirname(PyQt5.__file__), "Qt5", "plugins"
+    )
+
+    """Main entry point"""
     rclpy.init()
     app = QApplication(sys.argv)
 
