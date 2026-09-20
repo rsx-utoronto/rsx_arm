@@ -40,6 +40,7 @@ jobs:
       # Step 3: Build the ROS 2 Workspace
       - name: Build Workspace
         run: |
+          pip install --force-reinstall "pytest>=7.0.0,<8.0.0" "pluggy<1.4.0" "pytest-rerunfailures<14.0"
           pytest --version
           source /opt/ros/humble/setup.bash
           cd arm_ros2_ws
