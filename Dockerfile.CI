@@ -22,8 +22,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
-COPY requirements-ci.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt && rm /tmp/requirements.txt
+COPY requirements-ci.txt /tmp/requirements-ci.txt
+RUN cat /tmp/requirements-ci.txt  # Prints exact contents to the Docker build log for debugging
+
+
+RUN pip install --no-cache-dir -r /tmp/requirements-ci.txt && rm /tmp/requirements-ci.txt
+
 
 RUN pip install --force-reinstall colcon-core setuptools==$(pip list --no-index --format=json |  jq -r '.[] | select(.name=="setuptools").version') 
 
