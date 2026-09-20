@@ -49,7 +49,10 @@ def generate_launch_description():
         package='joy',
         executable='joy_node',
         name='joy_node',
-        output='screen'
+        output='screen',
+        remappings=[
+            ('/joy', '/arm/joy')
+        ]
     )
     # Arm_Controller node
     virtual_arm_controller_node = Node(
