@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy and install Python dependencies
 COPY requirements-ci.txt /tmp/requirements-ci.txt
 
-RUN pip install --no-cache-dir -r /tmp/requirements-ci.txt && rm /tmp/requirements-ci.txt
+RUN pip install --force-reinstall --no-cache-dir -r /tmp/requirements-ci.txt && rm /tmp/requirements-ci.txt
 
 RUN pip install --force-reinstall colcon-core setuptools==$(pip list --no-index --format=json |  jq -r '.[] | select(.name=="setuptools").version') 
 

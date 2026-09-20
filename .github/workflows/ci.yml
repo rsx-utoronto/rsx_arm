@@ -40,7 +40,6 @@ jobs:
       # Step 3: Build the ROS 2 Workspace
       - name: Build Workspace
         run: |
-          pytest --version
           source /opt/ros/humble/setup.bash
           cd arm_ros2_ws
           rosdep init || true 
