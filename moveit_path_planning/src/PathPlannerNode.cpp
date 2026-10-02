@@ -143,7 +143,7 @@ void PathPlannerNode::joint_callback(
   robot_state->setJointGroupPositions(jmg, joint_positions);
   robot_state->update();
 
-  Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("link_6");
+  Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("gripper");
 
   geometry_msgs::msg::Pose pose_msg;
   pose_msg.position.x = tf.translation().x();

@@ -36,4 +36,6 @@
     <disable_collisions link1="elbow_plate" link2="shoulder_plate" reason="Never"/>
     <disable_collisions link1="elbow_plate" link2="shoulder_tube" reason="Adjacent"/>
     <disable_collisions link1="elbow_plate" link2="wrist" reason="Adjacent"/>
+    <disable_collisions link1="end_effector" link2="gripper" reason="Adjacent"/>
+    <disable_collisions link1="end_effector" link2="wrist" reason="Adjacent"/>
 </robot>
