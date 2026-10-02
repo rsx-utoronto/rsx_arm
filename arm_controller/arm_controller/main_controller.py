@@ -273,7 +273,7 @@ class Controller(Node):
         pass
 
     def update_arm(self, update):
-        self.get_logger().info("Path frames:" + str(self.path_frames))
+        # self.get_logger().info("Path frames:" + str(self.path_frames))
         # TODO: need to update state tracking to consistently unify real world angles with internal state
         # lock to prevent local variables from being modified by CAN threads during execution
         with self.arm_update_lock:
@@ -351,6 +351,10 @@ class Controller(Node):
                     self.safe_target_joints_pub.publish(msg)
 
                     self.can_con.send_target_message(self.safe_target_joints)
+
+                    # As of right now it seems manual is the only thing that needs this slowdown
+                    # to limit speed, but a TODO would be to set proper limits! 
+                    # time.sleep(0.05)
                 case ArmState.IK:
                     if not False in self.homed or self.cfg["allow_ik_without_homing"]:
                         # Join homing thread if just finished homing
@@ -430,7 +434,7 @@ class Controller(Node):
         if self.state != ArmState.IK:
             # TODO: need to be updating internal pose state using FK pose updates, need to resolve discrepancies from IK solutions
             self.update_internal_pose_state(self.current_joints)
-        time.sleep(0.05)
+        # time.sleep(0.05) why was this here??????????
 
     def handle_joy(self, msg):
         self.update_arm(msg)
@@ -561,15 +565,18 @@ class Controller(Node):
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
+        start_time = time.time()
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
             self.target_joints, self.arm_internal_current_joints)
+        end_time = time.time()
+        self.get_logger().info(f"Safety check took {end_time-start_time}")
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
         self.can_con.send_target_message(self.safe_target_joints)
 
-        time.sleep(0.05)  # wait for some time before next update
+        # time.sleep(0.05)  # wait for some time before next update
 
     def handle_keyboard_coords(self, msg):
         corners = [msg.tl, msg.tr, msg.bl, msg.br]
