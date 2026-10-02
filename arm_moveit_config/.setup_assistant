@@ -7,7 +7,7 @@ moveit_setup_assistant_config:
   package_settings:
     author_name: rsx_arm
     author_email: arm@rsx.skule.ca
-    generated_timestamp: 1790904121
+    generated_timestamp: 1790908354
   control_xacro:
     command:
       - position
