@@ -409,7 +409,7 @@
         iyz="0"
         izz="0" />
     </inertial>
-    <visual>
+    <!-- <visual>
       <origin
         xyz="0 0 0"
         rpy="0 0 0" />
@@ -418,12 +418,12 @@
         <color
           rgba="1 1 1 1" />
       </material>
-    </visual>
-    <collision>
+    </visual> -->
+    <!-- <collision>
       <origin
         xyz="0 0 0"
         rpy="0 0 0" />
-    </collision>
+    </collision> -->
   </link>
   <joint
     name="dummy_ee_joint"

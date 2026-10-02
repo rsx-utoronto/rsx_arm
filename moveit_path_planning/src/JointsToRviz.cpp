@@ -9,7 +9,7 @@
 class IkToRvizJointState : public rclcpp::Node
 {
 public:
-  static constexpr size_t NUM_JOINTS = 6;
+  static constexpr size_t NUM_JOINTS = 7;
 
   IkToRvizJointState()
   : Node("ik_to_rviz_joint_state")
