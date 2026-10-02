@@ -9,7 +9,7 @@
 class IkToRvizJointState : public rclcpp::Node
 {
 public:
-  static constexpr size_t NUM_JOINTS = 6;
+  static constexpr size_t NUM_JOINTS = 7;
 
   IkToRvizJointState()
   : Node("ik_to_rviz_joint_state")
@@ -27,7 +27,7 @@ public:
       "arm_path_joints", 10,
       std::bind(&IkToRvizJointState::to_rviz_cb, this, std::placeholders::_1));
 
-    joint_names_ = {"joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"};
+    joint_names_ = {"shoulder", "shoulder_joint", "elbow", "elbow_roll", "ee_pitch", "ee_roll", "dummy_ee_joint"};
   }
 
 private:
@@ -55,6 +55,9 @@ private:
     js.position[5] = -js.position[4];
     js.position[4] = -temp;
     js.position[3] = -js.position[3];
+
+    // Dummy joint needs an angle, just give it 0 because who cares lol
+    js.position[6] = 0.0f;
 
     joint_pub_->publish(js);
   }

@@ -12,7 +12,7 @@ data_files = [
      ['resource/' + package_name]),
     ('share/' + package_name, ['package.xml']),
     ('share/' + package_name + '/urdfs',
-     ['urdfs/arm_circ_2024.urdf', 'urdfs/arm_urdf.rviz', 'urdfs/Arm_URDF_2025.urdf']),
+     ['urdfs/arm_circ_2024.urdf', 'urdfs/arm_urdf.rviz', 'urdfs/Arm_URDF_2025.urdf', 'urdfs/Arm_URDF_2026.urdf']),
 ]
 for dir in stl_directories.keys():
     for file in stl_directories[dir]:

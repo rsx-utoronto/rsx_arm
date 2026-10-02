@@ -16,7 +16,7 @@ from moveit_configs_utils import MoveItConfigsBuilder
 def launch_setup(context, *args, **kwargs):
     # Build MoveIt configuration
     moveit_config = MoveItConfigsBuilder(
-        "Arm_URDF_2025",
+        "Arm_URDF_2026",
         package_name="arm_moveit_config"
     ).to_moveit_configs()
 
