@@ -593,17 +593,18 @@ class Controller(Node):
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
-        # start_time = time.time()
+        start_time = time.time()
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
             self.target_joints, self.arm_internal_current_joints)
-        # end_time = time.time()
-        # self.get_logger().info(f'q: {self.safe_target_joints}')
+        end_time = time.time()
+        self.get_logger().info(f"Safety check took {end_time-start_time}")
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
         self.can_con.send_target_message(self.safe_target_joints)        
 
+        # time.sleep(0.05)  # wait for some time before next update
         # time.sleep(0.05)  # wait for some time before next update
 
     def handle_keyboard_coords(self, msg):
