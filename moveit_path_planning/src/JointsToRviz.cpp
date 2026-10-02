@@ -9,7 +9,7 @@
 class IkToRvizJointState : public rclcpp::Node
 {
 public:
-  static constexpr size_t NUM_JOINTS = 7;
+  static constexpr size_t NUM_JOINTS = 6;
 
   IkToRvizJointState()
   : Node("ik_to_rviz_joint_state")
@@ -44,10 +44,10 @@ private:
     sensor_msgs::msg::JointState js;
     js.header.stamp = this->now();     // RViz-friendly timestamp
     js.name = joint_names_;
-    js.position.resize(NUM_JOINTS);
+    js.position.resize(NUM_JOINTS+1); // Add 1 for the dummy
 
     for (size_t i = 0; i < NUM_JOINTS; ++i) {
-      js.position[i] = static_cast<double>(msg->data[i]) * 3.14 / 180.0;  // Convert degrees to radians
+      js.position[i] = static_cast<double>(msg->data[i]);// * 3.14 / 180.0;  // Convert degrees to radians
     }
 
     // Need to swap joints 5 and 6 and invert 4-6
