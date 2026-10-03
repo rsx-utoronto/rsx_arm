@@ -2,7 +2,8 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, EmitEvent, OpaqueFunction
 from launch.events import Shutdown
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import Node
+from launch_ros.actions import Node, ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -63,30 +64,59 @@ def generate_launch_description():
         default_value="false",
         description="Do we want to control using a keyboard instead",
     )
+    
+    joy_throttle_rate = LaunchConfiguration('joy_throttle_rate')
+    joy_throttle_rate_arg = DeclareLaunchArgument(
+        "joy_throttle_rate",
+        default_value="10.0",
+        description="Max /joy messages per second passed through to the controller",
+    )
 
-    # Run unless we said we wanted the keyboard instead
-    joy_node = Node(
+    throttle_on = LaunchConfiguration('throttle_on')
+    throttle_on_arg = DeclareLaunchArgument(
+        "throttle_on",
+        default_value="false",
+        description="Rate-limit joystick input via topic_tools before the controller sees it (useful on WSL)",
+    )
+
+    # throttle_on:=false -- joy_node publishes straight to arm_joy, no extra hop/latency
+    joy_node_direct = Node(
         package='joy',
         executable='joy_node',
         name='joy_node',
         output='screen',
-        remappings=[
-            ('/joy', '/arm/joy')
-        ],
-        condition=UnlessCondition(use_kb)
+        remappings=[('joy', 'arm_joy')],
+        condition=UnlessCondition(throttle_on)
     )
 
-    # If we don't have a joystick, we can run this keyboard controller instead
-    kb_node = Node(
-        package='kb_joy_emu',
-        executable='kb_joy_emulator',
-        name='kb_joy_emulator',
+    # throttle_on:=true -- joy_node publishes to /joy as usual, throttle node downsamples it onto arm_joy
+    joy_node_for_throttle = Node(
+        package='joy',
+        executable='joy_node',
+        name='joy_node',
         output='screen',
-        remappings=[
-            ('/joy', '/arm/joy')
+        condition=IfCondition(throttle_on)
+    )
+
+    joy_throttle_container = ComposableNodeContainer(
+        name='joy_throttle_container',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='topic_tools',
+                plugin='topic_tools::ThrottleNode',
+                name='joy_throttle',
+                parameters=[{
+                    'input_topic': '/joy',
+                    'output_topic': 'arm_joy',
+                    'throttle_type': 'messages',
+                    'msgs_per_sec': joy_throttle_rate,
+                }]
+            )
         ],
-        prefix=['gnome-terminal --'],
-        condition=IfCondition(use_kb)
+        condition=IfCondition(throttle_on)
     )
 
     # Arm_Controller node
@@ -160,20 +190,17 @@ def generate_launch_description():
         virtual_arg,
         gui_arg,
         ik_arg,
-        kb_arg,
-        OpaqueFunction(
-            function=check_args_and_launch,
-            kwargs={'actions': [
-                ik_controller_launch,
-                joy_node,
-                virtual_arm_controller_node,
-                arm_controller_node,
-                gui_node,
-                rviz_launch,
-                rviz_tunnel,
-                kb_node
-            ]}
-        ), # don't use the keyboard controller if we are using real arm
+        joy_throttle_rate_arg,
+        throttle_on_arg,
+        ik_controller_launch,
+        joy_node_direct,
+        joy_node_for_throttle,
+        joy_throttle_container,
+        virtual_arm_controller_node,
+        arm_controller_node,
+        gui_node,
+        rviz_launch,
+        rviz_tunnel
     ])
 \
 """Need to convert the following to Python (it was commented out in XML.
