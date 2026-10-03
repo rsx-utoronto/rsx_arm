@@ -44,7 +44,7 @@ workon_body="cd $_ws; \
 [ -f $_ws/arm_env/bin/activate ] && . $_ws/arm_env/bin/activate || true; \
 [ -f $_ws/install/setup.sh ] && . $_ws/install/setup.sh || true"
 
-build_body="workon_arm && colcon build && colcon test --ctest-args tests --packages-skip arm_msgs && colcon test-result --all --verbose"
+build_body="workon_arm && colcon build --packages-select arm_msgs --symlink-install && colcon build && colcon test --ctest-args tests --packages-skip arm_msgs && colcon test-result --all --verbose"
 
 format_body="autopep8 --in-place --recursive src/rsx_arm"
 
