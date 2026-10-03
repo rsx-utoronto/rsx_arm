@@ -109,17 +109,21 @@ class Controller(Node):
         # arm_joy is either joy_node's direct output (throttle_on:=false, zero extra hops)
         # or the throttle node's rate-limited output (throttle_on:=true) -- see arm_basics_launch.py
         self.joy_sub = self.create_subscription(
-            Joy, "/arm/joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
-
+            Joy, "arm_joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
+        
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
-            Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
-
+            Pose, "arm_fk_pose", self.update_fk_pose_callback, self.cfg["subscriber_depth_queue"], callback_group=self.fk_target_group)
+        
         self.path_planning_sub = self.create_subscription(
-            RobotTrajectory, "trajectory_joints", self.get_trajectory, 10)
+            RobotTrajectory, "trajectory_joints", self.get_trajectory, self.cfg["subscriber_depth_queue"], callback_group=self.path_group)
 
+        # updated call group (exclusive) for IK target updates to avoid starvation from /joy callbacks
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
-                                                      self.cfg["subscriber_depth_queue"])
+            self.cfg["subscriber_depth_queue"], callback_group=self.ik_target_group)
+
+        # self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
+                    # self.cfg["subscriber_depth_queue"])
 
         # Safety subscribers
         self.joint_safety_sub = self.create_subscription(
@@ -293,7 +297,7 @@ class Controller(Node):
                 self.get_logger().error("KILLSWITCH PRESSED, LOCKING ARM AND EXITING")
                 for i in range(10):
                     self.safe_target_joints_pub(self.safe_target_joints)
-                    time.sleep(0.05)
+                    # time.sleep(0.05)
 
                 self.shutdown_node()
                 sys.exit()
@@ -593,8 +597,6 @@ class Controller(Node):
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
         self.can_con.send_target_message(self.safe_target_joints)
-
-        # time.sleep(0.05)  # wait for some time before next update
 
     def handle_keyboard_coords(self, msg):
         corners = [msg.tl, msg.tr, msg.bl, msg.br]
