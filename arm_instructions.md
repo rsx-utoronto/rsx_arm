@@ -178,3 +178,10 @@ If you have more than one joystick/gamepad attached, each will need its own pair
 ### IK testing on WSL
 
 Current state: works with replay at 0.6 speed (higher rates lead to collisions immediately), seems like messages are dropped on some topic (updated queue depth but still facing the same issue)
+
+## IK Rviz simulation on WSL
+
+Throttle joy input to match IK solver rate:
+```bash
+ros2 launch arm_launch arm_basics_launch.py virtual:=true throttle_on:=true joy_throttle_rate:=10.0
+```
