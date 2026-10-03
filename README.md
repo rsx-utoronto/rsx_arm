@@ -62,6 +62,8 @@ rosdep install --from-paths src --ignore-src -r -y
 colcon build --packages-select trac_ik_lib trac_ik_kinematics_plugin
 ```
 
+**That's it! You've finished setting up your ROS 2 workspace with our code. Please visit the wiki for information on how to use the new workspace.**
+
 ## Tracking Python Dependencies
 
 The repo root contains a requirements.txt file which looks something like this: 
