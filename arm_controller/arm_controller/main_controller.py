@@ -68,6 +68,7 @@ class Controller(Node):
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
+        # self.current_pose.orientation.w = 1.0
         self.current_joints = self.initial_positions.copy()
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
@@ -87,6 +88,7 @@ class Controller(Node):
         self.path_group = MutuallyExclusiveCallbackGroup()
         # Separate group so IK target updates aren't starved by /joy callbacks sharing the default group
         self.ik_target_group = MutuallyExclusiveCallbackGroup()
+        self.fk_target_group = MutuallyExclusiveCallbackGroup()
 
         # Publishers
         # Publisher for safe target joints after safety check, used for debugging and data logging
@@ -105,13 +107,14 @@ class Controller(Node):
         self.killswitch_pub = self.create_publisher(
             UInt8, self.cfg["killswitch_topic"], self.cfg["publisher_depth_queue"])
 
-        # Joynode subscriber
+        # arm_joy is either joy_node's direct output (throttle_on:=false, zero extra hops)
+        # or the throttle node's rate-limited output (throttle_on:=true) -- see arm_basics_launch.py
         self.joy_sub = self.create_subscription(
-            Joy, "/joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
+            Joy, "arm_joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
         
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
-            Pose, "arm_fk_pose", self.update_fk_pose_callback, self.cfg["subscriber_depth_queue"])
+            Pose, "arm_fk_pose", self.update_fk_pose_callback, self.cfg["subscriber_depth_queue"], callback_group=self.fk_target_group)
         
         self.path_planning_sub = self.create_subscription(
             RobotTrajectory, "trajectory_joints", self.get_trajectory, self.cfg["subscriber_depth_queue"], callback_group=self.path_group)
@@ -563,8 +566,6 @@ class Controller(Node):
                 thread.join()
 
     def update_ik_target(self, msg):
-        self.get_logger().info("update_ik_target")
-
         # convert to degrees for safety checker
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
 
@@ -573,7 +574,7 @@ class Controller(Node):
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints) 
         msg = Float32MultiArray()
-        msg.data = self.safe_target_joints
+        msg.data = self.safe_target_joints # safety seems to filter out some poses, and arm gets stuck in simulation while the IK solver is still providing values
         # msg.data = self.target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints

@@ -17,19 +17,19 @@ def handle_joy_input(msg: Joy):
     # Triggers: axes 2 (left), 5 (right)
 
     # Note: different indices for input on wsl
-    # arm_inputs.l_trigger = -0.5 * msg.axes[3] + 0.5
-    # arm_inputs.r_trigger = -0.5 * msg.axes[4] + 0.5
+    arm_inputs.l_trigger = -0.5 * msg.axes[3] + 0.5
+    arm_inputs.r_trigger = -0.5 * msg.axes[4] + 0.5
 
     # Note: same input indices for IK
-    arm_inputs.l_trigger = -0.5 * msg.axes[2] + 0.5
-    arm_inputs.r_trigger = -0.5 * msg.axes[5] + 0.5
+    # arm_inputs.l_trigger = -0.5 * msg.axes[2] + 0.5
+    # arm_inputs.r_trigger = -0.5 * msg.axes[5] + 0.5
 
     # Right joystick: axes 3 (horizontal), 4 (vertical)
-    # arm_inputs.r_horizontal = msg.axes[2]
-    # arm_inputs.r_vertical = msg.axes[5]
+    arm_inputs.r_horizontal = msg.axes[2]
+    arm_inputs.r_vertical = msg.axes[5]
 
-    arm_inputs.r_horizontal = msg.axes[3] 
-    arm_inputs.r_vertical = msg.axes[4]
+    # arm_inputs.r_horizontal = msg.axes[3] 
+    # arm_inputs.r_vertical = msg.axes[4]
 
     # D-Pad: axes 6 (horizontal), 7 (vertical)
     arm_inputs.dpad_left = 1 if msg.axes[6] == -1 else 0
