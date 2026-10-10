@@ -472,7 +472,7 @@ class ArmGUI(Node, QWidget):
         # Camera feed
         self.create_subscription(Image, "/annotated_video", self.on_camera, 10)
         self.create_subscription(
-            Image, '/camera/camera/color/image_rect_raw', self.on_camera, 10)  # Optional raw feed
+            Image, '/camera/camera/color/image_raw', self.on_camera, 10)  # Optional raw feed
 
         # Current pose (x, y, z, roll, pitch, yaw)
         self.create_subscription(
