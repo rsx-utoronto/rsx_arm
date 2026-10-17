@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 """
 Export one Float32/Float64MultiArray topic from a ROS 2 bag to NumPy.
-Example:
-    python rosbag_to_numpy.py ~/arm_demos/pickup_001 \
-        --output ~/arm_demos/pickup_001_commands.npz
-
-Export commands and states together, preserving their separate timestamps:
-    python rosbag_to_numpy.py test.db3 --state-topic /arm_curr_angles \
-        --output episode_001.npz
 """
 
 import argparse
