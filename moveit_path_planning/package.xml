@@ -13,6 +13,7 @@
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>rclcpp</depend>
+  <depend>arm_msgs</depend>
 
 
   <!-- <test_depend>ament_lint_auto</test_depend> -->
