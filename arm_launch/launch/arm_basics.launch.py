@@ -1,13 +1,24 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, EmitEvent, OpaqueFunction
 from launch.events import Shutdown
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node, ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
+
+def running_on_wsl():
+    try:
+        with open('/proc/version') as f:
+            return 'microsoft' in f.read().lower()
+    except OSError:
+        return False
+
+def default_kb_terminal():
+    # gnome-terminal needs a D-Bus session, which WSL doesn't run by default, so use xterm there
+    return 'xterm -e' if running_on_wsl() else 'gnome-terminal --'
 
 def check_args_and_launch(context, actions):
     use_feature = LaunchConfiguration('use_kb').perform(context).lower() == 'true'
@@ -64,7 +75,28 @@ def generate_launch_description():
         default_value="false",
         description="Do we want to control using a keyboard instead",
     )
+
+    kb_terminal = LaunchConfiguration('kb_terminal')
+    kb_terminal_arg = DeclareLaunchArgument(
+        "kb_terminal",
+        default_value=default_kb_terminal(),
+        description="Terminal command the keyboard emulator is opened in (it needs its own window to read keys)",
+    )
     
+    # auto: kb_joy_emu publishes the standard layout; a real joystick passed through to WSL
+    # reports triggers/right stick on different axes (see JOY_AXIS_LAYOUTS in arm_control_utils)
+    joy_layout = LaunchConfiguration('joy_layout')
+    joy_layout_arg = DeclareLaunchArgument(
+        "joy_layout",
+        default_value="auto",
+        choices=["auto", "standard", "wsl"],
+        description="Joystick axis layout: standard (native Linux, rosbags, keyboard emulator) or wsl",
+    )
+    resolved_joy_layout = PythonExpression([
+        "'", joy_layout, "' if '", joy_layout, "' != 'auto' else ('standard' if '", use_kb,
+        "'.lower() == 'true' else '", 'wsl' if running_on_wsl() else 'standard', "')"
+    ])
+
     joy_throttle_rate = LaunchConfiguration('joy_throttle_rate')
     joy_throttle_rate_arg = DeclareLaunchArgument(
         "joy_throttle_rate",
@@ -79,6 +111,7 @@ def generate_launch_description():
         description="Rate-limit joystick input via topic_tools before the controller sees it (useful on WSL)",
     )
 
+    # joy_node only runs when we aren't using the keyboard emulator instead
     # throttle_on:=false -- joy_node publishes straight to arm_joy, no extra hop/latency
     joy_node_direct = Node(
         package='joy',
@@ -86,7 +119,8 @@ def generate_launch_description():
         name='joy_node',
         output='screen',
         remappings=[('joy', 'arm_joy')],
-        condition=UnlessCondition(throttle_on)
+        condition=IfCondition(PythonExpression(
+            ["'", use_kb, "'.lower() != 'true' and '", throttle_on, "'.lower() != 'true'"]))
     )
 
     # throttle_on:=true -- joy_node publishes to /joy as usual, throttle node downsamples it onto arm_joy
@@ -95,7 +129,22 @@ def generate_launch_description():
         executable='joy_node',
         name='joy_node',
         output='screen',
-        condition=IfCondition(throttle_on)
+        condition=IfCondition(PythonExpression(
+            ["'", use_kb, "'.lower() != 'true' and '", throttle_on, "'.lower() == 'true'"]))
+    )
+
+    # If we don't have a joystick, we can run this keyboard controller instead.
+    # Same routing as joy_node: /joy straight to arm_joy, or left on /joy for the throttle node
+    kb_node = Node(
+        package='kb_joy_emu',
+        executable='kb_joy_emulator',
+        name='kb_joy_emulator',
+        output='screen',
+        remappings=[
+            ('/joy', PythonExpression(["'/joy' if '", throttle_on, "'.lower() == 'true' else 'arm_joy'"]))
+        ],
+        prefix=[kb_terminal],
+        condition=IfCondition(use_kb)
     )
 
     joy_throttle_container = ComposableNodeContainer(
@@ -128,6 +177,7 @@ def generate_launch_description():
         parameters=[{
             "config_file": LaunchConfiguration("config_file"),
             "config_overrides": LaunchConfiguration("config_overrides"),
+            "joy_layout": resolved_joy_layout,
         }],
         condition=IfCondition(virtual)
     )
@@ -140,6 +190,7 @@ def generate_launch_description():
         parameters=[{
             "config_file": LaunchConfiguration("config_file"),
             "config_overrides": LaunchConfiguration("config_overrides"),
+            "joy_layout": resolved_joy_layout,
         }],
         condition=UnlessCondition(virtual)
     )
@@ -190,17 +241,26 @@ def generate_launch_description():
         virtual_arg,
         gui_arg,
         ik_arg,
+        kb_arg,
+        kb_terminal_arg,
+        joy_layout_arg,
         joy_throttle_rate_arg,
         throttle_on_arg,
-        ik_controller_launch,
-        joy_node_direct,
-        joy_node_for_throttle,
-        joy_throttle_container,
-        virtual_arm_controller_node,
-        arm_controller_node,
-        gui_node,
-        rviz_launch,
-        rviz_tunnel
+        OpaqueFunction(
+            function=check_args_and_launch,
+            kwargs={'actions': [
+                ik_controller_launch,
+                joy_node_direct,
+                joy_node_for_throttle,
+                joy_throttle_container,
+                kb_node,
+                virtual_arm_controller_node,
+                arm_controller_node,
+                gui_node,
+                rviz_launch,
+                rviz_tunnel
+            ]}
+        ), # don't use the keyboard controller if we are using real arm
     ])
 \
 """Need to convert the following to Python (it was commented out in XML.

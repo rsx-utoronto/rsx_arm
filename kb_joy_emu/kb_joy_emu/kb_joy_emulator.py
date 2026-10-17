@@ -6,12 +6,14 @@ please don't trust using this with the actual arm, just get a joystick
 unless you have to, in which case good luck
 """
 
+import os
 import sys
 import select
 import termios
 import tty
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
 
@@ -21,6 +23,10 @@ from sensor_msgs.msg import Joy
 # Buttons: [0: Cross, 1: Circle, 2: Triangle, 3: Square, 4: L1, 5: R1, 6: L2, 7: R2,
 #           8: Share, 9: Options, 10: PS, 11: L3, 12: R3]
 
+# Taps (buttons, D-pad) are held for this many ticks so a downstream
+# throttle (e.g. 10 Hz with throttle_on:=true) can't drop them
+TAP_HOLD_TICKS = 3
+
 
 class PS4Emulator(Node):
     def __init__(self):
@@ -28,8 +34,15 @@ class PS4Emulator(Node):
         self.publisher_ = self.create_publisher(Joy, '/joy', 10)
         self.timer = self.create_timer(0.05, self.timer_callback)  # 20 Hz
 
-        # Save terminal settings for non-blocking keyboard reads
+        # Save terminal settings, then switch to cbreak once (unbuffered key
+        # reads, Ctrl+C still works) instead of toggling raw mode every tick
         self.settings = termios.tcgetattr(sys.stdin)
+        tty.setcbreak(sys.stdin.fileno())
+
+        # Remaining ticks each tap is held for
+        self.button_ticks = [0] * 13
+        self.dpad = [0.0, 0.0]        # axes 6, 7
+        self.dpad_ticks = [0, 0]
 
         # Initialize standard PS4 Joy message structure
         self.joy_msg = Joy()
@@ -57,35 +70,44 @@ class PS4Emulator(Node):
         print("Reset Axes              : Spacebar")
         print("Exit                    : Ctrl+C\n")
 
-    def get_key(self):
-        tty.setraw(sys.stdin.fileno())
-        # Arrow keys send 3-character escape sequences (e.g., '\x1b[A')
-        # We check if data is waiting to ensure we read full escape codes
-        # cleanly
-        rlist, _, _ = select.select([sys.stdin], [], [], 0.05)
-        if rlist:
-            key = sys.stdin.read(1)
-            if key == '\x1b':  # Escape sequence detected
-                key += sys.stdin.read(2)
-        else:
-            key = ''
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
-        return key
+    def get_keys(self):
+        # Drain everything typed since the last tick without blocking, so held
+        # keys (auto-repeat) don't back up and keep acting after release.
+        # os.read bypasses Python's stdin buffer, which select() can't see.
+        keys = ''
+        fd = sys.stdin.fileno()
+        while select.select([fd], [], [], 0)[0]:
+            data = os.read(fd, 1024)
+            if not data:
+                break
+            keys += data.decode(errors='ignore')
+        return keys
+
+    def tap_button(self, index):
+        self.button_ticks[index] = TAP_HOLD_TICKS
+
+    def tap_dpad(self, axis, value):
+        self.dpad[axis] = value
+        self.dpad_ticks[axis] = TAP_HOLD_TICKS
 
     def timer_callback(self):
-        key = self.get_key()
+        for key in self.get_keys():
+            self.handle_key(key)
 
-        # Reset transient binary buttons on every tick so they act like taps
-        self.joy_msg.buttons = [0] * 13
+        # Taps stay pressed for TAP_HOLD_TICKS ticks, then release
+        self.joy_msg.buttons = [1 if t > 0 else 0 for t in self.button_ticks]
+        self.button_ticks = [max(0, t - 1) for t in self.button_ticks]
+        for axis in range(2):
+            self.joy_msg.axes[6 + axis] = self.dpad[axis] if self.dpad_ticks[axis] > 0 else 0.0
+            self.dpad_ticks[axis] = max(0, self.dpad_ticks[axis] - 1)
 
-        # Also reset dpad
-        self.joy_msg.axes[6] = 0
-        self.joy_msg.axes[7] = 0
+        # Publish the state
+        self.joy_msg.header.stamp = self.get_clock().now().to_msg()
+        self.publisher_.publish(self.joy_msg)
 
-        if key == '':
-            pass
-        elif key == '\x03':  # Ctrl+C
-            rclpy.shutdown()
+    def handle_key(self, key):
+        if key == '\x03':  # Ctrl+C
+            rclpy.try_shutdown()
             sys.exit(0)
 
         # --- AXES: Left Stick (W/A/S/D) ---
@@ -116,43 +138,43 @@ class PS4Emulator(Node):
 
         # --- AXES: D-Pad (Rebound to single character letters) ---
         elif key == 't':
-            self.joy_msg.axes[7] = 1.0   # D-pad Up
+            self.tap_dpad(1, 1.0)   # D-pad Up
         elif key == 'g':
-            self.joy_msg.axes[7] = -1.0  # D-pad Down
+            self.tap_dpad(1, -1.0)  # D-pad Down
         elif key == 'f':
-            self.joy_msg.axes[6] = 1.0   # D-pad Left
+            self.tap_dpad(0, 1.0)   # D-pad Left
         elif key == 'h':
-            self.joy_msg.axes[6] = -1.0  # D-pad Right
+            self.tap_dpad(0, -1.0)  # D-pad Right
 
         # --- BUTTONS: Action Buttons ---
         elif key == 'x':
-            self.joy_msg.buttons[0] = 1  # Cross
+            self.tap_button(0)  # Cross
         elif key == 'c':
-            self.joy_msg.buttons[1] = 1  # Circle
-        elif key == 't':
-            self.joy_msg.buttons[2] = 1  # Triangle
+            self.tap_button(1)  # Circle
+        elif key == 'v':
+            self.tap_button(2)  # Triangle
         elif key == 'q':
-            self.joy_msg.buttons[3] = 1  # Square
+            self.tap_button(3)  # Square
 
         # --- BUTTONS: Bumpers & Utility ---
         elif key == '1':
-            self.joy_msg.buttons[4] = 1  # L1
+            self.tap_button(4)  # L1
         elif key == '2':
-            self.joy_msg.buttons[5] = 1  # R1
+            self.tap_button(5)  # R1
         elif key == '3':
-            self.joy_msg.buttons[6] = 1  # L2 Button
+            self.tap_button(6)  # L2 Button
         elif key == '4':
-            self.joy_msg.buttons[7] = 1  # R2 Button
+            self.tap_button(7)  # R2 Button
         elif key == '8':
-            self.joy_msg.buttons[8] = 1  # Share
+            self.tap_button(8)  # Share
         elif key == '9':
-            self.joy_msg.buttons[9] = 1  # Options
+            self.tap_button(9)  # Options
         elif key == '0':
-            self.joy_msg.buttons[10] = 1  # PS
+            self.tap_button(10)  # PS
         elif key == 'z':
-            self.joy_msg.buttons[11] = 1  # L3
+            self.tap_button(11)  # L3
         elif key == 'm':
-            self.joy_msg.buttons[12] = 1  # R3
+            self.tap_button(12)  # R3
 
         # --- RESET AXES ---
         elif key == ' ':
@@ -160,23 +182,19 @@ class PS4Emulator(Node):
             self.joy_msg.axes[2] = 1.0
             self.joy_msg.axes[5] = 1.0
 
-        # Publish the state
-        self.joy_msg.header.stamp = self.get_clock().now().to_msg()
-        self.publisher_.publish(self.joy_msg)
-
 
 def main(args=None):
     rclpy.init(args=args)
     node = PS4Emulator()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         # Restore terminal settings upon exit
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, node.settings)
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

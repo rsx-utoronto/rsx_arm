@@ -10,7 +10,7 @@ from std_msgs.msg import String, UInt8, Float32MultiArray, UInt8MultiArray
 from arm_msgs.msg import ArmInputs, KeyboardCoords
 from geometry_msgs.msg import Pose
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
-from arm_utilities.arm_control_utils import handle_joy_input, map_inputs_to_manual, map_inputs_to_ik
+from arm_utilities.arm_control_utils import JOY_AXIS_LAYOUTS, handle_joy_input, map_inputs_to_manual, map_inputs_to_ik
 from arm_configs.loader import load_arm_controller_config_from_node, load_keyboard_config_from_node
 from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
@@ -65,6 +65,13 @@ class Controller(Node):
 
         self.speed_limits = self.cfg["speed_limits"]
 
+        # Which axis indices the triggers/right stick are on (see JOY_AXIS_LAYOUTS)
+        self.joy_layout = self.declare_parameter("joy_layout", "standard").value
+        if self.joy_layout not in JOY_AXIS_LAYOUTS:
+            raise ValueError(
+                f"joy_layout must be one of {list(JOY_AXIS_LAYOUTS)}, got '{self.joy_layout}'")
+        self.get_logger().info(f"Using '{self.joy_layout}' joystick axis layout")
+
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
         # self.current_pose.orientation.w = 1.0
@@ -107,19 +114,20 @@ class Controller(Node):
             UInt8, self.cfg["killswitch_topic"], self.cfg["publisher_depth_queue"])
 
         # arm_joy is either joy_node's direct output (throttle_on:=false, zero extra hops)
-        # or the throttle node's rate-limited output (throttle_on:=true) -- see arm_basics_launch.py
+        # or the throttle node's rate-limited output (throttle_on:=true) -- see arm_basics.launch.py
         self.joy_sub = self.create_subscription(
-            Joy, "/arm/joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
+            Joy, "arm_joy", self.handle_joy, self.cfg["subscriber_depth_queue"])
 
         # FK pose subscriber, updates from calculations in path planner node
         self.fk_sub = self.create_subscription(
-            Pose, "arm_fk_pose", self.update_fk_pose_callback, 10)
+            Pose, "arm_fk_pose", self.update_fk_pose_callback, self.cfg["subscriber_depth_queue"], callback_group=self.fk_target_group)
 
         self.path_planning_sub = self.create_subscription(
-            RobotTrajectory, "trajectory_joints", self.get_trajectory, 10)
+            RobotTrajectory, "trajectory_joints", self.get_trajectory, self.cfg["subscriber_depth_queue"], callback_group=self.path_group)
 
+        # updated call group (exclusive) for IK target updates to avoid starvation from /joy callbacks
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
-                                                      self.cfg["subscriber_depth_queue"])
+            self.cfg["subscriber_depth_queue"], callback_group=self.ik_target_group)
 
         # Safety subscribers
         self.joint_safety_sub = self.create_subscription(
@@ -284,7 +292,7 @@ class Controller(Node):
         with self.arm_update_lock:
             match self.control_mode:
                 case ControlMode.CONTROLLER:
-                    inputs = handle_joy_input(update)
+                    inputs = handle_joy_input(update, self.joy_layout)
                 case ControlMode.GUI:
                     # Update arm state based on GUI input
                     pass
@@ -396,7 +404,7 @@ class Controller(Node):
                                 "Arm not homed, cannot move in IK mode, press X and O simultaneously to home")
                             target_pose = self.current_pose
                             # self.target_pose_pub.publish(target_pose)
-                            time.sleep(0.2)
+                            # time.sleep(0.2)
                 case ArmState.PATH_PLANNING:
                     # TODO: ROS2 doesn't work with threads outside of its own multithreaded executor, implement the thread using that instead.
                     #
@@ -579,7 +587,7 @@ class Controller(Node):
     def update_ik_target(self, msg):
         # convert to degrees for safety checker
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
-
+        self.get_logger().info("update ik")
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
         start_time = time.time()
@@ -589,8 +597,8 @@ class Controller(Node):
         self.get_logger().info(f"Safety check took {end_time-start_time}")
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints # safety seems to filter out some poses, and arm gets stuck in simulation while the IK solver is still providing values
-        # msg.data = self.target_joints
-        self.safe_target_joints_pub.publish(msg)
+        msg.data = self.target_joints
+        # self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
         self.can_con.send_target_message(self.safe_target_joints)
 
@@ -651,7 +659,7 @@ class Controller(Node):
 
                 # DISABLED TEMPORARILY FOR SAFETY
                 # self.can_con.send_target_message(self.safe_target_joints)
-                time.sleep(0.1)  # wait for some time before next step
+                # time.sleep(0.1)  # wait for some time before next step
         self.executing_path = False
 
     def get_trajectory(self, msg):
@@ -710,7 +718,7 @@ class Controller(Node):
 
             # DISABLED TEMPORARILY FOR SAFETY
             # self.can_con.send_target_message(self.safe_target_joints)
-            time.sleep(0.1)  # wait for some time before next step
+            # time.sleep(0.1)  # wait for some time before next step
         self.executing_path = False
 
 
