@@ -1,11 +1,23 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, EmitEvent, OpaqueFunction
+from launch.events import Shutdown
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
+
+def check_args_and_launch(context, actions):
+    use_feature = LaunchConfiguration('use_kb').perform(context).lower() == 'true'
+    use_dependency = LaunchConfiguration('virtual').perform(context).lower() == 'true'
+
+    if use_feature and not use_dependency:
+        return [
+            LogInfo(msg="ERROR: you cannot use the keyboard controller if you are not using virtual CAN!"),
+            EmitEvent(event=Shutdown(reason='Invalid argument combination')),
+        ]
+    return actions
 
 def generate_launch_description():
     config_file_arg = DeclareLaunchArgument(
@@ -28,23 +40,31 @@ def generate_launch_description():
     virtual_arg = DeclareLaunchArgument(
         "virtual",
         default_value="false",
-        description="Comma-separated list of controller config overrides",
+        description="Whether or not to use a virtual CAN bus",
     )
 
     ik_on = LaunchConfiguration('ik_on')
     ik_arg = DeclareLaunchArgument(
         "ik_on",
         default_value="true",
-        description="Comma-separated list of controller config overrides",
+        description="Do we want to use ik stuff",
     )
 
     gui_on = LaunchConfiguration('gui_on')
     gui_arg = DeclareLaunchArgument(
         "gui_on",
         default_value="false",
-        description="Comma-separated list of controller config overrides",
+        description="Do we need the gui running",
     )
 
+    use_kb = LaunchConfiguration('use_kb')
+    kb_arg = DeclareLaunchArgument(
+        "use_kb",
+        default_value="false",
+        description="Do we want to control using a keyboard instead",
+    )
+
+    # Run unless we said we wanted the keyboard instead
     joy_node = Node(
         package='joy',
         executable='joy_node',
@@ -52,8 +72,23 @@ def generate_launch_description():
         output='screen',
         remappings=[
             ('/joy', '/arm/joy')
-        ]
+        ],
+        condition=UnlessCondition(use_kb)
     )
+
+    # If we don't have a joystick, we can run this keyboard controller instead
+    kb_node = Node(
+        package='kb_joy_emu',
+        executable='kb_joy_emulator',
+        name='kb_joy_emulator',
+        output='screen',
+        remappings=[
+            ('/joy', '/arm/joy')
+        ],
+        prefix=['gnome-terminal --'],
+        condition=IfCondition(use_kb)
+    )
+
     # Arm_Controller node
     virtual_arm_controller_node = Node(
         package='arm_controller',
@@ -125,13 +160,20 @@ def generate_launch_description():
         virtual_arg,
         gui_arg,
         ik_arg,
-        ik_controller_launch,
-        joy_node,
-        virtual_arm_controller_node,
-        arm_controller_node,
-        gui_node,
-        rviz_launch,
-        rviz_tunnel
+        kb_arg,
+        OpaqueFunction(
+            function=check_args_and_launch,
+            kwargs={'actions': [
+                ik_controller_launch,
+                joy_node,
+                virtual_arm_controller_node,
+                arm_controller_node,
+                gui_node,
+                rviz_launch,
+                rviz_tunnel,
+                kb_node
+            ]}
+        ), # don't use the keyboard controller if we are using real arm
     ])
 \
 """Need to convert the following to Python (it was commented out in XML.
