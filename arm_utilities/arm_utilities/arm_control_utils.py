@@ -5,30 +5,33 @@ from geometry_msgs.msg import Pose
 from scipy.spatial.transform import Rotation as R
 
 
-def handle_joy_input(msg: Joy):
+# Axis indices (l_trigger, r_trigger, r_horizontal, r_vertical) for each joystick layout.
+# Triggers rest at 1.0, so `ros2 topic echo --once /arm_joy` with the joystick untouched
+# tells you which one you have.
+#   standard: joy_node on native Linux, rosbags recorded that way, kb_joy_emu
+#   wsl:      PS4 controller passed through to WSL with usbipd
+JOY_AXIS_LAYOUTS = {
+    'standard': (2, 5, 3, 4),
+    'wsl': (3, 4, 2, 5),
+}
+
+
+def handle_joy_input(msg: Joy, layout: str = 'standard'):
     arm_inputs = ArmInputs()
+    l_trigger_axis, r_trigger_axis, r_horizontal_axis, r_vertical_axis = JOY_AXIS_LAYOUTS[layout]
 
     # Joystick axes
     # Left joystick: axes 0 (horizontal), 1 (vertical)
     arm_inputs.l_horizontal = msg.axes[0]
     arm_inputs.l_vertical = msg.axes[1]
 
-    # Triggers: axes 2 (left), 5 (right)
+    # Triggers: 1.0 released, -1.0 fully pressed -> mapped to 0..1
+    arm_inputs.l_trigger = -0.5 * msg.axes[l_trigger_axis] + 0.5
+    arm_inputs.r_trigger = -0.5 * msg.axes[r_trigger_axis] + 0.5
 
-    # Note: different indices for input on wsl
-    arm_inputs.l_trigger = -0.5 * msg.axes[3] + 0.5
-    arm_inputs.r_trigger = -0.5 * msg.axes[4] + 0.5
-
-    # Note: same input indices for IK
-    # arm_inputs.l_trigger = -0.5 * msg.axes[2] + 0.5
-    # arm_inputs.r_trigger = -0.5 * msg.axes[5] + 0.5
-
-    # Right joystick: axes 3 (horizontal), 4 (vertical)
-    arm_inputs.r_horizontal = msg.axes[2]
-    arm_inputs.r_vertical = msg.axes[5]
-
-    # arm_inputs.r_horizontal = msg.axes[3] 
-    # arm_inputs.r_vertical = msg.axes[4]
+    # Right joystick
+    arm_inputs.r_horizontal = msg.axes[r_horizontal_axis]
+    arm_inputs.r_vertical = msg.axes[r_vertical_axis]
 
     # D-Pad: axes 6 (horizontal), 7 (vertical)
     arm_inputs.dpad_left = 1 if msg.axes[6] == -1 else 0
