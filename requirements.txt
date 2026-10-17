@@ -10,7 +10,7 @@ python-xlib
 # evdev
 pynput
 scipy
-rclpy
+# rclpy
 python-can==4.6.0
 autopep8
 pyrealsense2
