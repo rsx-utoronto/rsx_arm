@@ -41,6 +41,7 @@ jobs:
       - name: Build Workspace
         run: |
           pip install --force-reinstall "pytest>=7.0.0,<8.0.0" "pluggy<1.4.0" "pytest-rerunfailures<14.0"
+          pip install --upgrade flake8
           pytest --version
           source /opt/ros/humble/setup.bash
           cd arm_ros2_ws
