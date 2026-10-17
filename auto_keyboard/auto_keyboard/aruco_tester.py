@@ -92,10 +92,25 @@ class ArucoTester(Node):
 
     def image_callback(self, msg):
         try:
-            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8   
         except CvBridgeError as e:
             self.get_logger().error(f'Image conversion error: {e}')
             return
+
+         # ---- TEMPORARY: dictionary finder ----
+        DICTS = {
+            '4X4_50': cv2.aruco.DICT_4X4_50, '4X4_250': cv2.aruco.DICT_4X4_250,
+            '5X5_50': cv2.aruco.DICT_5X5_50, '5X5_250': cv2.aruco.DICT_5X5_250,
+            '6X6_50': cv2.aruco.DICT_6X6_50, '6X6_250': cv2.aruco.DICT_6X6_250,
+            '7X7_50': cv2.aruco.DICT_7X7_50, 'ORIGINAL': cv2.aruco.DICT_ARUCO_ORIGINAL,
+        }
+        for name, d in DICTS.items():
+            det = cv2.aruco.ArucoDetector(
+                cv2.aruco.getPredefinedDictionary(d), cv2.aruco.DetectorParameters())
+            c, ids_, _ = det.detectMarkers(frame)
+            if ids_ is not None:
+                self.get_logger().info(f'MATCH: {name} -> ids {ids_.flatten()}')
+        # ---- END TEMPORARY ----
 
         corners, ids, _ = self.detector.detectMarkers(frame)
 
