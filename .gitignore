@@ -41,6 +41,7 @@ coverage.xml
 .envrc
 *.orig
 *.npz
+*.db3
 
 # === Python virtual environments ===
 venv/
