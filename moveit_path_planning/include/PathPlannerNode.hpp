@@ -4,11 +4,12 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include "std_msgs/msg/string.hpp"
 #include <std_msgs/msg/float32_multi_array.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <moveit_msgs/msg/orientation_constraint.hpp>
 #include "arm_msgs/srv/plan_motion.hpp"
 #include "arm_msgs/action/plan_and_execute.hpp"
 #include <sensor_msgs/msg/joint_state.hpp>
-
+#include <moveit/planning_scene/planning_scene.h>
 
 #define NUM_JOINTS 6
 
@@ -38,6 +39,8 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr _joint_path_pub;
   // rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr _rviz_joint_pose_pub;
   rclcpp::Publisher<moveit_msgs::msg::RobotTrajectory>::SharedPtr _trajectory_pub;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr _ik_success_pub;
+  planning_scene::PlanningScenePtr _scene;
 
 
   void receiveTargetPoseCallback(const geometry_msgs::msg::Pose::SharedPtr msg) const;

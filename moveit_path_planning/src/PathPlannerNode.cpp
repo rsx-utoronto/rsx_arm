@@ -40,11 +40,17 @@ PathPlannerNode::PathPlannerNode(
   _joint_pose_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>(
     "arm_ik_target_joints",
     1);
+
+  _ik_success_pub = this->create_publisher<std_msgs::msg::Bool>(
+    "ik_was_successful",
+    1);
   // _rviz_joint_pose_pub = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 1);
   _pose_pub = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 1);
   _joint_path_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_path_joints", 1);
-  _trajectory_pub =
-    this->create_publisher<moveit_msgs::msg::RobotTrajectory>("trajectory_joints", 1);
+  _trajectory_pub = this->create_publisher<moveit_msgs::msg::RobotTrajectory>("trajectory_joints", 1);
+
+  _scene = std::make_shared<planning_scene::PlanningScene>(_move_group->getRobotModel());
+
 
   moveit::core::RobotModelConstPtr robot_model_ = _move_group->getRobotModel();
   jmg = robot_model_->getJointModelGroup(_move_group->getName());
@@ -83,8 +89,13 @@ static Eigen::Isometry3d poseMsgToEigen(const geometry_msgs::msg::Pose & pose)
 void PathPlannerNode::calculateIK(
   const geometry_msgs::msg::Pose::SharedPtr target_pose_msg) const
 {
+  // success message
+  std_msgs::msg::Bool ik_success;
+  ik_success.data = false;
+
   if (!_move_group) {
     RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized");
+    _ik_success_pub->publish(ik_success);
     return;
   }
 
@@ -94,21 +105,37 @@ void PathPlannerNode::calculateIK(
     current_state->getJointModelGroup(_move_group->getName());
   if (!jmg_ptr) {
     RCLCPP_ERROR(get_logger(), "JointModelGroup not found!");
+    _ik_success_pub->publish(ik_success);
     return;
   }
 
   Eigen::Isometry3d target_pose_eigen = poseMsgToEigen(*target_pose_msg);
+
+  // IK collision checks
+  auto validity_cb =
+  [this](moveit::core::RobotState * s,
+         const moveit::core::JointModelGroup * g,
+         const double * values) {
+    s->setJointGroupPositions(g, values);
+    s->update();
+    collision_detection::CollisionRequest req;
+    req.group_name = g->getName();
+    collision_detection::CollisionResult res;
+    _scene->checkSelfCollision(req, res, *s);
+    return !res.collision;
+  };
 
   bool found_ik = current_state->setFromIK(
     jmg_ptr,
     target_pose_eigen,
     _move_group->getEndEffectorLink(),
     0.1,
-    moveit::core::GroupStateValidityCallbackFn(),
+    validity_cb,
     kinematics::KinematicsQueryOptions());
 
   if (!found_ik) {
     RCLCPP_WARN(get_logger(), "IK solution not found for target pose");
+    _ik_success_pub->publish(ik_success);
     return;
   }
 
@@ -119,7 +146,20 @@ void PathPlannerNode::calculateIK(
   //   indices              0   1   2   3   4   5
   if (joint_values.size() < NUM_JOINTS) {
     RCLCPP_ERROR(get_logger(), "Unexpected joint count from IK solver");
+    _ik_success_pub->publish(ik_success);
     return;
+  }
+
+  // Reject branch flips / big jumps relative to the current (feedback) pose
+  constexpr double kMaxJump = 0.15;  // rad, tune this
+  const auto & names = jmg_ptr->getVariableNames();
+  for (size_t i = 0; i < joint_values.size(); ++i) {
+    const double d = joint_values[i] - robot_state->getVariablePosition(names[i]);
+    if (std::abs(d) > kMaxJump) {
+      RCLCPP_WARN(get_logger(),
+        "IK jump on joint %zu: %.2f rad, rejecting", i + 1, d);
+      return;
+    }
   }
 
   // Need to swap joints 5 and 6 and invert 4-6
@@ -131,6 +171,8 @@ void PathPlannerNode::calculateIK(
   std_msgs::msg::Float32MultiArray msg;
   msg.data.assign(joint_values.begin(), joint_values.end());
   _joint_pose_pub->publish(msg);
+  ik_success.data = true;
+  _ik_success_pub->publish(ik_success);
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +180,18 @@ void PathPlannerNode::calculateIK(
 void PathPlannerNode::joint_callback(
   const std_msgs::msg::Float32MultiArray::SharedPtr msg)
 {
-  std::vector<double> joint_positions(msg->data.begin(), msg->data.end());
+  std::vector<double> joint_positions(msg->data.begin(), msg->data.end() - 1);
+
+  // Need to swap joints 5 and 6 and invert 4-6
+  double temp = joint_positions[5];
+  joint_positions[5] = -joint_positions[4];
+  joint_positions[4] = -temp;
+  joint_positions[3] = -joint_positions[3];
+
+  // Convert back to radians (lmao)
+  for (size_t i = 0; i < NUM_JOINTS; ++i) {
+    joint_positions[i] = joint_positions[i] * 3.14 / 180.0;  // Convert degrees to radians
+  }
 
   robot_state->setJointGroupPositions(jmg, joint_positions);
   robot_state->update();

@@ -6,7 +6,7 @@ import threading
 import numpy as np
 
 from sensor_msgs.msg import Joy, JointState
-from std_msgs.msg import String, UInt8, Float32MultiArray, UInt8MultiArray
+from std_msgs.msg import String, UInt8, Float32MultiArray, UInt8MultiArray, Bool
 from arm_msgs.msg import ArmInputs, KeyboardCoords
 from geometry_msgs.msg import Pose
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
@@ -67,6 +67,7 @@ class Controller(Node):
 
         # TODO: having some issues with updating self.current_pose in the callback, need to investigate
         self.current_pose = Pose()
+        self.target_pose = self.current_pose
         self.current_joints = self.initial_positions.copy()
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
@@ -115,6 +116,9 @@ class Controller(Node):
 
         self.ik_target_sub = self.create_subscription(Float32MultiArray, "arm_ik_target_joints", self.update_ik_target,
                                                       self.cfg["subscriber_depth_queue"])
+
+        self.ik_target_sub = self.create_subscription(Bool, "ik_was_successful", self.ik_success_callback,
+                                                              self.cfg["subscriber_depth_queue"])
 
         # Safety subscribers
         self.joint_safety_sub = self.create_subscription(
@@ -209,10 +213,14 @@ class Controller(Node):
         except:
             self.get_logger().warn("error logging limits!")
 
+        self.get_logger().info("Done setup!")
+
     def read_can_callback(self):
         while self.shutdown == False:
             read_msg = self.can_con.read_message()
             if read_msg == None:
+                # # We just need to mirror target and current if virtual; assume everything makes it
+                # self.get_logger().info(f"cur jounts: {self.current_joints}")
                 continue
             index = read_msg[0]
             api = read_msg[1]
@@ -331,7 +339,7 @@ class Controller(Node):
                     self.safe_target_joints = self.arm_internal_current_joints
                     self.can_con.send_target_message(self.safe_target_joints)
                     # In idle state, only allow killswitch and state changes
-                    self.get_logger().info("Currently in IDLE: No control change")
+                    # self.get_logger().info("Currently in IDLE: No control change")
 
                 case ArmState.MANUAL:
                     # use internal current joints to prevent joint slippage when no input is given
@@ -352,25 +360,31 @@ class Controller(Node):
 
                     self.can_con.send_target_message(self.safe_target_joints)
 
-                    # As of right now it seems manual is the only thing that needs this slowdown
-                    # to limit speed, but a TODO would be to set proper limits! 
-                    # time.sleep(0.05)
+                    # Fake the virtual joint updates (bypass the update_internal_pose_state function)
+                    # IK needs this to smoothen the manual --> ik transition
+                    # Also helps us have safer out-of-bounds behaviour as we only update the internal pose when succcessful
+                    if self.virtual:
+                        self.arm_curr_joints_pub.publish(msg)
+
                 case ArmState.IK:
                     if not False in self.homed or self.cfg["allow_ik_without_homing"]:
                         # Join homing thread if just finished homing
                         if self.homing_thread.is_alive():
                             self.homing_thread.join()
 
-                        target_pose = map_inputs_to_ik(
+                        self.target_pose = map_inputs_to_ik(
                             inputs, self.current_pose)
-                        self.target_pose_pub.publish(target_pose)
-                        self.current_pose = target_pose
+                        self.target_pose_pub.publish(self.target_pose)
+                        
+                        # Commented-out line below is dangerous and lets us "explore" spaces out of bounds
+                        # We could start at one spot out of bounds and re-enter in another, causing massive position jumps
+                        # self.current_pose = target_pose 
                     else:
                         if inputs.x and inputs.circle and inputs.triangle and inputs.square or self.virtual:
                             self.get_logger().info("OVERRIDING HOMING")
                             # TODO: include offsets in override
-                            # for i in range(self.n_joints - 1):
-                            #     self.joint_offsets[i] = self.initial_positions[i] - self.current_joints[i]
+                            for i in range(self.n_joints - 1):
+                                self.joint_offsets[i] = self.initial_positions[i] - self.current_joints[i]
                             self.homed = [True]*self.n_joints
                         elif inputs.x and inputs.circle:
                             self.get_logger().info("Homing arm, press X to cancel")
@@ -379,9 +393,9 @@ class Controller(Node):
                         else:
                             self.get_logger().info(
                                 "Arm not homed, cannot move in IK mode, press X and O simultaneously to home")
-                            target_pose = self.current_pose
-                            # self.target_pose_pub.publish(target_pose)
-                            time.sleep(0.2)
+                            self.target_pose = self.current_pose
+                            # self.target_pose_pub.publish(self.target_pose)
+                            # time.sleep(0.2)
                 case ArmState.PATH_PLANNING:
                     # TODO: ROS2 doesn't work with threads outside of its own multithreaded executor, implement the thread using that instead.
                     #
@@ -431,7 +445,8 @@ class Controller(Node):
                             self.executing_path = True
                             self.path_executor_thread.start()
         # TODO: arm pose should update with the arm's movement, this can be done with internal state that's checked with against the real state but requires testing for jitter
-        if self.state != ArmState.IK:
+        if not self.virtual and self.state != ArmState.IK:
+            # Doesn't work in virtual because current_joints never actually gets updated (TODO: trying to update it breaks it so we just default everything to self.arm_safe_target_joints)
             # TODO: need to be updating internal pose state using FK pose updates, need to resolve discrepancies from IK solutions
             self.update_internal_pose_state(self.current_joints)
         # time.sleep(0.05) why was this here??????????
@@ -551,7 +566,20 @@ class Controller(Node):
         self.arm_curr_joints_pub.publish(angles)
         # Pose will be returned in a subscription, should update elsewhere
 
+    # Hopefully what we needed to speed up IK out of bounds checking once and for all
+    def ik_success_callback(self, msg):
+        self.get_logger().info(f"hello! {msg.data}")
+        if self.state == ArmState.IK:
+            if msg.data: # Only if true we direct update this
+                self.current_pose = self.target_pose
+            elif self.virtual: # Wasn't successful so we need to give it the last valid position
+                # Only mattery if we are virtual; motor encoders give us data on CAN irl
+                new_msg = Float32MultiArray()
+                new_msg.data = self.safe_target_joints
+                self.arm_curr_joints_pub.publish(new_msg)
+
     def update_fk_pose_callback(self, msg):
+        self.get_logger().info("hey")
         self.current_pose = msg
 
     def shutdown_node(self):
@@ -565,16 +593,16 @@ class Controller(Node):
         self.target_joints = list(np.array(msg.data, dtype=float)*180/math.pi)
         # append the end effector current rotation because IK solution does not have this
         self.target_joints.append(self.current_joints[-1])
-        start_time = time.time()
+        # start_time = time.time()
         self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
             self.target_joints, self.arm_internal_current_joints)
-        end_time = time.time()
-        self.get_logger().info(f"Safety check took {end_time-start_time}")
+        # end_time = time.time()
+        # self.get_logger().info(f'q: {self.safe_target_joints}')
         msg = Float32MultiArray()
         msg.data = self.safe_target_joints
         self.safe_target_joints_pub.publish(msg)
         self.arm_internal_current_joints = self.safe_target_joints
-        self.can_con.send_target_message(self.safe_target_joints)
+        self.can_con.send_target_message(self.safe_target_joints)        
 
         # time.sleep(0.05)  # wait for some time before next update
 

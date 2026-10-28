@@ -1,7 +1,7 @@
 node_name: "Arm_Controller"
 speed_limits:
-  - 1.5
-  - 2
+  - 1
+  - 1
   - 1
   - 1
   - 0.5

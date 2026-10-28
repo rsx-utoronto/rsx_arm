@@ -9,7 +9,7 @@ class SafetyChecker():
     def __init__(self):
 
         # TODO: max change in theta at a given step, need to test and put in a config file
-        self.max_d_theta = [20, 20, 20, 20, 20, 20, 80000]
+        self.max_d_theta = [15, 15, 15, 15, 15, 15, 80000]
         # TODO: currently set arbitrarily, needs to correspond correctly with the actual arm
         self.joint_limits = [(-180, 180), (-180, 180), (-180, 180),
                              (-180, 180), (-math.inf, math.inf), (-math.inf, math.inf), (-math.inf, math.inf)]
@@ -47,18 +47,29 @@ class SafetyChecker():
         if not pos:
             pos = self.goal_pos
         safe_goal_pos = self.curr_pos.copy()
-        # print(self.curr_pos)
-        # Going through each element of GOAL_POS
+
+        # Doing position comparisons for safety
+        # To properly update, we will take the ratio between the highest requested change and max allowable change
+        # If it is > 1 we are exceeding max; scale all values down by that amount to keep on the same trajectory
+        # If we just clamped a single joint we'd have undesired/awkward movements when only specific joints
+        # are constrained in joint space rather than via a pose
+        joint_deltas = [pos[i] - self.curr_pos[i] for i in range(len(pos))]
+        max_requested_delta_ratios = [abs(joint_deltas[i] / self.max_d_theta[i]) for i in range(len(pos))]
+        highest_delta_ratio = max(max_requested_delta_ratios)
+
+        if highest_delta_ratio < 1:
+            highest_delta_ratio = 1
+
+        safe_goal_pos = [(joint_deltas[i] / highest_delta_ratio) + self.curr_pos[i] for i in range(len(pos))]
+
+        # Update flags and limits (legacy code just kept for now in case it breaks something to remove it)
         for i in range(len(pos)):
-            # Doing position comparisons for safety
-            # Clamp to max change in theta
-            if abs(pos[i] - self.curr_pos[i]) > self.max_d_theta[i]:
-                safe_goal_pos = self.curr_pos.copy()
+            if max_requested_delta_ratios[i] > 1:
+                # safe_goal_pos = self.curr_pos.copy()
                 joint_pos_safety_status[i] = SafetyErrors.EXCEEDING_POS.value
-                print("Exceeded max position change for joint ", i)
+                print("Exceeded max position change for joint ", i, flush=True)
                 print("Requested: ", pos[i], " Current: ", self.curr_pos[i],
-                      " Max Change: ", self.max_d_theta[i])
-                return safe_goal_pos, joint_pos_safety_status
+                      " Max Change: ", self.max_d_theta[i], flush=True)
 
             elif pos[i] <= self.joint_limits[i][0] or pos[i] >= self.joint_limits[i][1]:
                 safe_goal_pos[i] = self.curr_pos[i]
