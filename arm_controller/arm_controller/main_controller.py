@@ -573,7 +573,7 @@ class Controller(Node):
             if msg.data: # Only if true we direct update this
                 self.current_pose = self.target_pose
             elif self.virtual: # Wasn't successful so we need to give it the last valid position
-                # Only mattery if we are virtual; motor encoders give us data on CAN irl
+                # Only matters if we are virtual; motor encoders give us data on CAN irl
                 new_msg = Float32MultiArray()
                 new_msg.data = self.safe_target_joints
                 self.arm_curr_joints_pub.publish(new_msg)
