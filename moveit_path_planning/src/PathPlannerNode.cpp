@@ -164,8 +164,8 @@ void PathPlannerNode::calculateIK(
 
   // Need to swap joints 5 and 6 and invert 4-6
   double temp = joint_values[5];
-  joint_values[5] = -joint_values[4];
-  joint_values[4] = -temp;
+  joint_values[5] = joint_values[4];
+  joint_values[4] = temp;
   joint_values[3] = -joint_values[3];
 
   std_msgs::msg::Float32MultiArray msg;
@@ -183,10 +183,10 @@ void PathPlannerNode::joint_callback(
   std::vector<double> joint_positions(msg->data.begin(), msg->data.end() - 1);
 
   // Need to swap joints 5 and 6 and invert 4-6
-  double temp = joint_positions[5];
-  joint_positions[5] = -joint_positions[4];
-  joint_positions[4] = -temp;
-  joint_positions[3] = -joint_positions[3];
+  // double temp = joint_positions[5];
+  // joint_positions[5] = -joint_positions[4];
+  // joint_positions[4] = -temp;
+  // joint_positions[3] = -joint_positions[3];
 
   // Convert back to radians (lmao)
   for (size_t i = 0; i < NUM_JOINTS; ++i) {

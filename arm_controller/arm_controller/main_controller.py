@@ -562,7 +562,7 @@ class Controller(Node):
     def update_internal_pose_state(self, joints):
         for i in range(len(joints)):
             joints[i] = np.pi * joints[i] / 180.0
-        angles = Float32MultiArray(data=joints[0:6])
+        angles = Float32MultiArray(data=joints[0:7]) # sometimes six, sometimes seven
         self.arm_curr_joints_pub.publish(angles)
         # Pose will be returned in a subscription, should update elsewhere
 

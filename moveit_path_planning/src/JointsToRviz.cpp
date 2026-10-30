@@ -52,8 +52,8 @@ private:
 
     // Need to swap joints 5 and 6 and invert 4-6
     double temp = js.position[5];
-    js.position[5] = -js.position[4];
-    js.position[4] = -temp;
+    js.position[5] = js.position[4];
+    js.position[4] = temp;
     js.position[3] = -js.position[3];
 
     // Dummy joint needs an angle, just give it 0 because who cares lol
