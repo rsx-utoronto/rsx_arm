@@ -47,7 +47,7 @@ jobs:
           cd arm_ros2_ws
           rosdep init || true 
           rosdep update
-          rosdep install --from-paths src --ignore-src -r -y --skip-keys "ros-humble-warehouse-ros-mongo"
+          rosdep install --from-paths src --ignore-src -r -y
           colcon build --packages-select arm_msgs --symlink-install
           source install/setup.bash
           colcon build --symlink-install
