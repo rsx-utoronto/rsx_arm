@@ -23,11 +23,11 @@ public:
       std::bind(&IkToRvizJointState::to_rviz_cb, this, std::placeholders::_1));
 
     // Subscriber to path planning target joints topic
-    path_planning_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-      "arm_path_joints", 10,
-      std::bind(&IkToRvizJointState::to_rviz_cb, this, std::placeholders::_1));
+    // path_planning_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
+      // "arm_path_joints", 10,
+      // std::bind(&IkToRvizJointState::to_rviz_cb, this, std::placeholders::_1));
 
-    joint_names_ = {"joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"};
+    joint_names_ = {"shoulder", "shoulder_joint", "elbow", "elbow_roll", "ee_pitch", "ee_roll", "dummy_ee_joint"};
   }
 
 private:
@@ -44,7 +44,7 @@ private:
     sensor_msgs::msg::JointState js;
     js.header.stamp = this->now();     // RViz-friendly timestamp
     js.name = joint_names_;
-    js.position.resize(NUM_JOINTS);
+    js.position.resize(NUM_JOINTS+1); // Add 1 for the dummy
 
     for (size_t i = 0; i < NUM_JOINTS; ++i) {
       js.position[i] = static_cast<double>(msg->data[i]) * 3.14 / 180.0;  // Convert degrees to radians
@@ -52,9 +52,12 @@ private:
 
     // Need to swap joints 5 and 6 and invert 4-6
     double temp = js.position[5];
-    js.position[5] = -js.position[4];
-    js.position[4] = -temp;
+    js.position[5] = js.position[4];
+    js.position[4] = temp;
     js.position[3] = -js.position[3];
+
+    // Dummy joint needs an angle, just give it 0 because who cares lol
+    js.position[6] = 0.0f;
 
     joint_pub_->publish(js);
   }

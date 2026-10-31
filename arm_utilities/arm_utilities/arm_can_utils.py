@@ -114,7 +114,7 @@ def initialize_bus(channel='can0', interface='socketcan', receive_own_messages=F
     # BUS = can.ThreadSafeBus(channel= channel, interface= interface, receive_own_messages= False)
     bus = can.Bus(channel=channel, interface=interface,
                   receive_own_messages=receive_own_messages)
-    print('BUS initialized')
+    print('BUS initialized', flush=True)
     return bus
 
 

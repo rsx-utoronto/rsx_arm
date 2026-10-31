@@ -45,9 +45,9 @@ jobs:
           pytest --version
           source /opt/ros/humble/setup.bash
           cd arm_ros2_ws
-          rosdep init || true 
-          rosdep update
-          rosdep install --from-paths src --ignore-src -r -y
+          rosdep init || true
+          rosdep update --include-eol-distros
+          rosdep install --from-paths src --ignore-src -r -y --skip-keys="warehouse_ros_mongo"
           colcon build --packages-select arm_msgs --symlink-install
           source install/setup.bash
           colcon build --symlink-install
