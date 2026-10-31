@@ -5,13 +5,11 @@
 #define COLORED     0
 #define UNCOLORED   1
 
-// Create a buffer for a single line of text (400px wide, 24px high)
 unsigned char image[1200];
 Paint paint(image, 400, 24);
 Epd epd;
 
 String inputString = "";
-bool stringComplete = false;
 
 void setup() {
   Serial.begin(115200);
@@ -21,47 +19,43 @@ void setup() {
     return;
   }
 
-  // Clear the display to pure white on startup
+  // Clear to pure white on startup and stay awake
   epd.Clear();
-  Serial.println("Screen cleared. Type a message and press Enter...");
-  
-  // Note: We deliberately do NOT put the display to sleep here 
-  // so it retains its memory state for clean partial updates.
 }
 
 void loop() {
-  // Read Serial input character by character
+  bool screenNeedsUpdate = false;
+  
+  // As soon as data arrives, read it immediately
   while (Serial.available()) {
     char inChar = (char)Serial.read();
     
-    // Check for newline (Enter key)
-    if (inChar == '\n' || inChar == '\r') {
+    // Backspace
+    if (inChar == '\b' || inChar == 127) {
       if (inputString.length() > 0) {
-        stringComplete = true;
+        inputString.remove(inputString.length() - 1);
+        screenNeedsUpdate = true;
       }
-    } else {
-      inputString += inChar;
     }
+    // Enter / Newline clears the screen for a new sentence
+    else if (inChar == '\n' || inChar == '\r') {
+      inputString = "";
+      screenNeedsUpdate = true;
+    }
+    // Any standard typed character
+    else if (inChar >= 32 && inChar <= 126) {
+      inputString += inChar;
+      screenNeedsUpdate = true;
+    }
+    
+    // A tiny 2ms delay groups characters if they arrive perfectly simultaneously
+    delay(2); 
   }
 
-  // When Enter is pressed, update the e-Paper
-  if (stringComplete) {
-    Serial.print("Updating display with: ");
-    Serial.println(inputString);
-
-    // 1. Wipe our local 24px memory buffer clean
+  // Fire the screen update instantly
+  if (screenNeedsUpdate) {
     paint.Clear(UNCOLORED);
-    
-    // 2. Draw the new text into the buffer
     paint.DrawStringAt(0, 0, inputString.c_str(), &Font24, COLORED);
-    
-    // 3. Push the buffer to the display. 
-    // Because it stayed awake, it automatically erases the old text!
     epd.Display_Partial(paint.GetImage(), 0, 138, paint.GetWidth(), 138 + paint.GetHeight());
-
-    // Reset the string for the next message
-    inputString = "";
-    stringComplete = false;
-    Serial.println("Update complete. Ready for next message.");
   }
 }
