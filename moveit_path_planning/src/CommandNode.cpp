@@ -14,6 +14,21 @@
 
 using namespace std::chrono_literals;
 
+int main(int argc, char * argv[])
+{
+  auto const node = std::make_shared<rclcpp::Node>(
+    "path_planning",
+    rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
+
+    const std::string PLANNING_GROUP = "rover_arm";
+    using moveit::planning_interface::MoveGroupInterface;
+    auto move_group_interface = MoveGroupInterface(node, PLANNING_GROUP);
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<CommandNode>(&move_group_interface));
+    rclcpp::shutdown();
+    return 0;
+}
+
 // ---------------------------------------------------------------------------
 // CommandNode
 // ---------------------------------------------------------------------------
