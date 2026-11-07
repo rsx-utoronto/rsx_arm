@@ -16,17 +16,24 @@ using namespace std::chrono_literals;
 
 int main(int argc, char * argv[])
 {
-  auto const node = std::make_shared<rclcpp::Node>(
-    "path_planning",
-    rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
+  rclcpp::init(argc, argv);
 
-    const std::string PLANNING_GROUP = "rover_arm";
-    using moveit::planning_interface::MoveGroupInterface;
-    auto move_group_interface = MoveGroupInterface(node, PLANNING_GROUP);
-    rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<CommandNode>(&move_group_interface));
-    rclcpp::shutdown();
-    return 0;
+  auto const node = std::make_shared<rclcpp::Node>(
+      "command_node_move_group",
+      rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
+
+  const std::string planning_group = "rover_arm";
+  using moveit::planning_interface::MoveGroupInterface;
+  auto move_group_interface = MoveGroupInterface(node, planning_group);
+  auto command_node = std::make_shared<CommandNode>(&move_group_interface);
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  executor.add_node(command_node);
+  executor.spin();
+
+  rclcpp::shutdown();
+  return 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -38,9 +45,6 @@ CommandNode::CommandNode(
 ): Node("command_node"),
   _move_group(move_group)
 {
-    rclcpp::TimerBase::SharedPtr timer_;
-    size_t count_;
-
     _target_pose_pub = this->create_publisher<geometry_msgs::msg::Pose>(
         "arm_target_pose",
         1);

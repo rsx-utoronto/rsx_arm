@@ -18,6 +18,7 @@ private:
 //   std::shared_ptr<geometry_msgs::msg::Pose> _curr_pose;
 
   rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr _target_pose_pub;
+  rclcpp::TimerBase::SharedPtr timer_;
 
   // move group
   moveit::planning_interface::MoveGroupInterface * _move_group;
