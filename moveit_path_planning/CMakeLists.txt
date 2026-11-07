@@ -37,6 +37,26 @@ add_executable(path_planning
         include/PathPlannerNode.hpp
 )
 
+add_executable(command_node
+        include/CommandNode.hpp
+
+        src/CommandNode.cpp
+        include/CommandNode.hpp
+)
+ament_target_dependencies(
+        command_node
+        arm_msgs
+        geometry_msgs
+        moveit_core
+        moveit_msgs
+        moveit_ros_planning_interface
+        rclcpp
+        sensor_msgs
+        std_msgs
+        trajectory_msgs
+)
+
+
 target_include_directories(test_movements PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -62,6 +82,14 @@ ament_target_dependencies(
         rclcpp
 )
 
+target_compile_features(command_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+ament_target_dependencies(
+        command_node
+        moveit_ros_planning_interface
+        arm_msgs
+        rclcpp
+)
+
 
 install(TARGETS test_movements
         DESTINATION lib/${PROJECT_NAME})
@@ -72,7 +100,8 @@ install(TARGETS path_planning
 install(TARGETS rviz_sim
         DESTINATION lib/${PROJECT_NAME})
 
-
+install(TARGETS command_node
+        DESTINATION lib/${PROJECT_NAME})
 
 # Planner server library (for component)
 add_library(planner_server_component SHARED

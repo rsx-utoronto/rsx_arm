@@ -23,26 +23,27 @@ CommandNode::CommandNode(
 ): Node("command_node"),
   _move_group(move_group)
 {
+    rclcpp::TimerBase::SharedPtr timer_;
+    size_t count_;
+
     _target_pose_pub = this->create_publisher<geometry_msgs::msg::Pose>(
         "arm_target_pose",
         1);
-
-    rclcpp::TimerBase::SharedPtr timer_;
-    size_t count_;
+    timer_ = this->create_wall_timer(
+        500ms, std::bind(&CommandNode::timer_callback, this));
 };
 
 void CommandNode::timer_callback()
 {
     auto pose_msg = geometry_msgs::msg::Pose();
-    pose_msg.position.x = tf.translation().x();
-    pose_msg.position.y = tf.translation().y();
-    pose_msg.position.z = tf.translation().z();
+    pose_msg.position.x = 0.4;
+    pose_msg.position.y = 0.4;
+    pose_msg.position.z = 0.5;
 
-    Eigen::Quaterniond q(tf.rotation());
-    pose_msg.orientation.x = q.x();
-    pose_msg.orientation.y = q.y();
-    pose_msg.orientation.z = q.z();
-    pose_msg.orientation.w = q.w();
+    pose_msg.orientation.x = 0.0;
+    pose_msg.orientation.y = 0.0;
+    pose_msg.orientation.z = 0.0;
+    pose_msg.orientation.w = 1.0;
     //RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
     _target_pose_pub->publish(pose_msg);
 }
