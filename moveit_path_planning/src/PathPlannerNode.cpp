@@ -28,7 +28,13 @@ PathPlannerNode::PathPlannerNode(
     _target_pose_sub = this->create_subscription<geometry_msgs::msg::Pose>(
         "arm_target_pose", 200,
         std::bind(&PathPlannerNode::receiveTargetPoseCallback, this, std::placeholders::_1));
+    _target_pose_sub = this->create_subscription<geometry_msgs::msg::Pose>(
+        "arm_target_pose", 200,
+        std::bind(&PathPlannerNode::receiveTargetPoseCallback, this, std::placeholders::_1));
 
+    _arm_state_sub = this->create_subscription<std_msgs::msg::String>(
+        "arm_state", 200,
+        std::bind(&PathPlannerNode::updateStateCallback, this, std::placeholders::_1));
     _arm_state_sub = this->create_subscription<std_msgs::msg::String>(
         "arm_state", 200,
         std::bind(&PathPlannerNode::updateStateCallback, this, std::placeholders::_1));
@@ -36,7 +42,14 @@ PathPlannerNode::PathPlannerNode(
     _joint_sub = this->create_subscription<std_msgs::msg::Float32MultiArray>(
         "arm_curr_angles", 200,
         std::bind(&PathPlannerNode::joint_callback, this, std::placeholders::_1));
+    _joint_sub = this->create_subscription<std_msgs::msg::Float32MultiArray>(
+        "arm_curr_angles", 200,
+        std::bind(&PathPlannerNode::joint_callback, this, std::placeholders::_1));
 
+    _joint_pose_pub  = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_ik_target_joints", 200);
+    _pose_pub        = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 200);
+    _joint_path_pub  = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_path_joints", 200);
+    _trajectory_pub  = this->create_publisher<moveit_msgs::msg::RobotTrajectory>("trajectory_joints", 200);
     _joint_pose_pub  = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_ik_target_joints", 200);
     _pose_pub        = this->create_publisher<geometry_msgs::msg::Pose>("arm_fk_pose", 200);
     _joint_path_pub  = this->create_publisher<std_msgs::msg::Float32MultiArray>("arm_path_joints", 200);
@@ -201,6 +214,7 @@ void PathPlannerNode::joint_callback(
   robot_state->setJointGroupPositions(jmg, joint_positions);
   robot_state->update();
 
+  Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("gripper");
   Eigen::Isometry3d tf = robot_state->getGlobalLinkTransform("gripper");
 
   geometry_msgs::msg::Pose pose_msg;

@@ -2,9 +2,7 @@ moveit_setup_assistant_config:
   urdf:
     package: simulation
     relative_path: urdfs/Arm_URDF_2026.urdf
-    relative_path: urdfs/Arm_URDF_2026.urdf
   srdf:
-    relative_path: config/Arm_URDF_2026.srdf
     relative_path: config/Arm_URDF_2026.srdf
   package_settings:
     author_name: rsx_arm
