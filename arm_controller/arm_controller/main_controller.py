@@ -132,14 +132,15 @@ class Controller(Node):
             Float32MultiArray, "arm_path_planner_target_joints", 10)
         self.path_planner_joint_sub = self.create_subscription(
             Float32MultiArray, "arm_path_joints", self.update_path_planner_joints, 100, callback_group=self.path_group)
-        self.path_executor_thread = threading.Thread(
-            target=self.path_executor_loop, daemon=True)
+        # self.path_executor_thread = threading.Thread(
+        #     target=self.path_executor_loop, daemon=True)
+
+        self.path_executer_timer = self.create_timer(0.1, self.path_executor_loop)
 
         self.safe_rviz_joints_pub = self.create_publisher(
             JointState, "joint_states", 10)
         # will fill when a path is given
         self.current_path = []
-        self.path_is_ready = False
         # maximum allowed error in degrees to consider joint target reached
         self.joint_target_threshold = 1
 
@@ -179,13 +180,12 @@ class Controller(Node):
                         self.can_read_thread,
                         # self.path_executor_thread
                         ]
-        self.executing_path = False
 
         # Initialization flags for CAN readings (for setting initial joint values)
         self.init = [False]*7
 
-        # Path planning state variable
-        self.executing_path = False
+        #Path planning state variable
+        self.path_paused = False
 
         # Keyboard targets to be hard coded at time of challenge
         self.keyboard_targets = []
@@ -303,7 +303,7 @@ class Controller(Node):
 
             if inputs.dpad_up and inputs.dpad_down and inputs.dpad_left and inputs.dpad_right:
                 if self.state != ArmState.AUTO_KEYBOARD:
-                    self.state = ArmState.AUTO_KEYBOARD
+                    #self.state = ArmState.AUTO_KEYBOARD #TODO: re-enable when path planning set up
                     self.get_logger().info("ACTIVATING AUTO KEYBOARD MODE")
                 else:
                     self.state = ArmState.IDLE
@@ -326,7 +326,7 @@ class Controller(Node):
                     self.get_logger().info("Switching to IK mode, homed and ready to move")
 
             elif inputs.dpad_right:
-                self.state = ArmState.AUTO_KEYBOARD
+                self.state = ArmState.PATH_PLANNING
                 self.get_logger().info("Switching to PATH PLANNING mode")
 
             state_string = String()
@@ -397,32 +397,32 @@ class Controller(Node):
                             # self.target_pose_pub.publish(self.target_pose)
                             # time.sleep(0.2)
                 case ArmState.PATH_PLANNING:
-                    # TODO: ROS2 doesn't work with threads outside of its own multithreaded executor, implement the thread using that instead.
-                    #
                     if inputs.x:
                         self.get_logger().warn("Path execution stopped by user input")
-                        self.executing_path = False
-                        if self.path_executor_thread.is_alive():
-                            self.path_executor_thread.join()
+                        self.current_path = []
+                        self.path_paused = True
+                        # if self.path_executor_thread.is_alive():
+                        #     self.path_executor_thread.join()
                     if inputs.o:
                         self.get_logger().warn("Path execution paused by user input")
-                    if self.path_executor_thread.is_alive():
-                        self.get_logger().info("thread alive")
-                        if not self.executing_path:
-                            self.get_logger().info("joining!")
-                            self.path_executor_thread.join()
-                        else:
-                            pass
-                    else:
-                        if self.path_is_ready:
-                            # self.get_logger().info("Path executor")
-                            self.path_executor_thread = threading.Thread(
-                                target=self.path_executor_loop, daemon=True)
-                            self.path_executor_thread.start()
-                            self.executing_path = True
-                        else:
-                            # TODO: enter path setup here
-                            self.get_logger().info("Path not ready yet!")
+                        self.path_paused = True
+                    # if self.path_executor_thread.is_alive():
+                    #     self.get_logger().info("thread alive")
+                    #     if not self.executing_path:
+                    #         self.get_logger().info("joining!")
+                    #         self.path_executor_thread.join()
+                    #     else:
+                    #         pass
+                    # else:
+                    #     if self.path_is_ready:
+                    #         # self.get_logger().info("Path executor")
+                    #         # self.path_executor_thread = threading.Thread(
+                    #         #     target=self.path_executor_loop, daemon=True)
+                    #         # self.path_executor_thread.start()
+                    #         self.executing_path = True
+                    #     else:
+                    #         # TODO: enter path setup here
+                    #         self.get_logger().info("Path not ready yet!")
                 case ArmState.AUTO_KEYBOARD:
                     # TODO: actively update the relative location of keyboard targets based on detected keyboard corners
                     for target in self.keyboard_targets:
@@ -624,8 +624,12 @@ class Controller(Node):
         self.current_path.append(list(msg.data))
 
     def path_executor_loop(self):
-        self.executing_path = True
-        while len(self.current_path) > 0 and self.shutdown == False:
+        if (state != ArmState.PATH_PLANNING):
+            self.current_path = [] # path should be cleared if we are not in path planning mode
+            return
+        if self.path_paused:
+            return  # can keep the path in memory but don't execute it until unpaused
+        if (len(self.current_path) > 0 and self.shutdown == False):
             for step in self.current_path:
                 error = [abs(step[i] - self.current_joints[i])
                          for i in range(self.n_joints-1)]
@@ -662,9 +666,11 @@ class Controller(Node):
                 # DISABLED TEMPORARILY FOR SAFETY
                 # self.can_con.send_target_message(self.safe_target_joints)
                 time.sleep(0.1)  # wait for some time before next step
-        self.executing_path = False
 
     def get_trajectory(self, msg):
+        if self.path_paused or (state != ArmState.PATH_PLANNING):
+            self.get_logger().info("Path execution paused, ignoring new trajectory")
+            return
 
         for frame in msg.joint_trajectory.points:
             self.path_frames += 1
@@ -673,7 +679,6 @@ class Controller(Node):
 
         self.get_logger().info("total frames received: " + str(self.path_frames))
 
-        self.executing_path = True
         self.get_logger().info("first frame:")
 
         self.get_logger().info("in path executor")
@@ -720,7 +725,9 @@ class Controller(Node):
 
             # DISABLED TEMPORARILY FOR SAFETY
             # self.can_con.send_target_message(self.safe_target_joints)
+            # - timestamp
             time.sleep(0.1)  # wait for some time before next step
+            # loop of collecting input -< if time-timestamp >0.1 continute
         self.executing_path = False
 
 
