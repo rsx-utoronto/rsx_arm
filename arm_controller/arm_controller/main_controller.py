@@ -326,7 +326,7 @@ class Controller(Node):
                     self.get_logger().info("Switching to IK mode, homed and ready to move")
 
             elif inputs.dpad_right:
-                self.state = ArmState.AUTO_KEYBOARD
+                self.state = ArmState.PATH_PLANNING
                 self.get_logger().info("Switching to PATH PLANNING mode")
 
             state_string = String()
@@ -628,17 +628,10 @@ class Controller(Node):
         while len(self.current_path) > 0 and self.shutdown == False:
             for step in self.current_path:
                 error = [abs(step[i] - self.current_joints[i])
-                         for i in range(self.n_joints-1)]
+                        for i in range(self.n_joints-1)]
                 if all(e < self.joint_target_threshold for e in error):
                     # self.current_path.pop(0)
                     continue
-
-            #     self.target_joints[0:6] = step
-            #     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-            #         self.target_joints, self.current_joints)
-            #     msg = Float32MultiArray()
-            #     msg.data = self.safe_target_joints
-            #     self.safe_target_joints_pub.publish(msg)
 
                 self.internal_current_joints = self.safe_target_joints
                 self.get_logger().info("publishing to rviz")
@@ -665,64 +658,33 @@ class Controller(Node):
         self.executing_path = False
 
     def get_trajectory(self, msg):
-
+        self.safe_buffer = []
         for frame in msg.joint_trajectory.points:
             self.path_frames += 1
             # TODO: this should just add the frames directly to the current path, the joint trajectory points are already the intermediate points we want to increment by
-            self.current_path.append(list(frame.positions))
+            
+            self.target_joints[0:6] = frame
+            self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
+                self.target_joints, self.current_joints)
+
+            self.arm_internal_current_joints = self.safe_target_joints
+            for i in range(self.n_joints):
+                if type(self.safe_target_joints[i]) == np.float32:
+                    self.safe_target_joints[i] = self.safe_target_joints[i].item()
+            msg = Float32MultiArray()
+            msg.data = self.safe_target_joints
+            self.safe_target_joints_pub.publish(msg)
+
+            self.safe_buffer.append(self.safe_target_joints)
+        self.current_path.extend(self.safe_buffer)
+
+            #self.current_path.append(list(frame.positions))
 
         self.get_logger().info("total frames received: " + str(self.path_frames))
 
-        self.executing_path = True
         self.get_logger().info("first frame:")
 
         self.get_logger().info("in path executor")
-
-        # TODO: this shouldn't have path execution, just saving the path. Execution should be triggered by a separate input that confirms the execution
-        # leaving this code here for reference, but most likely will need to be removed and then rewritten in the path executor loop
-        for step in self.current_path:
-            # TODO: Real implementation commented out for now; the implementation in code is
-            # not using safety
-
-            # self.get_logger().info("length of list: " + str(len(self.current_path)))
-            # error = [abs(step[i] - self.current_joints[i]) for i in range(self.n_joints-1)]
-            # if all(e < self.joint_target_threshold for e in error):
-            #     #self.current_path.pop(0)
-            #     continue
-
-            # self.target_joints[0:6] = step
-            # self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
-            #     self.target_joints, self.current_joints)
-            # msg = Float32MultiArray()
-            # msg.data = self.safe_target_joints
-            # self.safe_target_joints_pub.publish(msg)
-
-            # self.internal_current_joints = self.safe_target_joints
-            # self.get_logger().info("publishing to rviz")
-
-            # 1. Create the JointState message
-            joint_state = JointState()
-
-            # 2. Add the timestamp (essential for robot_state_publisher)
-            joint_state.header.stamp = self.get_clock().now().to_msg()
-
-            # 3. Map the names and data
-            joint_state.name = ['joint_1', 'joint_2',
-                                'joint_3', 'joint_4', 'joint_5', 'joint_6']
-
-            # Float32MultiArray data is stored in .data (which is a list/array)
-            # We convert it to a list of floats for JointState
-            # Change "step" to "self.target_joints" later to use safety
-            joint_state.position = [float(val) for val in step]
-            if len(joint_state.position) == 7:
-                joint_state.position.pop(6)
-            self.safe_rviz_joints_pub.publish(joint_state)
-
-            # DISABLED TEMPORARILY FOR SAFETY
-            # self.can_con.send_target_message(self.safe_target_joints)
-            time.sleep(0.1)  # wait for some time before next step
-        self.executing_path = False
-
 
 def real_controller(args=None):
     rclpy.init(args=args)
