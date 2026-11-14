@@ -17,8 +17,6 @@ from arm_controller.safety import SafetyChecker
 import copy
 # from pynput import keyboard
 import time
-import math
-import time
 from moveit_msgs.msg import RobotTrajectory
 import math
 from rclpy.executors import MultiThreadedExecutor
@@ -35,6 +33,9 @@ class Controller(Node):
 
     def __init__(self, can_update_rate=1000, n_joints=7, virtual=False):
         super().__init__("Arm_Controller")
+
+        self.last_update_time = None
+        
         self.cfg = load_arm_controller_config_from_node(self)
 
         # Test to see what we get from the path planning topic
@@ -342,9 +343,13 @@ class Controller(Node):
                     # self.get_logger().info("Currently in IDLE: No control change")
 
                 case ArmState.MANUAL:
+                    dt = 0.05 if self.last_update_time == None else time.monotonic() - self.last_update_time;
+                    dt = min(dt, 0.05)
+                    self.last_update_time = time.monotonic()
+
                     # use internal current joints to prevent joint slippage when no input is given
                     self.target_joints = map_inputs_to_manual(
-                        inputs, self.speed_limits, self.arm_internal_current_joints)
+                        inputs, self.speed_limits, self.arm_internal_current_joints, dt)
                     self.safe_target_joints, self.safety_flags = self.safety_checker.update_safe_goal_pos(
                         self.target_joints, self.arm_internal_current_joints)
 

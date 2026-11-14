@@ -34,7 +34,7 @@ class CameraNode(Node):
         # Subscribers
         self.camera_sub = self.create_subscription(
             Image,
-            '/camera/camera/color/image_rect_raw',
+            '/camera/camera/color/image_raw',
             self.image_callback,
             10
         )

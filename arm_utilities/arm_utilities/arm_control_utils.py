@@ -40,7 +40,7 @@ def handle_joy_input(msg: Joy):
     return arm_inputs
 
 
-def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_joints: list):
+def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_joints: list, dt: int):
     manual_commands = {
         'base_rotation': arm_inputs.l_horizontal,
         'shoulder': arm_inputs.l_vertical,
@@ -54,7 +54,7 @@ def map_inputs_to_manual(arm_inputs: ArmInputs, speed_limits: list, current_join
     target_joints = current_joints
     for n, key in enumerate(manual_commands.keys()):
         target_joints[n] = manual_commands[key] *\
-            speed_limits[n] + current_joints[n]
+            speed_limits[n] * dt + current_joints[n]
 
     return target_joints
 
