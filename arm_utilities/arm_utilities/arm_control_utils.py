@@ -10,14 +10,14 @@ def handle_joy_input(msg: Joy):
 
     # Joystick axes
     # Left joystick: axes 0 (horizontal), 1 (vertical)
-    arm_inputs.l_horizontal = msg.axes[0]
+    arm_inputs.l_horizontal = -msg.axes[0]
     arm_inputs.l_vertical = msg.axes[1]
     # Triggers: axes 2 (left), 5 (right)
     arm_inputs.l_trigger = -0.5 * msg.axes[2] + 0.5
     arm_inputs.r_trigger = -0.5 * msg.axes[5] + 0.5
     # Right joystick: axes 3 (horizontal), 4 (vertical)
     arm_inputs.r_horizontal = msg.axes[3]
-    arm_inputs.r_vertical = msg.axes[4]
+    arm_inputs.r_vertical = -msg.axes[4]
 
     # D-Pad: axes 6 (horizontal), 7 (vertical)
     arm_inputs.dpad_left = 1 if msg.axes[6] == -1 else 0
@@ -26,8 +26,9 @@ def handle_joy_input(msg: Joy):
     arm_inputs.dpad_down = 1 if msg.axes[7] == -1 else 0
 
     # Joystick buttons
-    arm_inputs.l1 = msg.buttons[4]  # L1 button
-    arm_inputs.r1 = msg.buttons[5]  # R1 button
+    # L1 and R1 switched lol
+    arm_inputs.l1 = msg.buttons[5]  # L1 button
+    arm_inputs.r1 = msg.buttons[4]  # R1 button
     arm_inputs.x = msg.buttons[0]  # X button
     arm_inputs.circle = msg.buttons[1]  # Circle button
     arm_inputs.triangle = msg.buttons[2]  # Triangle button

@@ -7,12 +7,12 @@ speed_limits:
   # - 0.5
   # - 0.5
   # - 50
-  - 10
-  - 10
-  - 10
-  - 10
-  - 10
-  - 10
+  - 20
+  - 20
+  - 20
+  - 20
+  - 20
+  - 20
   - 1000
 publisher_depth_queue: 10
 subscriber_depth_queue: 10
