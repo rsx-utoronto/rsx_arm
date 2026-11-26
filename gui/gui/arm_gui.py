@@ -647,7 +647,7 @@ class ArmGUI(Node, QWidget):
                 display.y_label.setVisible(self.y_check.isChecked())
                 display.z_label.setVisible(self.z_check.isChecked())
 
-    def _fmt_joints(self, joints: list) -> str:
+    def _fmt_joints(self, joints: list, is_radians: bool=False) -> str:
         """Format joint angles for display Converts radians to degrees."""
         if not joints:
             return "(no data)"
@@ -655,7 +655,7 @@ class ArmGUI(Node, QWidget):
         for i, j in enumerate(joints, start=1):
             try:
                 jf = float(j)
-                angle_deg = math.degrees(jf)
+                angle_deg = math.degrees(jf) if is_radians else jf # added to fix super high degree angle bug
                 parts.append(
                     f"J{i}={angle_deg:.1f}°" if math.isfinite(jf) else f"J{i}=?")
             except Exception:
