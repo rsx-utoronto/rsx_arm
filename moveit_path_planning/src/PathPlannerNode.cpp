@@ -99,10 +99,11 @@ void PathPlannerNode::calculateIK(
     return;
   }
 
-  moveit::core::RobotStatePtr current_state = robot_state;
+  // Deep copy rather than copy the pointer
+  moveit::core::RobotState current_state(*robot_state);
 
   const moveit::core::JointModelGroup * jmg_ptr =
-    current_state->getJointModelGroup(_move_group->getName());
+    robot_state->getJointModelGroup(_move_group->getName());
   if (!jmg_ptr) {
     RCLCPP_ERROR(get_logger(), "JointModelGroup not found!");
     _ik_success_pub->publish(ik_success);
@@ -125,7 +126,7 @@ void PathPlannerNode::calculateIK(
     return !res.collision;
   };
 
-  bool found_ik = current_state->setFromIK(
+  bool found_ik = current_state.setFromIK(
     jmg_ptr,
     target_pose_eigen,
     _move_group->getEndEffectorLink(),
@@ -140,7 +141,7 @@ void PathPlannerNode::calculateIK(
   }
 
   std::vector<double> joint_values;
-  current_state->copyJointGroupPositions(jmg_ptr, joint_values);
+  current_state.copyJointGroupPositions(jmg_ptr, joint_values);
 
   // joint_values layout: [j1, j2, j3, j4, j5, j6]
   //   indices              0   1   2   3   4   5
@@ -157,15 +158,18 @@ void PathPlannerNode::calculateIK(
     const double d = joint_values[i] - robot_state->getVariablePosition(names[i]);
     if (std::abs(d) > kMaxJump) {
       RCLCPP_WARN(get_logger(),
-        "IK jump on joint %zu: %.2f rad, rejecting", i + 1, d);
+        "IK jump on joint %zu: %.2f rad, rejecting (original %.2f)", i + 1, d, joint_values[i]);
+      _ik_success_pub->publish(ik_success);
       return;
     }
   }
 
+  *robot_state = current_state;   // commit only after the solution is accepted
+
   // Need to swap joints 5 and 6 and invert 4-6
   double temp = joint_values[5];
-  joint_values[5] = joint_values[4];
-  joint_values[4] = temp;
+  joint_values[5] = -joint_values[4];
+  joint_values[4] = -temp;
   joint_values[3] = -joint_values[3];
 
   std_msgs::msg::Float32MultiArray msg;
@@ -183,10 +187,10 @@ void PathPlannerNode::joint_callback(
   std::vector<double> joint_positions(msg->data.begin(), msg->data.end() - 1);
 
   // Need to swap joints 5 and 6 and invert 4-6
-  // double temp = joint_positions[5];
-  // joint_positions[5] = -joint_positions[4];
-  // joint_positions[4] = -temp;
-  // joint_positions[3] = -joint_positions[3];
+  double temp = joint_positions[5];
+  joint_positions[5] = -joint_positions[4];
+  joint_positions[4] = -temp;
+  joint_positions[3] = -joint_positions[3];
 
   // Convert back to radians (lmao)
   for (size_t i = 0; i < NUM_JOINTS; ++i) {
