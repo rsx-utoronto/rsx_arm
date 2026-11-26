@@ -1,7 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, EmitEvent, OpaqueFunction
 from launch.events import Shutdown
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.conditions import IfCondition, UnlessCondition
@@ -48,6 +48,13 @@ def generate_launch_description():
         "ik_on",
         default_value="true",
         description="Do we want to use ik stuff",
+    )
+
+    rviz_on = LaunchConfiguration('rviz_on')
+    rviz_arg = DeclareLaunchArgument(
+        "rviz_on",
+        default_value="true",
+        description="Do we want to use rviz stuff",
     )
 
     gui_on = LaunchConfiguration('gui_on')
@@ -142,7 +149,12 @@ def generate_launch_description():
                 'rviz_planning_demo.launch.py'
             ])
         ),
-        condition=IfCondition(virtual)
+        condition=IfCondition(
+            PythonExpression([
+                "'", LaunchConfiguration("rviz_on"), "' == 'true' or ",
+                "'", LaunchConfiguration("virtual"), "' == 'true'"
+            ])
+        )
     )
 
     # The node that feeds the arm's joints to rviz in virtual mode
@@ -151,7 +163,12 @@ def generate_launch_description():
         executable='rviz_sim',
         name='Rviz_Tunnel',
         output='screen',
-        condition=IfCondition(virtual)
+        condition=IfCondition(
+            PythonExpression([
+                "'", LaunchConfiguration("rviz_on"), "' == 'true' or ",
+                "'", LaunchConfiguration("virtual"), "' == 'true'"
+            ])
+        )
     )
 
     return LaunchDescription([
@@ -161,6 +178,7 @@ def generate_launch_description():
         gui_arg,
         ik_arg,
         kb_arg,
+        rviz_arg,
         OpaqueFunction(
             function=check_args_and_launch,
             kwargs={'actions': [
