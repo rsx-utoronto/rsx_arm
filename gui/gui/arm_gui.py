@@ -18,7 +18,9 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QFrame, QScrollArea, QGridLayout, QCheckBox, QGroupBox
 )
-from PyQt5.QtGui import QFont, QColor, QPalette, QImage, QPixmap
+from PyQt5.QtGui import QFont, QColor, QPalette, QImage, QPixmap, QIcon
+from pathlib import Path
+from ament_index_python.packages import get_package_share_directory
 
 from std_msgs.msg import String, Float32MultiArray
 from sensor_msgs.msg import Image
@@ -283,6 +285,10 @@ class ArmGUI(Node, QWidget):
     def setup_ui(self):
         """Setup the main UI with cyberpunk theme."""
         self.setWindowTitle("◢ ARM CONTROL INTERFACE ◣")
+        icon_path = Path(get_package_share_directory("gui")) / "resource" / "rsx_logo.png"
+        icon = QIcon(str(icon_path))
+        self.setWindowIcon(icon)
+
         self.setGeometry(100, 100, 1400, 900)
         # Main dark background with neon accents
         self.setStyleSheet(\
