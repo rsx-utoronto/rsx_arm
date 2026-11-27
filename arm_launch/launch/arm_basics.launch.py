@@ -80,6 +80,9 @@ def generate_launch_description():
         remappings=[
             ('/joy', '/arm/joy')
         ],
+        parameters=[{
+            'deadzone': 0.1,
+        }],
         condition=UnlessCondition(use_kb)
     )
 

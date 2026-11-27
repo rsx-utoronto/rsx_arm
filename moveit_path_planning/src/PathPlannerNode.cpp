@@ -170,9 +170,9 @@ void PathPlannerNode::calculateIK(
   // double temp = joint_values[5];
   // joint_values[5] = joint_values[4];
   // joint_values[4] = temp;
-  joint_values[4] = -joint_values[4];
+  joint_values[5] = -joint_values[5];
   // joint_values[4] = -joint_values[4];
-  joint_values[3] = -joint_values[3];
+  // joint_values[3] = -joint_values[3];
 
   std_msgs::msg::Float32MultiArray msg;
   msg.data.assign(joint_values.begin(), joint_values.end());
@@ -192,8 +192,8 @@ void PathPlannerNode::joint_callback(
   // double temp = joint_positions[5];
   // joint_positions[5] = joint_positions[4];
   // joint_positions[4] = temp;
-  joint_positions[4] = -joint_positions[4];
-  joint_positions[3] = -joint_positions[3];
+  joint_positions[5] = -joint_positions[5];
+  // joint_positions[3] = -joint_positions[3];
 
   // Convert back to radians (lmao)
   for (size_t i = 0; i < NUM_JOINTS; ++i) {
