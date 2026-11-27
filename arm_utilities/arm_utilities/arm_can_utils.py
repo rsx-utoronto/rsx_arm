@@ -250,6 +250,14 @@ def calc_differential(roll: float, pitch: float) -> tuple:
     return wrist_motor1, wrist_motor2, gripper_correction  # gripper_correction
 
 
+def calc_differential_inverse(wrist_motor1: float, wrist_motor2: float) -> tuple:
+    """Convert wrist differential motor angles back to gripper roll and pitch."""
+    pitch = (wrist_motor1 - wrist_motor2) / 2
+    roll = (wrist_motor1 + wrist_motor2) / (2 * WRIST_RATIO)
+    gripper_correction = roll
+    return roll, pitch, gripper_correction
+
+
 def generate_data_packet(data_list: list) -> list:
     """List(float) -> list(list(int))
 
@@ -262,9 +270,9 @@ def generate_data_packet(data_list: list) -> list:
     """
     # Angle conversion for differential system
     # Assuming the last two angles specify the angle of the differential system,
-    # convert those two values to the required angles for motors 5 and 6
+        # convert those two values to the required angles for motors 5 and 6
     wrist_motor1, wrist_motor2, gripper_correction = calc_differential(
-        data_list[-3], data_list[-2])
+        data_list[-2], data_list[-3])
 
     # Sparkmax Data list
     spark_data = []

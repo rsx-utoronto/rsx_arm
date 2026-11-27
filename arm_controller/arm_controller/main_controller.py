@@ -11,6 +11,7 @@ from arm_msgs.msg import ArmInputs, KeyboardCoords
 from geometry_msgs.msg import Pose
 from arm_utilities.arm_enum_utils import ControlMode, ArmState, HomingStatus, CANAPI
 from arm_utilities.arm_control_utils import handle_joy_input, map_inputs_to_manual, map_inputs_to_ik
+from arm_utilities.arm_can_utils import calc_differential_inverse
 from arm_configs.loader import load_arm_controller_config_from_node, load_keyboard_config_from_node
 from arm_controller.can_connection import CAN_connection
 from arm_controller.safety import SafetyChecker
@@ -69,6 +70,8 @@ class Controller(Node):
         self.current_pose = Pose()
         self.target_pose = self.current_pose
         self.current_joints = self.initial_positions.copy()
+        self.wrist_motor1_angle = 0.0
+        self.wrist_motor2_angle = 0.0
         # relative offsets from relative encoders determined during homing
         self.joint_offsets = [0.0] * self.n_joints
 
@@ -255,30 +258,21 @@ class Controller(Node):
 
             # Joint angle value
             elif api == CANAPI.CMD_API_STAT2.value:
-                # Check if we updated wrist motors and apply the conversions
+                # Convert the two differential wrist motor shafts back into
+                # logical ee_pitch and ee_roll values.
                 if index == 4:
-                    wrist1_angle = value
-                    wrist2_angle = self.current_joints[5]
-                    self.current_joints[4] = float(
-                        (wrist1_angle + wrist2_angle) / 2)
-                    self.current_joints[5] = float(
-                        (wrist1_angle - wrist2_angle) / 2)
+                    self.wrist_motor1_angle = value
                 elif index == 5:
-                    wrist1_angle = self.current_joints[4]
-                    wrist2_angle = value
-                    self.current_joints[4] = float(
-                        (wrist1_angle + wrist2_angle) / 2)
-                    self.current_joints[5] = float(
-                        (wrist1_angle - wrist2_angle) / 2)
-
+                    self.wrist_motor2_angle = value
                 else:
-                    self.current_joints[index] = value +\
-                        self.joint_offsets[index]
+                    self.current_joints[index] = value + self.joint_offsets[index]
 
-                # Check if angle has ben calibrated to encoder measured initial angles
-                if self.init[index] == False:
-                    self.arm_internal_current_joints[index] = self.current_joints[index]
-                    self.init[index] = True
+                if index in (4, 5):
+                    roll, pitch, _ = calc_differential_inverse(
+                        self.wrist_motor1_angle,
+                        self.wrist_motor2_angle)
+                    self.current_joints[4] = float(pitch)
+                    self.current_joints[5] = float(roll)
 
             threading.Event().wait(1/self.can_rate)
 
