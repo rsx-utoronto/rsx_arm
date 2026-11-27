@@ -152,24 +152,26 @@ void PathPlannerNode::calculateIK(
   }
 
   // Reject branch flips / big jumps relative to the current (feedback) pose
-  constexpr double kMaxJump = 0.15;  // rad, tune this
-  const auto & names = jmg_ptr->getVariableNames();
-  for (size_t i = 0; i < joint_values.size(); ++i) {
-    const double d = joint_values[i] - robot_state->getVariablePosition(names[i]);
-    if (std::abs(d) > kMaxJump) {
-      RCLCPP_WARN(get_logger(),
-        "IK jump on joint %zu: %.2f rad, rejecting (original %.2f)", i + 1, d, joint_values[i]);
-      _ik_success_pub->publish(ik_success);
-      return;
-    }
-  }
+  // constexpr double kMaxJump = 0.15;  // rad, tune this
+  // const auto & names = jmg_ptr->getVariableNames();
+  // for (size_t i = 0; i < joint_values.size(); ++i) {
+  //   const double d = joint_values[i] - robot_state->getVariablePosition(names[i]);
+  //   if (std::abs(d) > kMaxJump) {
+  //     RCLCPP_WARN(get_logger(),
+  //       "IK jump on joint %zu: %.2f rad, rejecting (original %.2f)", i + 1, d, joint_values[i]);
+  //     _ik_success_pub->publish(ik_success);
+  //     return;
+  //   }
+  // }
 
   *robot_state = current_state;   // commit only after the solution is accepted
 
   // Need to swap joints 5 and 6 and invert 4-6
-  double temp = joint_values[5];
-  joint_values[5] = -joint_values[4];
-  joint_values[4] = -temp;
+  // double temp = joint_values[5];
+  // joint_values[5] = joint_values[4];
+  // joint_values[4] = temp;
+  joint_values[4] = -joint_values[4];
+  // joint_values[4] = -joint_values[4];
   joint_values[3] = -joint_values[3];
 
   std_msgs::msg::Float32MultiArray msg;
@@ -187,9 +189,10 @@ void PathPlannerNode::joint_callback(
   std::vector<double> joint_positions(msg->data.begin(), msg->data.end() - 1);
 
   // Need to swap joints 5 and 6 and invert 4-6
-  double temp = joint_positions[5];
-  joint_positions[5] = -joint_positions[4];
-  joint_positions[4] = -temp;
+  // double temp = joint_positions[5];
+  // joint_positions[5] = joint_positions[4];
+  // joint_positions[4] = temp;
+  joint_positions[4] = -joint_positions[4];
   joint_positions[3] = -joint_positions[3];
 
   // Convert back to radians (lmao)
